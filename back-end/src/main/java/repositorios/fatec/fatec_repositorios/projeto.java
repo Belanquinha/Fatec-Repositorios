@@ -9,4 +9,6 @@ public abstract class projeto {
     String imagemCapa;
     Array linksContato;
     Array emailsGrupo;
+
+
 }
