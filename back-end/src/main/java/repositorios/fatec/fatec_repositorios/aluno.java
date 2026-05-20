@@ -11,4 +11,20 @@ public class aluno extends usuario {
         this.dataNascimento = dataNascimento;
         this.statusCurso = statusCurso;
     }
+
+    public Date getDataNascimento() {
+        return dataNascimento;
+    }
+
+    public void setDataNascimento(Date dataNascimento) {
+        this.dataNascimento = dataNascimento;
+    }
+
+    public int getStatusCurso() {
+        return statusCurso;
+    }
+
+    public void setStatusCurso(int statusCurso) {
+        this.statusCurso = statusCurso;
+    }
 }

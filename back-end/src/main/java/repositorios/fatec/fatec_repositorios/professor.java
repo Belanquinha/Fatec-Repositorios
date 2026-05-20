@@ -10,4 +10,12 @@ public class professor extends usuario{
         super(nome, email, fotoPerfil);
         this.verificado = verificado;
     }
+
+    public int getVerificado() {
+        return verificado;
+    }
+
+    public void setVerificado(int verificado) {
+        this.verificado = verificado;
+    }
 }
