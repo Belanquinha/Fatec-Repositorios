@@ -1,18 +1,20 @@
-# FrontEnd
+# Fatec Projetos Integradores
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.0.
+Este Projeto foi feito usando Angular versão 21.2.0.
 
-## Development server
+## Desenvolvimento Local
 
-To start a local development server, run:
+Para começar a desenvolver Localmente, rode:
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+E quando tiver rodando, entre na URL: `http://localhost:4200/`. 
 
-## Code scaffolding
+
+
+## Comandos Uteis de desenvovimento
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
 
