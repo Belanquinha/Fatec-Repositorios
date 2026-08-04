@@ -1,0 +1,18 @@
+:root {
+    /* Títulos */
+--h1: 3rem;
+--h2: 2.5rem;
+--h3: 2rem;       
+--h4: 1.75rem;
+--h5: 1.5rem;
+
+/* Subtítulos */
+--s1: 1.5rem;   
+--s2: 1.25rem;  
+--s3: 1.125rem;  
+
+/* Body */
+--b1: 1rem;       
+--b2: 0.875rem; 
+
+}

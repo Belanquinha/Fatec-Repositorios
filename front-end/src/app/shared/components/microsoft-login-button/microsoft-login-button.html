@@ -1,0 +1,9 @@
+@if (usuarioLogado) {
+  <div class="perfil-container">
+    <p>Olá, <strong>{{ nomeUsuario }}</strong>!</p>
+    <button (click)="logout()">Sair</button>
+  </div>
+} @else {
+  <p>Para acessar o sistema, faça login com sua conta Outlook/Microsoft.</p>
+  <button (click)="login()">Entrar com Microsoft</button>
+}

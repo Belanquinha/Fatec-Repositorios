@@ -1,2 +1,49 @@
 /* You can add global styles to this file, and also import other style files */
 
+@import './styles/paleta.css';
+@import './styles/tipografia.css';
+@import './styles/reset.css';
+
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+body {
+    background-color: var(--branco-500);
+    font-family: 'Inter', sans-serif; /*fonter do site */
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased; 
+
+    /* evita o scroll horizontal */
+    overflow-x: hidden;
+}
+
+img {
+    font-style: italic; 
+    max-width: 100%;
+    height: auto;
+    vertical-align: middle;
+}
+
+
+
+a {
+  text-decoration: none;
+}
+
+.esconder-mobile {
+    display: none;
+}
+
+@media(min-width: 768px) {
+    .esconder-mobile {
+        display: flex;
+    }
+}
+
+.esconder {
+    display: none;
+}

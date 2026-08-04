@@ -1,0 +1,13 @@
+main {
+    background-color: var(--branco-500);
+}
+
+.frame-site {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.frame-main {
+    flex: 1;
+}

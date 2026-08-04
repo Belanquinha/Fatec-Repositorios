@@ -1,0 +1,75 @@
+h1 {
+    font-size: var(--h3);
+    font-weight: 600;
+}
+
+.texto-descricao-site {
+    font-size: var(--b1);
+    font-weight: 400;
+}
+
+.frame-section {
+    display: flex;
+    flex-direction: row;
+    gap: .75rem;
+}
+
+.frame-aside {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-left: 1rem;
+}
+
+.frame-texto {
+    display: flex;
+    padding: 0 1.5rem 2.5rem 1.5rem;
+    gap: 1.5rem;
+    flex-direction: column;
+}
+
+.descricao-site {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0 .5rem;
+    gap: .75rem;
+}
+
+
+/* coisas da barra de pesquisa */
+.barra-de-pesquisa {
+    display: flex;
+    align-items: center;
+
+    height: 2.625rem;
+
+    border: solid var(--amarelo-500) .25rem;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.frame-icone-de-pesquisa {
+    width: 3.25rem;
+    align-self: stretch; /* isso é tipo o height dele pra preencher o container */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: var(--amarelo-500);
+    cursor: pointer;
+}
+
+.icone-de-pesquisa {
+    rotate: 90deg;
+    color: var(--icon-color);
+    font-size: 1.7rem;
+
+}
+
+.pesquisa {
+    align-self: stretch;
+    padding: 0 1rem;
+    flex: 1;
+    font-size: var(--s3);
+}
