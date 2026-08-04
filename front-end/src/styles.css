@@ -14,7 +14,7 @@ html, body {
 body {
     background-color: var(--branco-500);
     font-family: 'Inter', sans-serif; /*fonter do site */
-    line-height: 1.6;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased; 
 
     /* evita o scroll horizontal */
@@ -30,8 +30,16 @@ img {
 
 
 
+
 a {
   text-decoration: none;
+}
+
+hr {
+    border-top: thin solid var(--cinza-200);
+    height: 2px;
+    background-color: var(--cinza-200);
+    align-self: stretch;
 }
 
 .esconder-mobile {

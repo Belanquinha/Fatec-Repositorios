@@ -14,7 +14,7 @@ header {
 .titulo-logo {
     color: var(--cinza-400);
     font-size: var(--h5);
-    font-weight: var(--weight-bold);
+    font-weight: 500;
 }
 
 .frame-logo {
@@ -101,10 +101,10 @@ section {
 }
 
 hr {
-    border-top: thin solid #243588;
-    height: 1px;
+    border-top: thin solid var(--cinza-200);
+    height: 2px;
     background-color: var(--cinza-200);
-    width: 100%;
+    align-self: stretch;
 }
 
 h2 {
