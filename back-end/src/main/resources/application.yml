@@ -1,19 +1,68 @@
 ﻿server:
-  port: 8080
+  port: 4040
 
 spring:
   datasource:
-    # URL de conexão
     url: jdbc:postgresql://localhost:5432/fatecrepository
     username: postgres
     password: 123456
     driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
+    use-new-id-generator-mappings: true
+
+  mvc:
+    log-request-details: true
+    throw-exception-if-no-handler-found: true
+
+  web:
+    resources:
+      add-mappings: true
+
+  task:
+    execution:
+      thread-name-prefix: fatec-
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    use-root-path: true
+    disable-swagger-default-url: false
+
+logging:
+  level:
+    root: INFO
+    com.fatecrepository: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:dev-secret-change-this-key-with-at-least-32-chars}
+      issuer: ${JWT_ISSUER:fatec-repository-api}
+      expiration-hours: ${JWT_EXPIRATION_HOURS:24}

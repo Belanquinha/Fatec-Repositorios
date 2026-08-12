@@ -1,13 +1,11 @@
 package com.fatecrepository.repository;
 
-import com.fatecrepository.model.Professor;
 import com.fatecrepository.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ProfessorRepository extends JpaRepository<Professor, UUID> {
-    Optional<Professor> findByUsuario(User usuario);
+public interface UserRepository extends JpaRepository<User, UUID> {
+    Optional<User> findByEmail(String email);
 }
-

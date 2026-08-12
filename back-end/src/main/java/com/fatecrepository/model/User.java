@@ -9,24 +9,32 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "alunos")
+@Table(name = "usuarios")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Aluno {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(nullable = false)
+    private String nome;
+
     @Column(nullable = false, unique = true)
-    private String matricula;
+    private String email;
 
-    private String telefone;
+    @Column(nullable = false)
+    private String senha;
 
-    @OneToOne
-    @JoinColumn(name = "usuario_id", nullable = false, unique = true)
-    private User usuario;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
+
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "instituicao_id", nullable = true)
+    private Instituicao instituicao;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();

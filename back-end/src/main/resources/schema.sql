@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS usuarios
+    ALTER COLUMN instituicao_id DROP NOT NULL;

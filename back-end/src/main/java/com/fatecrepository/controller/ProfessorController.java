@@ -1,8 +1,17 @@
 package com.fatecrepository.controller;
 
-import com.fatecrepository.model.Professor;
-import com.fatecrepository.repository.InstituicaoRepository;
-import com.fatecrepository.repository.ProfessorRepository;
+import com.fatecrepository.dto.request.ProfessorRequest;
+import com.fatecrepository.dto.response.ProfessorResponse;
+import com.fatecrepository.service.ProfessorService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,42 +19,91 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/professores")
+@Tag(name = "Professores", description = "Endpoints para gerenciamento de professores")
 public class ProfessorController {
-    private final ProfessorRepository repo;
-    private final InstituicaoRepository instituicaoRepo;
 
-    public ProfessorController(ProfessorRepository repo, InstituicaoRepository instituicaoRepo) { this.repo = repo; this.instituicaoRepo = instituicaoRepo; }
+    @Autowired
+    private ProfessorService professorService;
 
     @GetMapping
-    public List<Professor> all() { return repo.findAll(); }
+    @Operation(summary = "Listar todos os professores", description = "Retorna uma lista de todos os professores cadastrados")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de professores retornada com sucesso"),
+        @ApiResponse(responseCode = "401", description = "Não autorizado"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<List<ProfessorResponse>> obterTodos() {
+        log.info("GET /professores");
+        List<ProfessorResponse> professores = professorService.obterTodos();
+        return ResponseEntity.ok(professores);
+    }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Professor> get(@PathVariable UUID id) {
-        return repo.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    @Operation(summary = "Obter professor por ID", description = "Retorna um professor específico pelo seu ID")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Professor encontrado"),
+        @ApiResponse(responseCode = "401", description = "Não autorizado"),
+        @ApiResponse(responseCode = "404", description = "Professor não encontrado"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<ProfessorResponse> obterPorId(
+        @Parameter(description = "ID do professor") @PathVariable UUID id) {
+        log.info("GET /professores/{}", id);
+        ProfessorResponse professor = professorService.obterPorId(id);
+        return ResponseEntity.ok(professor);
     }
 
     @PostMapping
-    public ResponseEntity<Professor> create(@RequestBody Professor p) {
-        if (p.getInstituicao() != null && p.getInstituicao().getId() != null) instituicaoRepo.findById(p.getInstituicao().getId()).ifPresent(p::setInstituicao);
-        return ResponseEntity.status(HttpStatus.CREATED).body(repo.save(p));
+    @Operation(summary = "Criar novo professor", description = "Cria um novo professor no sistema")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Professor criado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida"),
+        @ApiResponse(responseCode = "401", description = "Não autorizado"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<ProfessorResponse> criar(@Valid @RequestBody ProfessorRequest request) {
+        log.info("POST /professores: {}", request.getEmail());
+        ProfessorResponse professor = professorService.criar(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(professor);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Professor> update(@PathVariable UUID id, @RequestBody Professor dto) {
-        return repo.findById(id).map(p -> {
-            p.setNome(dto.getNome());
-            p.setEmail(dto.getEmail());
-            p.setTelefone(dto.getTelefone());
-            p.setAreaEnsino(dto.getAreaEnsino());
-            if (dto.getInstituicao() != null && dto.getInstituicao().getId() != null) instituicaoRepo.findById(dto.getInstituicao().getId()).ifPresent(p::setInstituicao);
-            return ResponseEntity.ok(repo.save(p));
-        }).orElse(ResponseEntity.notFound().build());
+    @Operation(summary = "Atualizar professor", description = "Atualiza um professor existente")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Professor atualizado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida"),
+        @ApiResponse(responseCode = "401", description = "Não autorizado"),
+        @ApiResponse(responseCode = "404", description = "Professor não encontrado"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<ProfessorResponse> atualizar(
+        @Parameter(description = "ID do professor") @PathVariable UUID id,
+        @Valid @RequestBody ProfessorRequest request) {
+        log.info("PUT /professores/{}", id);
+        ProfessorResponse professor = professorService.atualizar(id, request);
+        return ResponseEntity.ok(professor);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Object> delete(@PathVariable UUID id) {
-        return repo.findById(id).map(a -> { repo.deleteById(id); return ResponseEntity.noContent().build(); }).orElse(ResponseEntity.notFound().build());
+    @Operation(summary = "Deletar professor", description = "Remove um professor do sistema")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Professor deletado com sucesso"),
+        @ApiResponse(responseCode = "401", description = "Não autorizado"),
+        @ApiResponse(responseCode = "404", description = "Professor não encontrado"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<Void> deletar(@Parameter(description = "ID do professor") @PathVariable UUID id) {
+        log.info("DELETE /professores/{}", id);
+        professorService.deletar(id);
+        return ResponseEntity.noContent().build();
     }
 }
+
