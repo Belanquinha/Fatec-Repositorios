@@ -1,19 +1,12 @@
-import { Injectable } from '@angular/core';
-
 import { MSAL_INSTANCE, MsalService } from '@azure/msal-angular';
 import { IPublicClientApplication, PublicClientApplication } from '@azure/msal-browser';
 import { environment } from '../../../environments/environment';
-
-@Injectable({
-  providedIn: 'root',
-})
-export class MicrosoftLoginMsal { }
 
   export function MSALInstanceFactory(): IPublicClientApplication {
     return new PublicClientApplication({
       auth: {
         clientId: environment.msalClientId,
-        authority: `https://login.microsoftonline.com/${environment.msalTenantId}`,
+        authority: environment.msalAuthority,
         redirectUri: environment.msalRedirectUri
       }
     });

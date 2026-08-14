@@ -1,6 +1,6 @@
-import { Component , OnInit} from '@angular/core';
-import { MsalService } from '@azure/msal-angular';
-import { AuthenticationResult } from '@azure/msal-browser';
+import { Component, OnInit } from '@angular/core';
+import { AuthService } from '../../../core/auth/auth.service';
+import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
 
 @Component({
   selector: 'app-microsoft-login-button',
@@ -10,40 +10,31 @@ import { AuthenticationResult } from '@azure/msal-browser';
 })
 export class MicrosoftLoginButton implements OnInit {
   usuarioLogado = false;
-  nomeUsuario = '';
+  usuario: UsuarioLogado | null = null;
 
-  // Injeta o serviço da Microsoft no construtor
-  constructor(private authService: MsalService) {}
+  constructor(private authService: AuthService) {}
 
-
-  // Verifica se o usuário já tem uma sessão ativa ao carregar a página
   ngOnInit(): void {
-    this.authService.instance.initialize().then(() => {
-
-      this.authService.instance.handleRedirectPromise().then(() => {
-        const contas = this.authService.instance.getAllAccounts();
-        if (contas.length > 0) {
-          this.usuarioLogado = true;
-          this.nomeUsuario = contas[0].name || '';
-        }
-
-     }).catch(error => {
-      console.error('Erro ao lidar com a promessa de redirecionamento: ', error);
-     })
-    })
+    this.authService
+      .inicializar()
+      .then(() => this.carregarUsuario())
+      .catch((error) => {
+        console.error('Erro ao inicializar o login da Microsoft: ', error);
+      });
   }
 
-  
-  // redireciona para a pagina Microsoft para o usuário logar
-  login() {
-    this.authService.loginRedirect()
+  private async carregarUsuario(): Promise<void> {
+    this.usuario = await this.authService.obterUsuarioLogado();
+    this.usuarioLogado = this.usuario !== null;
   }
 
-  // limpa as variaveis locais e manda o popup de logout da Microsoft
-  logout() {
-    this.authService.logoutPopup().subscribe(() => {
-      this.usuarioLogado = false;
-      this.nomeUsuario = '';
-    });
+  login(): void {
+    this.authService.loginPopUp();
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.usuarioLogado = false;
+    this.usuario = null;
   }
 }

@@ -1,9 +1,15 @@
-@if (usuarioLogado) {
+@if (usuarioLogado && usuario) {
   <div class="perfil-container">
-    <p>Olá, <strong>{{ nomeUsuario }}</strong>!</p>
+    @if (usuario.foto) {
+      <img [src]="usuario.foto" alt="Foto de perfil" class="foto-perfil" />
+    }
+    <p>Olá, <strong>{{ usuario.nome }}</strong>!</p>
+    <p class="email">{{ usuario.email }}</p>
     <button (click)="logout()">Sair</button>
   </div>
 } @else {
-  <p>Para acessar o sistema, faça login com sua conta Outlook/Microsoft.</p>
-  <button (click)="login()">Entrar com Microsoft</button>
+  <div class="frame-button">
+    <span class="material-symbols-outlined icon">school</span>
+    <button (click)="login()" class="button">Login com Microsoft</button>
+  </div>
 }

@@ -1,0 +1,28 @@
+.icon {
+    color: var(--icon-color);
+    font-size: 2rem;
+}
+
+.button {
+    font-size: 1.8rem;
+    color: var(--icon-color);
+}
+
+.frame-button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.foto-perfil {
+    width: 3.2rem;
+    height: 3.2rem;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.email {
+    font-size: 1.2rem;
+    color: var(--icon-color);
+}

@@ -14,6 +14,33 @@ E quando tiver rodando, entre na URL: `http://localhost:4200/`.
 
 
 
+## Configuração — variáveis de ambiente
+
+O build usa o `@ngx-env/builder`, que lê o arquivo **`.env` na raiz do front-end** (mesma pasta do `package.json`) e injeta as variáveis `NG_APP_*` em `import.meta.env` no momento do build.
+
+1. Copie o molde e preencha:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. No `.env`, informe o Application (client) ID do seu app registration no Microsoft Entra ID:
+
+   ```dotenv
+   NG_APP_MSAL_CLIENT_ID=seu-client-id-aqui
+   ```
+
+3. Instale as dependências e rode:
+
+   ```bash
+   npm install
+   ng serve
+   ```
+
+> ⚠️ O valor vai no **`.env`**, **não** em `src/environments/environment.ts`. Os arquivos `environment*.ts` apenas leem `import.meta.env['NG_APP_*']` com fallback de desenvolvimento. `clientId`/`redirectUri`/`apiUrl` **não são segredos** (SPA auth code + PKCE); nunca coloque um "client secret" no front-end. 
+
+
+
 ## Comandos Uteis de desenvovimento
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
