@@ -5,24 +5,28 @@
         </div>
     </aside>
     <section>
-        <form action="" class="frame-login">
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="frame-login">
             <div class="frame-descricao-login">
                 <h1>Faça Login como Instituição</h1>
                 <p>Acesse com o mesmo Email e senha institucional cadastrado da sua instituição</p>
             </div>
             <div class="frame-inputs">
-                <input type="email">
-                <input type="password">
-                <p>Esqueceu a senha? Contate o suporte</p>
+                <label>Email</label>
+                <input type="email" formControlName="email" id="email">
+                <label>Senha</label>
+                <input type="password" formControlName="senha" id="senha">
+                <p>Esqueceu a senha? <a href="">Contate o suporte</a></p>
 
             </div>
             <div class="frame-checkbox">
-
+                <input type="checkbox" formControlName="lembrar">
+                <label>Manter Conectado</label>
             </div>
-            <button type="submit"></button>
+            <button type="submit"><label>Logar na Conta</label></button>
             <div class="frame-redirecionamento">
 
             </div>
         </form>
     </section>
+    <a routerLink="">Ir para pagina Admin (temporario)</a>
 </div>
