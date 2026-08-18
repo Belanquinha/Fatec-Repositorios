@@ -1,0 +1,63 @@
+name: fatecrepository
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: fatec-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fatecrepository
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fatecrepository"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - fatec
+
+  backend:
+    build: ./back-end
+    container_name: fatec-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/fatecrepository
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-this-key-with-at-least-32-chars}
+      JWT_ISSUER: ${JWT_ISSUER:-fatec-repository-api}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+    ports:
+      - "4040:4040"
+    networks:
+      - fatec
+
+  frontend:
+    build:
+      context: ./front-end
+      args:
+        NG_APP_API_URL: /api
+        NG_APP_MSAL_REDIRECT_URI: http://localhost
+    container_name: fatec-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - fatec
+
+volumes:
+  postgres_data:
+
+networks:
+  fatec:
+    driver: bridge

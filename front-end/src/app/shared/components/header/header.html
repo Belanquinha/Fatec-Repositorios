@@ -5,7 +5,9 @@
     </a>
 
     <div class="frame-links">
-        <span class="material-symbols-outlined icon-header">school</span>
+        <a routerLink="login-instituicao">
+            <span class="material-symbols-outlined icon-header">school</span>
+        </a>
         <span class="material-symbols-outlined icon-header icon-menu" 
         (click)="mudarMenu()"
         (mouseenter)="isHovered = true"
@@ -35,6 +37,12 @@
         <ul>
             <li>
                 <app-microsoft-login-button></app-microsoft-login-button>
+            </li>
+            <li>
+                <a routerLink="login-instituicao" class="frame">
+                    <span class="material-symbols-outlined">corporate_fare</span>
+                    <span class="texto-link">Login Instituição</span>
+                </a>
             </li>
         </ul>
     </section>
