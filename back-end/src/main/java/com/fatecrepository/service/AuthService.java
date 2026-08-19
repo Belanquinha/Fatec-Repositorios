@@ -1,18 +1,12 @@
 package com.fatecrepository.service;
 
 import com.fatecrepository.dto.request.LoginRequest;
-import com.fatecrepository.dto.request.RegisterAlunoRequest;
-import com.fatecrepository.dto.request.RegisterProfessorRequest;
 import com.fatecrepository.dto.response.AuthResponse;
 import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.UnauthorizedException;
 import com.fatecrepository.mapper.ResponseMapper;
-import com.fatecrepository.model.Aluno;
-import com.fatecrepository.model.Professor;
 import com.fatecrepository.model.User;
 import com.fatecrepository.model.UserRole;
-import com.fatecrepository.repository.AlunoRepository;
-import com.fatecrepository.repository.ProfessorRepository;
 import com.fatecrepository.repository.UserRepository;
 import com.fatecrepository.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +24,6 @@ import java.time.LocalDateTime;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final AlunoRepository alunoRepository;
-    private final ProfessorRepository professorRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final ResponseMapper responseMapper;
@@ -53,62 +45,7 @@ public class AuthService {
         return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds());
     }
 
-    public AuthResponse registerAluno(RegisterAlunoRequest request) {
-        log.info("Registrando novo aluno: {}", request.getEmail());
 
-
-        validarEmailDisponivel(request.getEmail());
-        validarMatriculaDisponivel(request.getMatricula());
-
-        User savedUser = userRepository.save(criarUsuarioBase(
-            request.getNome(),
-            request.getEmail(),
-            request.getSenha(),
-            UserRole.ALUNO
-        ));
-
-        Aluno aluno = new Aluno();
-        aluno.setUsuario(savedUser);
-        aluno.setMatricula(request.getMatricula());
-        aluno.setTelefone(request.getTelefone());
-        aluno.setCriadoEm(LocalDateTime.now());
-        aluno.setAtualizadoEm(LocalDateTime.now());
-
-        alunoRepository.save(aluno);
-
-        String token = jwtTokenProvider.generateToken(savedUser);
-        log.info("Aluno registrado com sucesso: {}", request.getEmail());
-
-        return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds());
-    }
-
-    public AuthResponse registerProfessor(RegisterProfessorRequest request) {
-        log.info("Registrando novo professor: {}", request.getEmail());
-
-
-        validarEmailDisponivel(request.getEmail());
-
-        User savedUser = userRepository.save(criarUsuarioBase(
-            request.getNome(),
-            request.getEmail(),
-            request.getSenha(),
-            UserRole.PROFESSOR
-        ));
-
-        Professor professor = new Professor();
-        professor.setUsuario(savedUser);
-        professor.setTelefone(request.getTelefone());
-        professor.setAreaEnsino(request.getAreaEnsino());
-        professor.setCriadoEm(LocalDateTime.now());
-        professor.setAtualizadoEm(LocalDateTime.now());
-
-        professorRepository.save(professor);
-
-        String token = jwtTokenProvider.generateToken(savedUser);
-        log.info("Professor registrado com sucesso: {}", request.getEmail());
-
-        return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds());
-    }
 
     private void validarEmailDisponivel(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
@@ -116,11 +53,6 @@ public class AuthService {
         }
     }
 
-    private void validarMatriculaDisponivel(String matricula) {
-        if (alunoRepository.findByMatricula(matricula).isPresent()) {
-            throw new BadRequestException("Matrícula já cadastrada");
-        }
-    }
 
     private User criarUsuarioBase(
         String nome,

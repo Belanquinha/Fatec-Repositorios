@@ -1,8 +1,6 @@
 package com.fatecrepository.model;
 
 public enum UserRole {
-    ALUNO("aluno"),
-    PROFESSOR("professor"),
     ADMIN("admin");
 
     private final String value;

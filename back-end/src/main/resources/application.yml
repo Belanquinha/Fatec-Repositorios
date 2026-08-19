@@ -3,9 +3,9 @@
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/fatecrepository}
-    username: ${POSTGRES_USER:postgres}
-    password: ${POSTGRES_PASSWORD:123456}
+    url: jdbc:postgresql://localhost:5432/fatecrepository
+    username: postgres
+    password: 123456
     driver-class-name: org.postgresql.Driver
   sql:
     init:

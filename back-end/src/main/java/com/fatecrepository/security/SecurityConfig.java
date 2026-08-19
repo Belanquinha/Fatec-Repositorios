@@ -49,9 +49,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/instituicoes/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs").permitAll()
                 .requestMatchers("/error").permitAll()
-                .requestMatchers("/instituicoes/**").hasAnyRole("ADMIN", "PROFESSOR")
-                .requestMatchers("/professores/**").hasAnyRole("PROFESSOR", "ADMIN")
-                .requestMatchers("/alunos/**").hasAnyRole("ALUNO", "PROFESSOR", "ADMIN")
+                .requestMatchers("/instituicoes/**").hasAnyRole("ADMIN")
                     .anyRequest().permitAll()
             )
             .exceptionHandling(exceptions -> exceptions

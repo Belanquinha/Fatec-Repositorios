@@ -29,7 +29,7 @@ public class OpenApiConfig {
 			.info(new Info()
 				.title("FATEC Repository API")
 				.version("1.0.0")
-				.description("API para gerenciamento de repositórios de alunos e professores da FATEC")
+				.description("API para gerenciamento da FATEC")
 				.contact(new Contact()
 					.name("FATEC Repository Team")
 					.email("contact@fatecrepository.com")
