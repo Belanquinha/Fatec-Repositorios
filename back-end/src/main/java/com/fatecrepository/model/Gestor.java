@@ -33,6 +33,9 @@ public class Gestor {
     @Column(nullable = false)
     private String senha;
 
+//    @OneToOne(mappedBy = "gestor", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private User users;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instituicao_id", nullable = false, unique = true)
     private Instituicao instituicao;

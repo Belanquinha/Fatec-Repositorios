@@ -5,8 +5,10 @@ import com.fatecrepository.dto.response.AuthResponse;
 import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.UnauthorizedException;
 import com.fatecrepository.mapper.ResponseMapper;
+import com.fatecrepository.model.Gestor;
 import com.fatecrepository.model.User;
 import com.fatecrepository.model.UserRole;
+import com.fatecrepository.repository.GestorRepository;
 import com.fatecrepository.repository.UserRepository;
 import com.fatecrepository.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final GestorRepository gestorRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final ResponseMapper responseMapper;
@@ -31,6 +34,17 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         log.info("Tentativa de login para email: {}", request.getEmail());
+
+        Gestor gestor = gestorRepository.findByEmail(request.getEmail()).orElse(null);
+        if (gestor != null) {
+            if (!passwordEncoder.matches(request.getSenha(), gestor.getSenha())) {
+                throw new UnauthorizedException("Senha incorreta");
+            }
+
+            String token = jwtTokenProvider.generateToken(gestor);
+            log.info("Login realizado com sucesso para gestor: {}", request.getEmail());
+            return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds());
+        }
 
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new UnauthorizedException("Usuário não encontrado"));
@@ -40,19 +54,16 @@ public class AuthService {
         }
 
         String token = jwtTokenProvider.generateToken(user);
-        log.info("Login realizado com sucesso para: {}", request.getEmail());
+        log.info("Login realizado com sucesso para usuário: {}", request.getEmail());
 
         return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds());
     }
-
-
 
     private void validarEmailDisponivel(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new BadRequestException("Email já cadastrado");
         }
     }
-
 
     private User criarUsuarioBase(
         String nome,

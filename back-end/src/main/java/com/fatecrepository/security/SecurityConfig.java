@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/instituicoes/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs").permitAll()
                 .requestMatchers("/error").permitAll()
-                .requestMatchers("/instituicoes/**").hasAnyRole("ADMIN")
+                .requestMatchers("/instituicoes/**").hasAnyRole("ADMIN", "GESTOR")
                     .anyRequest().permitAll()
             )
             .exceptionHandling(exceptions -> exceptions
@@ -79,7 +79,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:4200"));
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost",
+            "http://localhost:80",
+            "http://localhost:3000",
+            "http://localhost:4200",
+            "http://127.0.0.1:4200",
+            "http://frontend"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
