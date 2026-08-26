@@ -31,8 +31,9 @@ public class Instituicao {
     @Column(nullable = false, unique = true)
     private String cnpj;
 
-    private String email;
-    private String telefone;
+    @OneToOne(mappedBy = "instituicao", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private Gestor gestor;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();

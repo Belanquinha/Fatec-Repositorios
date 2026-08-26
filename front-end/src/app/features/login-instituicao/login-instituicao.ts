@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from "@angular/router";
-
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-login-instituicao',
@@ -11,19 +11,39 @@ import { RouterLink } from "@angular/router";
 })
 export class LoginInstituicao {
   loginForm: FormGroup;
+  mensagemErro = '';
+  enviando = false;
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router,
+  ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       senha: ['', Validators.required],
-      lembrar: [false]
+      lembrar: [false],
     });
   }
 
-  onSubmit() {
-    if (this.loginForm.valid) {
-      const dados = this.loginForm.value;
-      // espaço para serviço HTTP de POST aqui enviando os dados
+  async onSubmit(): Promise<void> {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      this.mensagemErro = 'Preencha email e senha válidos.';
+      return;
+    }
+
+    const { email, senha } = this.loginForm.value;
+    this.enviando = true;
+    this.mensagemErro = '';
+
+    try {
+      await this.authService.loginInstituicao(email, senha);
+      this.router.navigateByUrl('/');
+    } catch (erro) {
+      this.mensagemErro = erro instanceof Error ? erro.message : 'Erro ao realizar o login.';
+    } finally {
+      this.enviando = false;
     }
   }
 }

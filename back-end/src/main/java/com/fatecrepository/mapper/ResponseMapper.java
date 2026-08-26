@@ -1,13 +1,11 @@
 package com.fatecrepository.mapper;
 
-import com.fatecrepository.dto.response.AlunoResponse;
 import com.fatecrepository.dto.response.AuthResponse;
+import com.fatecrepository.dto.response.GestorResponse;
 import com.fatecrepository.dto.response.InstituicaoResponse;
-import com.fatecrepository.dto.response.ProfessorResponse;
 import com.fatecrepository.dto.response.UsuarioResponse;
-import com.fatecrepository.model.Aluno;
+import com.fatecrepository.model.Gestor;
 import com.fatecrepository.model.Instituicao;
-import com.fatecrepository.model.Professor;
 import com.fatecrepository.model.User;
 import org.springframework.stereotype.Component;
 
@@ -25,25 +23,18 @@ public class ResponseMapper {
         );
     }
 
-    public AlunoResponse toAlunoResponse(Aluno aluno) {
-        return new AlunoResponse(
-            aluno.getId(),
-            aluno.getMatricula(),
-            aluno.getTelefone(),
-            toUsuarioResponse(aluno.getUsuario()),
-            aluno.getCriadoEm(),
-            aluno.getAtualizadoEm()
-        );
-    }
+    public GestorResponse toGestorResponse(Gestor gestor) {
+        if (gestor == null) {
+            return null;
+        }
 
-    public ProfessorResponse toProfessorResponse(Professor professor) {
-        return new ProfessorResponse(
-            professor.getId(),
-            professor.getTelefone(),
-            professor.getAreaEnsino(),
-            toUsuarioResponse(professor.getUsuario()),
-            professor.getCriadoEm(),
-            professor.getAtualizadoEm()
+        return new GestorResponse(
+            gestor.getId(),
+            gestor.getNome(),
+            gestor.getEmail(),
+            gestor.getTelefone(),
+            gestor.getCriadoEm(),
+            gestor.getAtualizadoEm()
         );
     }
 
@@ -52,11 +43,10 @@ public class ResponseMapper {
             instituicao.getId(),
             instituicao.getNome(),
             instituicao.getCnpj(),
-            instituicao.getEmail(),
-            instituicao.getTelefone(),
             instituicao.getEndereco(),
             instituicao.getCidade(),
             instituicao.getEstado(),
+            toGestorResponse(instituicao.getGestor()),
             instituicao.getCriadoEm(),
             instituicao.getAtualizadoEm()
         );

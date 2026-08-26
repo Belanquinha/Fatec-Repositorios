@@ -54,6 +54,31 @@ export class AuthService {
     });
   }
 
+  async loginInstituicao(email: string, senha: string): Promise<{ accessToken: string; tokenType: string; expiresInSeconds: number }> {
+    const resposta = await fetch(`${environment.apiUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha }),
+    });
+
+    console.log(resposta)
+
+    const dados = await resposta.json().catch(() => null);
+
+    if (!resposta.ok) {
+      const mensagem = dados?.mensagem ?? dados?.message ?? 'Não foi possível realizar o login.';
+      throw new Error(mensagem);
+    }
+
+    if (typeof window !== 'undefined' && dados?.accessToken) {
+      window.localStorage.setItem('accessToken', dados.accessToken);
+      window.localStorage.setItem('tokenType', dados.tokenType ?? 'Bearer');
+      window.localStorage.setItem('expiresInSeconds', String(dados.expiresInSeconds ?? 0));
+    }
+
+    return dados as { accessToken: string; tokenType: string; expiresInSeconds: number };
+  }
+
   logout(): void {
     this.instance.logoutPopup();
   }

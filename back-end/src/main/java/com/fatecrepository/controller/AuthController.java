@@ -1,8 +1,6 @@
 package com.fatecrepository.controller;
 
 import com.fatecrepository.dto.request.LoginRequest;
-import com.fatecrepository.dto.request.RegisterAlunoRequest;
-import com.fatecrepository.dto.request.RegisterProfessorRequest;
 import com.fatecrepository.dto.response.AuthResponse;
 import com.fatecrepository.model.User;
 import com.fatecrepository.model.UserRole;
@@ -43,30 +41,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/register/aluno")
-    @Operation(summary = "Registrar novo aluno", description = "Cria uma nova conta de aluno e retorna um token JWT")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Aluno registrado com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Requisição inválida ou email já cadastrado"),
-        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
-    })
-    public ResponseEntity<AuthResponse> registerAluno(@Valid @RequestBody RegisterAlunoRequest request) {
-        log.info("POST /auth/register/aluno para email: {}", request.getEmail());
-        AuthResponse response = authService.registerAluno(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
 
-    @PostMapping("/register/professor")
-    @Operation(summary = "Registrar novo professor", description = "Cria uma nova conta de professor e retorna um token JWT")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Professor registrado com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Requisição inválida ou email já cadastrado"),
-        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
-    })
-    public ResponseEntity<AuthResponse> registerProfessor(@Valid @RequestBody RegisterProfessorRequest request) {
-        log.info("POST /auth/register/professor para email: {}", request.getEmail());
-        AuthResponse response = authService.registerProfessor(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
 
 }

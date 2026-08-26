@@ -22,7 +22,12 @@
                 <input type="checkbox" formControlName="lembrar">
                 <label>Manter Conectado</label>
             </div>
-            <button type="submit"><label>Logar na Conta</label></button>
+            <button type="submit" [disabled]="enviando">
+                <label>{{ enviando ? 'Entrando...' : 'Logar na Conta' }}</label>
+            </button>
+            @if (mensagemErro) {
+                <p class="mensagem-erro" aria-live="polite">{{ mensagemErro }}</p>
+            }
             <div class="frame-redirecionamento">
 
             </div>

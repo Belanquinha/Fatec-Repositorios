@@ -1,5 +1,6 @@
 package com.fatecrepository.security;
 
+import com.fatecrepository.model.Gestor;
 import com.fatecrepository.model.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,6 +31,15 @@ public class CustomUserDetails implements UserDetails {
             user.getEmail(),
             user.getSenha(),
             Collections.singletonList(new SimpleGrantedAuthority(role))
+        );
+    }
+
+    public static CustomUserDetails fromGestor(Gestor gestor) {
+        return new CustomUserDetails(
+            gestor.getId(),
+            gestor.getEmail(),
+            gestor.getSenha(),
+            Collections.singletonList(new SimpleGrantedAuthority("ROLE_GESTOR"))
         );
     }
 
