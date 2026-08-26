@@ -1,0 +1,44 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.page-container { display: flex; flex-direction: column; min-height: 100vh; background-color: #f4f6f8; color: #333; }
+
+/* Navbar */
+.navbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 32px; background-color: #ffffff; border-bottom: 1px solid #e1e4e8; width: 100%; }
+.logo-container { display: flex; align-items: center; gap: 10px; }
+
+/* Logo de 4 blocos estilo LuePad */
+.logo-icon { display: grid; grid-template-columns: repeat(2, 10px); gap: 2px; }
+.square { width: 10px; height: 10px; border-radius: 1px; }
+.square.red { background-color: #d93025; }
+.square.blue { background-color: #1a73e8; }
+.square.yellow { background-color: #f9ab00; }
+.square.green { background-color: #1e8e3e; }
+.logo-text { font-size: 1.25rem; font-weight: 600; color: #333; }
+
+.header-actions { display: flex; align-items: center; gap: 24px; }
+.nav-item { display: flex; align-items: center; gap: 8px; text-decoration: none; color: #424242; font-size: 0.875rem; white-space: nowrap; }
+.menu-btn { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 4px; padding: 4px; }
+.hamburger { width: 20px; height: 2px; background-color: #424242; display: block; }
+
+/* Conteúdo Principal alinhado à esquerda */
+.content { flex: 1; padding: 40px 32px; width: 100%; max-width: 100%; margin: 0; }
+.page-title { font-size: 1.75rem; font-weight: 600; color: #000; margin-bottom: 24px; }
+
+.action-buttons { display: flex; flex-direction: column; gap: 10px; width: 160px; margin-bottom: 32px; }
+.btn { padding: 8px 12px; background-color: #f4f6f8; border: 1px solid #767676; border-radius: 4px; color: #000; font-size: 0.85rem; cursor: pointer; text-align: center; }
+
+/* Linha divisória cinza */
+.divider { border: none; border-top: 1px solid #d0d7de; width: 100%; margin-top: 20px; }
+
+/* Footer */
+.footer { padding: 20px 32px; background-color: #e2e5e9; font-size: 0.85rem; color: #333; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #d0d7de; }
+.github-link { color: #333; text-decoration: underline; }
+
+/* Responsivo Mobile */
+@media (max-width: 767px) {
+  .link-text { display: none; }
+  .header-actions .nav-item:first-child { display: none; }
+  .header-actions { gap: 16px; }
+  .content { padding: 24px 16px; }
+  .action-buttons { width: 100%; max-width: 100%; }
+  .footer { padding: 20px 16px; }
+}
