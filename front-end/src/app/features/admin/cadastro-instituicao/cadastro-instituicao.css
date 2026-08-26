@@ -1,0 +1,74 @@
+.frame-conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1.5rem 2rem;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.frame-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 50rem;
+    min-width: 21.25rem;
+
+}
+
+.frame-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+}
+
+.frame-input-unico {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 1rem;
+}
+
+input {
+    display: flex;
+    border: 2px solid var(--cinza-500);
+    cursor: pointer;
+    border-radius: 4px;
+    padding: .5rem 1rem;
+    font-size: var(--s3);
+}
+
+label {
+    font-size: var(--s3);
+}
+
+
+
+.frame-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: fit-content;
+}
+
+.bnt-submit {
+    background-color: var(--amarelo-500);
+    cursor: pointer;
+    font-size: var(--s2);
+    width: fit-content;
+    padding: .5rem 1rem;
+    border-radius: 4px;
+
+}
+
+.bnt-modal {
+    font-size: var(--s2);
+    width: fit-content;
+    padding: .5rem 1rem;
+    border: solid 2px var(--cinza-600);
+    border-radius: 4px;
+}

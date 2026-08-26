@@ -2,7 +2,3 @@ main {
     background-color: var(--branco-500);
 }
 
-.frame-main {
-    flex: 1;
-    padding-top: 1px;
-}

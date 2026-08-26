@@ -1,7 +1,9 @@
 <div class="frame-conteudo">
     <aside>
         <div class="frame-explicacao">
-
+            <h1>Esta página é para login de Instituições </h1>
+            <p>Procurando o Login de E studante ou Professor?</p>
+            <button class="btn-secundario">Login de estudante / Professor</button>
         </div>
     </aside>
     <section>
@@ -19,19 +21,20 @@
 
             </div>
             <div class="frame-checkbox">
-                <input type="checkbox" formControlName="lembrar">
+                <input type="checkbox" formControlName="lembrar" class="checkbox">
                 <label>Manter Conectado</label>
             </div>
-            <button type="submit" [disabled]="enviando">
-                <label>{{ enviando ? 'Entrando...' : 'Logar na Conta' }}</label>
+            <button class="bnt-primario" type="submit" [disabled]="enviando">
+                {{ enviando ? 'Entrando...' : 'Logar na Conta' }}
             </button>
             @if (mensagemErro) {
                 <p class="mensagem-erro" aria-live="polite">{{ mensagemErro }}</p>
             }
             <div class="frame-redirecionamento">
-
+                <p>Ou cadastre sua Instituição <a href="">Aqui</a></p>
             </div>
         </form>
     </section>
-    <a routerLink="">Ir para pagina Admin (temporario)</a>
 </div>
+
+<a routerLink="/admin-cadastro-instituicao">Tela de Admin (temporario ate termos um login de admin)</a>
