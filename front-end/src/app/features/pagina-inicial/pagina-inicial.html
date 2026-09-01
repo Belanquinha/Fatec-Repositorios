@@ -1,4 +1,4 @@
-<div class="frame-geral">
+<div class="frame-conteudo">
     <section class="frame-section">
         <div class="frame-texto">
             <div class="descricao-site">
@@ -12,27 +12,29 @@
         </div>
         <hr class="esconder-mobile">
         <aside class="frame-aside esconder-mobile">
-            <h1>É estudante da Fatec? </h1>
+            <h2>É estudante da Fatec? </h2>
             <p>Divulgue seu projeto na nossa plataforma</p>
-            <h2>Entre com Email Institucional →</h2>
+            <a class="acao-login">Entre com Email Institucional →</a>
         </aside>
     </section>
     
 
-    <section>
-        <div class="cards-main">
-            <div class="frame-populares">
-                <a class="link-populares">Projetos Populares →</a>
-            </div>
-    
+    <section class="cards-main">
+        <div class="frame-populares">
+            <a class="link-populares">Projetos Populares →</a>
+        </div>
+
+        <div class="frame-centro">
             <div class="frame-cards">
                 <!-- esse é o modelo de card, por padrão deixarei ai -->
-                <app-card-projeto class="card"></app-card-projeto>
-                <app-card-projeto class="card"></app-card-projeto>
+
+                <app-card-projeto class="card" routerLink="/ver-projeto"></app-card-projeto>
+                <app-card-projeto class="card" routerLink="/ver-projeto"></app-card-projeto>
+                <app-card-projeto class="card" routerLink="/ver-projeto"></app-card-projeto>
+                <app-card-projeto class="card" routerLink="/ver-projeto"></app-card-projeto>
             </div>
-    
+
             <p>Procura por um projeto especifico? <br> Tente nossas <a href="">ferramentas de Pesquisa</a></p>
         </div>
-    
     </section>
 </div>

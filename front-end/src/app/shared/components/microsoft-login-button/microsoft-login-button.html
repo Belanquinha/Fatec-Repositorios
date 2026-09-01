@@ -10,6 +10,6 @@
 } @else {
   <div class="frame-button">
     <span class="material-symbols-outlined icon">school</span>
-    <button (click)="login()" class="button">Login com Microsoft</button>
+    <button (click)="login()" class="button" [disabled]="inicializando">Login com Microsoft</button>
   </div>
 }

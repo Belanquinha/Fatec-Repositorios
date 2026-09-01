@@ -35,18 +35,12 @@ a {
   text-decoration: none;
 }
 
-hr {
-    border-top: thin solid var(--cinza-200);
-    height: 2px;
-    background-color: var(--cinza-200);
-    align-self: stretch;
-}
 
 .esconder-mobile {
     display: none;
 }
 
-@media(min-width: 768px) {
+@media(min-width: 992px) {
     .esconder-mobile {
         display: flex;
     }

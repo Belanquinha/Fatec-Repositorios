@@ -2,3 +2,8 @@ main {
     background-color: var(--branco-500);
 }
 
+.frame-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

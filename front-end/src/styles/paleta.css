@@ -26,7 +26,7 @@
     --azul-800: #252670;
     --azul-900: #1C1D55;
 
-    /* Amarelo */
+    /* Amarelo cor primaria */
     --amarelo-50: #FCF6E6;
     --amarelo-100: #F4E4B1;
     --amarelo-200: #EFD78B;
@@ -74,4 +74,8 @@
     --cinza-800: #121214;
     --cinza-900: #0D0E0F;
 
+
+    --border-radius: 4px;   /* Um 'quadrado suave' para conforto visual,*/
+
+    --mobile-brakpoint: 768px;
 }

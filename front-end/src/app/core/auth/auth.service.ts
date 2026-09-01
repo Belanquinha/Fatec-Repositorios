@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { MSAL_INSTANCE } from '@azure/msal-angular';
-import { AccountInfo, AuthenticationResult, IPublicClientApplication, PopupRequest } from '@azure/msal-browser';
+import { AccountInfo, AuthenticationResult, IPublicClientApplication, RedirectRequest } from '@azure/msal-browser';
 import { environment } from '../../../environments/environment';
 import { UsuarioLogado } from './models/usuario-logado';
 
@@ -15,7 +15,17 @@ export class AuthService {
 
   async inicializar(): Promise<void> {
     await this.instance.initialize();
-    await this.instance.handleRedirectPromise();
+    try {
+      await this.instance.handleRedirectPromise();
+    } catch (e: any) {
+      if (e?.errorCode === 'no_token_request_cache_error') {
+        Object.keys(sessionStorage)
+          .filter((k) => k.startsWith('msal.'))
+          .forEach((k) => sessionStorage.removeItem(k));
+      } else {
+        throw e;
+      }
+    }
   }
 
   get conta(): AccountInfo | undefined {
@@ -42,16 +52,14 @@ export class AuthService {
     return usuario;
   }
 
-  loginPopUp(): void {
-    const request: PopupRequest = {
+  loginMicrosoft(): void {
+    const request: RedirectRequest = {
       scopes: GRAPH_SCOPES,
       authority: environment.msalAuthority,
       redirectUri: environment.msalRedirectUri,
     };
 
-    this.instance.loginPopup(request).then(() => {
-      window.location.reload();
-    });
+    this.instance.loginRedirect(request);
   }
 
   async loginInstituicao(email: string, senha: string): Promise<{ accessToken: string; tokenType: string; expiresInSeconds: number }> {
@@ -80,7 +88,7 @@ export class AuthService {
   }
 
   logout(): void {
-    this.instance.logoutPopup();
+    this.instance.logoutRedirect({ postLogoutRedirectUri: environment.msalRedirectUri });
   }
 
   private async buscarFotoPerfil(conta: AccountInfo): Promise<string | undefined> {

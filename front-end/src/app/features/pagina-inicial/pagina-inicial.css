@@ -1,14 +1,40 @@
-.frame-geral {
+.frame-conteudo {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 2rem;
     padding: 1.5rem 0;
+
+    max-width: 80rem;
+}
+
+.frame-section {
+    display: flex;
+    flex-direction: row;
+    gap: .75rem;
+    justify-content: center;
+    align-items: center;
+    max-width: 80rem;
+    min-width: 20rem;
+    padding: 1rem 1.5rem;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 768px) {
+    
+}
+
+hr {
+    border-top: thin solid var(--cinza-200);
+    width: 1px;
+    align-self: stretch;
+
+    background-color: var(--cinza-200);
 }
 
 
-
 h1 {
-    font-size: var(--h3);
+    font-size: var(--h2);
     font-weight: 600;
 }
 
@@ -17,24 +43,19 @@ h1 {
     font-weight: 400;
 }
 
-.frame-section {
-    display: flex;
-    flex-direction: row;
-    gap: .75rem;
-    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.1);
-}
-
-.frame-aside {
-    flex-direction: column;
-    gap: 1.25rem;
-    padding-left: 1rem;
-}
-
 .frame-texto {
     display: flex;
-    padding: 0 1.5rem 2.5rem 1.5rem;
-    gap: 1.5rem;
     flex-direction: column;
+    
+    align-items: center;
+    gap: 3rem;
+    max-width: 48rem;
+}
+
+@media (min-width: 798px) {
+    .frame-texto {
+         padding: 0 1.5rem 0 1.5rem;
+    }
 }
 
 .descricao-site {
@@ -46,11 +67,10 @@ h1 {
     gap: .75rem;
 }
 
-
-/* coisas da barra de pesquisa */
 .barra-de-pesquisa {
     display: flex;
     align-items: center;
+    align-self: stretch;
 
     height: 2.625rem;
 
@@ -84,19 +104,53 @@ h1 {
     font-size: var(--s3);
 }
 
+.frame-aside {
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 25rem;
+    width: 100%;
+    padding: 0 1rem;
+}
+
+h2 {
+    font-size: var(--h4);
+}
+
+.acao-login {
+    font-size: var(--h5);
+}
+
+
+
+
+/* daqui pra frente conteudo da pagina */
 
 .cards-main {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    align-items: center;
+    width: 100%;
 }
 
 .frame-cards {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
     padding: 0 1.25rem;
+}
+
+/* Tablet pequeno (>= 600px): 2 colunas */
+@media (min-width: 768px) {
+    .frame-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Desktop (>= 992px): 3 colunas */
+@media (min-width: 1324px) {
+    .frame-cards {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 .frame-populares {
@@ -116,4 +170,20 @@ h1 {
     display: flex;
     flex-direction: column;
     cursor: pointer;
+    width: 100%;
+    min-width: 0;
+}
+
+.frame-centro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.frame-projetos {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
 }

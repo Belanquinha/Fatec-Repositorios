@@ -11,6 +11,7 @@ import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
 export class MicrosoftLoginButton implements OnInit {
   usuarioLogado = false;
   usuario: UsuarioLogado | null = null;
+  inicializando = true;
 
   constructor(private authService: AuthService) {}
 
@@ -20,7 +21,8 @@ export class MicrosoftLoginButton implements OnInit {
       .then(() => this.carregarUsuario())
       .catch((error) => {
         console.error('Erro ao inicializar o login da Microsoft: ', error);
-      });
+      })
+      .finally(() => (this.inicializando = false));
   }
 
   private async carregarUsuario(): Promise<void> {
@@ -29,7 +31,7 @@ export class MicrosoftLoginButton implements OnInit {
   }
 
   login(): void {
-    this.authService.loginPopUp();
+    this.authService.loginMicrosoft();
   }
 
   logout(): void {

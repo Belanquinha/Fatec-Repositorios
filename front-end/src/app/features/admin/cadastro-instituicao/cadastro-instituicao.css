@@ -8,6 +8,7 @@
 form {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 2rem;
 }
 
@@ -51,6 +52,7 @@ label {
 .frame-links {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 1rem;
     width: fit-content;
 }

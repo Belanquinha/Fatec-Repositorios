@@ -15,8 +15,12 @@ aside {
 .frame-explicacao {
     display: flex;
     flex-direction: column;
-    max-width: 26.75rem;
+    align-items: center;
     gap: 1.5rem;
+}
+
+.h1-fix {
+    text-align: center;
 }
 
 .btn-secundario {

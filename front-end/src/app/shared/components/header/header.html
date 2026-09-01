@@ -1,29 +1,31 @@
 <header>
-    <a href="/" class="frame-logo">
+    <a routerLink="/" class="frame-logo">
         <img src="Logo.svg" alt="Logo da Empresa" class="logo">
         <h2 class="titulo-logo">LuePad</h2>
     </a>
 
     <div class="frame-links">
-        <a routerLink="login-instituicao">
+        <a (click)="loginMicrosoft()" class="frame login-label">
             <span class="material-symbols-outlined icon-header">school</span>
+            <span class="texto-login">Login institucional</span>
         </a>
         <span class="material-symbols-outlined icon-header icon-menu" 
-        (click)="mudarMenu()"
-        (mouseenter)="isHovered = true"
-        (mouseleave)="isHovered = false"
-        >{{ estadoDoMenuAberto || isHovered ? 'menu_open' : 'menu' }}</span>
+            (click)="mudarMenu()"
+            (mouseenter)="isHovered = true"
+            (mouseleave)="isHovered = false">
+            {{ estadoDoMenuAberto || isHovered ? 'menu_open' : 'menu' }}
+        </span>
     </div>
 </header>
 
 <!-- daqui pra frente e coisa do menu  -->
 
-<nav [class.menu-aberto]="estadoDoMenuAberto">
+<nav #menuNav [class.menu-aberto]="estadoDoMenuAberto">
     <section>
         <h2>Navegação</h2>
         <ul>
             <li>
-                <a routerLink="/Inicio" class="frame">
+                <a routerLink="/" class="frame" (click)="fecharMenu()">
                     <span class="material-symbols-outlined">home</span>
                     <span class="texto-link">Inicio</span>
                 </a>
@@ -49,18 +51,18 @@
     <hr>
 
     <section>
-        <h2>Procura por</h2>
+        <h2 class="inativo">Procura por</h2>
         <ul>
             <li>
                 <a routerLink="/inicio" class="frame">
-                    <span class="material-symbols-outlined">category_search</span>
-                    <span class="texto-link">Curso</span>
+                    <span class="material-symbols-outlined inativo">category_search</span>
+                    <span class="texto-link inativo">Curso</span>
                 </a>
             </li>
             <li>
                 <a routerLink="/inicio" class="frame">
-                    <span class="material-symbols-outlined">filter_alt</span>
-                    <span class="texto-link">Categorias</span>
+                    <span class="material-symbols-outlined inativo">filter_alt</span>
+                    <span class="texto-link inativo">Categorias</span>
                 </a>
             </li>
         </ul>
@@ -68,18 +70,18 @@
     <hr>
 
     <section>
-        <h2>Extras</h2>
+        <h2 class="inativo">Extras</h2>
         <ul>
             <li>
                 <a routerLink="/inicio" class="frame">
-                    <span class="material-symbols-outlined">dark_mode</span>
-                    <span class="texto-link">Modo Escuro [a mudar]</span>
+                    <span class="material-symbols-outlined inativo">dark_mode</span>
+                    <span class="texto-link inativo">Modo Escuro [a mudar]</span>
                 </a>
             </li>
             <li>
                 <a routerLink="/inicio" class="frame">
-                    <span class="material-symbols-outlined">settings</span>
-                    <span class="texto-link">Configurações</span>
+                    <span class="material-symbols-outlined inativo">settings</span>
+                    <span class="texto-link inativo">Configurações</span>
                 </a>
             </li>
         </ul>
