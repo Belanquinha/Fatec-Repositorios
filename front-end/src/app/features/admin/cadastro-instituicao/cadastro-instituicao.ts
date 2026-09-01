@@ -27,10 +27,17 @@ export class CadastroInstituicao {
     };
 
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const accessToken = typeof window !== 'undefined' ? window.localStorage.getItem('accessToken') : null;
+      const tokenType = typeof window !== 'undefined' ? window.localStorage.getItem('tokenType') ?? 'Bearer' : 'Bearer';
+      if (accessToken) {
+        headers['Authorization'] = `${tokenType} ${accessToken}`;
+      }
+
       const res = await fetch('http://localhost:4040/instituicoes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        headers,
+        body: JSON.stringify(body),
       });
 
       if (res.status === 201 || res.ok) {
