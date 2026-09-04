@@ -158,6 +158,10 @@ span {
     font-size: 1.8rem;
 }
 
+.texto-link:hover {
+    text-decoration: underline;
+}
+
 ul {
     list-style: none;
     display: flex;

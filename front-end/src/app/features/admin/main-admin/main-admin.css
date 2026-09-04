@@ -1,0 +1,33 @@
+.frame-conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1.5rem 2rem;
+}
+
+.frame-links {
+    display: flex;
+    gap: 1rem;
+
+}
+
+.link {
+    color: black;
+    font-size: var(--s3);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.link:hover {
+    text-decoration: underline;
+}
+
+.link-ativo {
+    text-decoration: underline;
+    text-decoration-color: var(--amarelo-500);
+    text-underline-offset: 4px;
+}
+
+
+
+

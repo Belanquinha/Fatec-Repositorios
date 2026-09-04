@@ -8,6 +8,10 @@
     color: var(--icon-color);
 }
 
+.button:hover {
+    text-decoration: underline;
+}
+
 .frame-button {
     display: flex;
     align-items: center;

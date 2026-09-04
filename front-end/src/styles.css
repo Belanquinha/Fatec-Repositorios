@@ -3,6 +3,7 @@
 @import './styles/paleta.css';
 @import './styles/tipografia.css';
 @import './styles/reset.css';
+@import './styles/diretivas.css';
 
 
 html, body {

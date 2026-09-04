@@ -1,8 +1,10 @@
-import { Component, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, HostListener, ElementRef, ViewChild, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MicrosoftLoginButton } from '../microsoft-login-button/microsoft-login-button';
 import { AuthService } from '../../../core/auth/auth.service';
+import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -10,13 +12,28 @@ import { AuthService } from '../../../core/auth/auth.service';
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
-export class Header {
+export class Header implements OnInit, OnDestroy {
   estadoDoMenuAberto = false;
   isHovered = false;
+  private routerSubscription!: Subscription;
 
   @ViewChild('menuNav') menuNav!: ElementRef<HTMLElement>;
 
-  constructor(private elementRef: ElementRef, private authService: AuthService) {}
+  constructor(private elementRef: ElementRef, private authService: AuthService, private router: Router) {}
+
+  ngOnInit(): void {
+    this.routerSubscription = this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.fecharMenu();
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+  }
 
   mudarMenu(): void {
     this.estadoDoMenuAberto = !this.estadoDoMenuAberto;

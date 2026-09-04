@@ -1,0 +1,155 @@
+/* Estilos usados na pagina em geral */
+
+.cinza {
+    color: var(--cinza-400);
+}
+
+/* Estilos da Pagina  */
+
+.frame-conteudo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.5rem;
+    padding-bottom: 4rem;
+}
+
+.frame-texto-pagina {
+    max-width: 56rem;
+}
+
+.titulo-subtitulo {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.frame-forms {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px var(--cinza-200);
+
+    max-width: 54rem;
+    width: 100%;
+}
+
+.frame-etapas {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+
+    border-bottom: solid 1px var(--cinza-200);
+}
+
+.frame-etapa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+
+    max-width: 13rem;
+}
+
+.quadrado-etapa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: solid 2px var(--cinza-200);
+
+    border-radius: 4px;
+}
+
+.quadrado-etapa > p {
+    color: var(--cinza-200);
+    font-size: var(--s2);
+    line-height: 0;
+}
+
+.frame-etapa > hgroup {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+
+.frame-quadrado-texto > h2{
+    font-size: var(--b1);
+}
+
+.linha {
+    width: 10%;          
+    height: 2px;
+    background-color: #ccc;
+}
+
+/* espaço para etapas */
+
+.inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 0 1.5rem;
+}
+
+.input-padrao {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.input-imagem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+
+    border: dashed 2px var(--cinza-200);
+
+    max-height: 15rem;
+}
+
+
+
+
+
+
+
+.frame-integrante {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1rem;
+    border-radius: 4px;
+
+    box-shadow: 0 0 0 1px var(--cinza-200);
+}
+
+.frame-texto-integrante {
+    display: flex;
+    gap: 1rem;
+}
+
+
+
+
+
+
+
+
+
+
+
+.frame-enviar {
+    display: flex;
+    justify-content: space-between;
+    border-top: solid 1px var(--cinza-200);
+
+    padding: 1.5rem;
+}
