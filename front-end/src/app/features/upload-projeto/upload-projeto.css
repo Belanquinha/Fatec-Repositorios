@@ -4,6 +4,12 @@
     color: var(--cinza-400);
 }
 
+.escondido {
+    display: none;
+}
+
+
+
 /* Estilos da Pagina  */
 
 .frame-conteudo {
@@ -17,6 +23,7 @@
 
 .frame-texto-pagina {
     max-width: 56rem;
+    width: 100%;
 }
 
 .titulo-subtitulo {
@@ -65,6 +72,18 @@
     border-radius: 4px;
 }
 
+.quadrado-etapa.ativo {
+    border-color: var(--amarelo-500);
+    > p {
+        color: var(--amarelo-500);
+    }
+}
+
+.quadrado-etapa.concluido {
+    border-color: var(--amarelo-500);
+    background-color: var(--amarelo-500);
+}
+
 .quadrado-etapa > p {
     color: var(--cinza-200);
     font-size: var(--s2);
@@ -85,16 +104,23 @@
 .linha {
     width: 10%;          
     height: 2px;
-    background-color: #ccc;
+    background-color: var(--cinza-200);
 }
 
-/* espaço para etapas */
+.linha.concluido {
+    background-color: var(--amarelo-500);
+}
+/* aq chega nos inputs */
 
 .inputs {
     display: flex;
     flex-direction: column;
     gap: 2rem;
     padding: 0 1.5rem;
+}
+
+.inputs.escondido {
+    display: none;
 }
 
 .input-padrao {
@@ -112,7 +138,14 @@
 
     border: dashed 2px var(--cinza-200);
 
-    max-height: 15rem;
+    height: 29rem;
+    overflow: hidden;
+}
+
+.capa-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 

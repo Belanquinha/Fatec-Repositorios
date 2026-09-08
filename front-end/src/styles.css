@@ -22,6 +22,10 @@ body {
     overflow-x: hidden;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 img {
     font-style: italic; 
     max-width: 100%;

@@ -1,53 +1,68 @@
-<div class="frame-conteudo">
+<div class="frame-conteudo" #projetoForms>
     <hgroup class="titulo-subtitulo frame-texto-pagina">
-        <h1>Capa do Projeto</h1>
+        <h1>Cadastro de Projeto</h1>
         <p>Preencha as quatro etapas abaixo com atenção. Todas as informações serão avaliadas na revisão.</p>
     </hgroup>
 
-    <form class="frame-forms">
+    <form  class="frame-forms">
         <div class="frame-etapas">
             <div class="frame-etapa">
-                <div class="quadrado-etapa">
-                    <p>1</p>
+                <div class="quadrado-etapa" [class.ativo]="etapaAtual == 1" [class.concluido]="etapaAtual > 1">
+                    @if (etapaAtual > 1) {
+                        <span class="material-symbols-outlined">check</span>
+                    }
+                    @else {
+                        <p>1</p>
+                    }
                 </div>
                 <hgroup class="frame-quadrado-texto">
-                    <h2>Capa do Projeto</h2>
+                    <h2 [class.cinza]="etapaAtual !== 1">Capa do Projeto</h2>
                     <p class="cinza">Indentidade e Apresentação</p>
                 </hgroup>
             </div>
 
-            <div class="linha"></div>
+            <div class="linha" [class.concluido]="etapaAtual > 1"></div>
 
             <div class="frame-etapa">
-                <div class="quadrado-etapa">
-                    <p>2</p>
+                <div class="quadrado-etapa" [class.ativo]="etapaAtual == 2" [class.concluido]="etapaAtual > 2">
+                    @if (etapaAtual > 2) {
+                        <span class="material-symbols-outlined">check</span>
+                    }
+                    @else {
+                        <p>2</p>
+                    }
                 </div>
                 <hgroup class="frame-quadrado-texto">
-                    <h2>Informações</h2>
+                    <h2 [class.cinza]="etapaAtual !== 2">Informações</h2>
                     <p class="cinza">Detalhes Academicos</p>
                 </hgroup>
             </div>
 
-            <div class="linha"></div>
+            <div class="linha" [class.concluido]="etapaAtual > 2"></div>
 
             <div class="frame-etapa">
-                <div class="quadrado-etapa">
-                    <p>3</p>
+                <div class="quadrado-etapa" [class.ativo]="etapaAtual == 3" [class.concluido]="etapaAtual > 3">
+                    @if (etapaAtual > 3) {
+                        <span class="material-symbols-outlined">check</span>
+                    }
+                    @else {
+                        <p>3</p>
+                    }
                 </div>
                 <hgroup class="frame-quadrado-texto">
-                    <h2>Descrição</h2>
+                    <h2 [class.cinza]="etapaAtual !== 3">Descrição</h2>
                     <p class="cinza">Conteudo Completo</p>
                 </hgroup>
             </div>
 
-            <div class="linha"></div>
+            <div class="linha" [class.concluido]="etapaAtual > 3"></div>
 
             <div class="frame-etapa">
-                <div class="quadrado-etapa">
+                <div class="quadrado-etapa" [class.ativo]="etapaAtual == 4" [class.concluido]="etapaAtual > 4">
                     <p>4</p>
                 </div>
                 <hgroup class="frame-quadrado-texto">
-                    <h2>Grupo e Contato</h2>
+                    <h2 [class.cinza]="etapaAtual !== 4">Grupo e Contato</h2>
                     <p class="cinza">Integrantes do Projeto</p>
                 </hgroup>
             </div>
@@ -56,7 +71,7 @@
         
 
         <!-- etapa - 1 -->
-        <div class="inputs">
+        <div class="inputs" [hidden]="etapaAtual !== 1">
             <hgroup class="titulo-subtitulo">
                 <p>Etapa 1 de 4 - Capa do Projeto </p>
                 <p>Identidade e apresentação</p>
@@ -68,14 +83,18 @@
             </div>
 
             <label class="input-imagem">
-                <input type="file">
-                <span class="material-symbols-outlined">upload</span>
-
-                <p class="imagem-intrucoes">
-                    <span class="highlight">Clique Aqui</span> ou leve o Arquivo até Aqui<br>
-                    para Fazer Upload
-                </p>
-                <span class="text">tamanho Maximo (25MB)</span>
+                <input type="file" accept="image/*" [hidden]="true" (change)="onCapaSelecionada($event)">
+                @if (capaPreview) {
+                    <img [src]="capaPreview" class="capa-preview">
+                } @else {
+                    
+                    <span class="material-symbols-outlined">upload</span>
+                    <p class="imagem-intrucoes">
+                        <span class="highlight">Clique Aqui</span> ou leve o Arquivo até Aqui<br>
+                        para Fazer Upload
+                    </p>
+                    <span class="text">tamanho Maximo (25MB)</span>
+                }
             </label>
 
             <div class="input-padrao">
@@ -86,7 +105,7 @@
         </div>
         
         <!-- etapa 2 -->
-        <div class="inputs">
+        <div class="inputs" [hidden]="etapaAtual !== 2">
             <hgroup class="titulo-subtitulo">
                 <p>Etapa 2  de 4 - Informações </p>
                 <p>Detalhes Academicos</p>
@@ -121,7 +140,7 @@
         </div>
 
         <!-- etapa 3 -->
-        <div class="inputs">
+        <div class="inputs" [hidden]="etapaAtual !== 3">
             <hgroup class="titulo-subtitulo">
                 <p>Etapa 3  de 4 - Descrição </p>
                 <p>Uma Explicação completa sobre o projeto como um todo</p>
@@ -131,7 +150,7 @@
         </div>
 
         <!-- etapa 4 -->
-        <div class="inputs">
+        <div class="inputs" [hidden]="etapaAtual !== 4">
             <hgroup class="titulo-subtitulo">
                 <p>Etapa 4  de 4 - Grupo e Contato </p>
                 <p>Integrantes do Projeto</p>
@@ -139,53 +158,40 @@
 
             <div class="input-padrao">
                 <label>Numero de Integrantes</label>
-                <select placeholder="2 ▼">
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                    <option>4</option>
-                    <option>5</option>
-                    <option>6</option>
+                <select (change)="onQtdIntegrantesChange($event)">
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
                 </select>
-                <input >
             </div>
 
-            <div class="frame-integrante">
-                <div class="frame-texto-integrante">
-                    <span class="material-symbols-outlined">person</span>
-                    <h3>Integrante 1</h3>
+            @for (i of integrantes; track i) {
+                <div class="frame-integrante">
+                    <div class="frame-texto-integrante">
+                        <span class="material-symbols-outlined">person</span>
+                        <h3>Integrante {{ i }}</h3>
+                    </div>
+                    <div class="input-padrao">
+                        <label>Nome do Integrante</label>
+                        <input placeholder="Nome Completo">
+                    </div>
+                    <div class="input-padrao">
+                        <label>Link do Linkedin</label>
+                        <input placeholder="Ex: https://www.linkedin.com/in/usuario">
+                    </div>
                 </div>
-                <div class="input-padrao">
-                    <label>Nome do Integrante</label>
-                    <input placeholder="Nome Completo">
-                </div>
-                <div class="input-padrao">
-                    <label>Link do Linkedin</label>
-                    <input placeholder="Ex: https://www.linkedin.com/in/usuario">
-                </div>
-            </div>
-
-            <div class="frame-integrante">
-                <div class="frame-texto-integrante">
-                    <span class="material-symbols-outlined">person</span>
-                    <h3>Integrante 2</h3>
-                </div>
-                <div class="input-padrao">
-                    <label>Nome do Integrante</label>
-                    <input placeholder="Nome Completo">
-                </div>
-                <div class="input-padrao">
-                    <label>Link do Linkedin</label>
-                    <input placeholder="Ex: https://www.linkedin.com/in/usuario">
-                </div>
-            </div>
+            }
         </div>
 
         <div class="frame-enviar">
             <!-- voltar -->
-            <button>← Voltar</button>
+            <button type="button" (click)="VoltarEtapa(projetoForms)">← Voltar</button>
             <!-- enviar -->
-            <button type="submit">Enviar →</button>
+            <button type="button" [hidden]="etapaAtual == 4" (click)="PassarEtapa(projetoForms)">Proximo →</button>
+            <button type="submit" [hidden]="etapaAtual !== 4">Enviar →</button>
         </div>
 
     </form>
