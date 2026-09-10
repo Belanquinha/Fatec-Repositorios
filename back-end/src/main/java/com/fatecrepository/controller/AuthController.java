@@ -1,6 +1,7 @@
 package com.fatecrepository.controller;
 
 import com.fatecrepository.dto.request.LoginRequest;
+import com.fatecrepository.dto.request.MicrosoftLoginRequest;
 import com.fatecrepository.dto.response.AuthResponse;
 import com.fatecrepository.model.User;
 import com.fatecrepository.model.UserRole;
@@ -38,6 +39,19 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("POST /auth/login para email: {}", request.getEmail());
         AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/login-microsoft")
+    @Operation(summary = "Login via Microsoft", description = "Autentica um usuário usando token Microsoft e retorna um token JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Login realizado com sucesso"),
+        @ApiResponse(responseCode = "401", description = "Token Microsoft inválido"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<AuthResponse> loginMicrosoft(@Valid @RequestBody MicrosoftLoginRequest request) {
+        log.info("POST /auth/login-microsoft");
+        AuthResponse response = authService.loginMicrosoft(request);
         return ResponseEntity.ok(response);
     }
 

@@ -15,6 +15,7 @@ public class UsuarioResponse {
     private String nome;
     private String email;
     private String role;
+    private String fotoUrl;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
 }

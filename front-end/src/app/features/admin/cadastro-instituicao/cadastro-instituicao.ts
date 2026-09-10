@@ -35,7 +35,7 @@ export class CadastroInstituicao {
         headers['Authorization'] = `${tokenType} ${accessToken}`;
       }
 
-      const res = await fetch('http://localhost:4040/instituicoes', {
+      const res = await fetch('/api/instituicoes', {
         method: 'POST',
         headers,
         body: JSON.stringify(body),

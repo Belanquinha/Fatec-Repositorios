@@ -18,6 +18,7 @@ public class ResponseMapper {
             user.getNome(),
             user.getEmail(),
             user.getRole().getValue(),
+            user.getFotoUrl(),
             user.getCriadoEm(),
             user.getAtualizadoEm()
         );
@@ -53,6 +54,10 @@ public class ResponseMapper {
     }
 
     public AuthResponse toAuthResponse(String token, long expiresInSeconds) {
-        return new AuthResponse(token, "Bearer", expiresInSeconds);
+        return new AuthResponse(token, "Bearer", expiresInSeconds, null, null, null);
+    }
+
+    public AuthResponse toAuthResponse(String token, long expiresInSeconds, String nome, String email, String fotoUrl) {
+        return new AuthResponse(token, "Bearer", expiresInSeconds, nome, email, fotoUrl);
     }
 }

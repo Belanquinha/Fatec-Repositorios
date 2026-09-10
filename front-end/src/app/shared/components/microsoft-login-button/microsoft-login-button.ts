@@ -18,7 +18,17 @@ export class MicrosoftLoginButton implements OnInit {
   ngOnInit(): void {
     this.authService
       .inicializar()
-      .then(() => this.carregarUsuario())
+      .then(async () => {
+        const conta = this.authService.conta;
+        if (conta) {
+          try {
+            await this.authService.loginMicrosoftViaApi();
+          } catch (e) {
+            console.error('Erro ao autenticar com o back-end:', e);
+          }
+        }
+        await this.carregarUsuario();
+      })
       .catch((error) => {
         console.error('Erro ao inicializar o login da Microsoft: ', error);
       })

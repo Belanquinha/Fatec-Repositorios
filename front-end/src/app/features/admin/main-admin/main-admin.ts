@@ -5,12 +5,12 @@ import { CadastroInstituicao } from "../cadastro-instituicao/cadastro-instituica
 
 @Component({
   selector: 'app-main-admin',
-  imports: [RouterLink, CommonModule, CadastroInstituicao],
+  imports: [ CommonModule, CadastroInstituicao],
   templateUrl: './main-admin.html',
   styleUrl: './main-admin.css',
 })
 export class MainAdmin {
-  cadastroInstituicaoAberto = false;
+  cadastroInstituicaoAberto = true;
 
   toggleCadastroInstituicao() {
     this.cadastroInstituicaoAberto = !this.cadastroInstituicaoAberto;

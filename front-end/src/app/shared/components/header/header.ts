@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MicrosoftLoginButton } from '../microsoft-login-button/microsoft-login-button';
 import { AuthService } from '../../../core/auth/auth.service';
+import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 
@@ -15,6 +16,8 @@ import { Subscription } from 'rxjs';
 export class Header implements OnInit, OnDestroy {
   estadoDoMenuAberto = false;
   isHovered = false;
+  logado = false;
+  usuario: UsuarioLogado | null = null;
   private routerSubscription!: Subscription;
 
   @ViewChild('menuNav') menuNav!: ElementRef<HTMLElement>;
@@ -22,6 +25,7 @@ export class Header implements OnInit, OnDestroy {
   constructor(private elementRef: ElementRef, private authService: AuthService, private router: Router) {}
 
   ngOnInit(): void {
+    this.carregarUsuario();
     this.routerSubscription = this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
@@ -33,6 +37,11 @@ export class Header implements OnInit, OnDestroy {
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
     }
+  }
+
+  private async carregarUsuario(): Promise<void> {
+    this.usuario = await this.authService.obterUsuarioLogado();
+    this.logado = this.usuario !== null;
   }
 
   mudarMenu(): void {
@@ -53,6 +62,7 @@ export class Header implements OnInit, OnDestroy {
 
     const target = event.target as HTMLElement;
     if (target.closest('.icon-menu')) return;
+    if (target.closest('.profile-btn')) return;
     if (this.menuNav?.nativeElement.contains(target)) return;
 
     this.estadoDoMenuAberto = false;

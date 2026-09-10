@@ -45,13 +45,15 @@ services:
       context: ./front-end
       args:
         NG_APP_API_URL: /api
-        NG_APP_MSAL_REDIRECT_URI: http://localhost
+        NG_APP_MSAL_CLIENT_ID: 146c36f9-abf3-48b0-a533-5f462e5e4eed
+        NG_APP_MSAL_AUTHORITY: https://login.microsoftonline.com/2f8088c4-b1f9-4578-afcf-fcec0c6c421c
+        NG_APP_MSAL_REDIRECT_URI: http://localhost:4200/
     container_name: fatec-frontend
     restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - "80:80"
+      - "4200:80"
     networks:
       - fatec
 

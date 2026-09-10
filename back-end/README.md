@@ -39,3 +39,13 @@ SET
     role = EXCLUDED.role,
     atualizado_em = NOW();
 
+
+
+
+regra de instituição 
+
+CNPJ	14 dígitos, só números
+Telefone	10 ou 11 dígitos, só números
+Senha gestor	Mínimo 6 caracteres
+Nome, cidade, estado	Obrigatórios
+Email gestor	Formato válido

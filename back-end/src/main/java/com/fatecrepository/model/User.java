@@ -25,7 +25,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String senha;
 
     @Enumerated(EnumType.STRING)
@@ -35,6 +35,9 @@ public class User {
     @ManyToOne(optional = true)
     @JoinColumn(name = "instituicao_id", nullable = true)
     private Instituicao instituicao;
+
+    @Column(nullable = true)
+    private String fotoUrl;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
