@@ -53,11 +53,11 @@ public class ResponseMapper {
         );
     }
 
-    public AuthResponse toAuthResponse(String token, long expiresInSeconds) {
-        return new AuthResponse(token, "Bearer", expiresInSeconds, null, null, null);
+    public AuthResponse toAuthResponse(String token, long expiresInSeconds, String role) {
+        return new AuthResponse(token, "Bearer", expiresInSeconds, null, null, null, role);
     }
 
-    public AuthResponse toAuthResponse(String token, long expiresInSeconds, String nome, String email, String fotoUrl) {
-        return new AuthResponse(token, "Bearer", expiresInSeconds, nome, email, fotoUrl);
+    public AuthResponse toAuthResponse(String token, long expiresInSeconds, String nome, String email, String fotoUrl, String role) {
+        return new AuthResponse(token, "Bearer", expiresInSeconds, nome, email, fotoUrl, role);
     }
 }

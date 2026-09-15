@@ -37,12 +37,14 @@ export class AuthService {
     const nomeBackend = localStorage.getItem('usuarioNome');
     const emailBackend = localStorage.getItem('usuarioEmail');
     const fotoBackend = localStorage.getItem('usuarioFoto');
+    const roleBackend = localStorage.getItem('usuarioRole');
 
     if (nomeBackend && emailBackend) {
       return {
         nome: nomeBackend,
         email: emailBackend,
         foto: fotoBackend || undefined,
+        role: roleBackend || undefined,
       };
     }
 
@@ -107,12 +109,13 @@ export class AuthService {
       if (dados.nome) window.localStorage.setItem('usuarioNome', dados.nome);
       if (dados.email) window.localStorage.setItem('usuarioEmail', dados.email);
       if (dados.fotoUrl) window.localStorage.setItem('usuarioFoto', dados.fotoUrl);
+      if (dados.role) window.localStorage.setItem('usuarioRole', dados.role);
     }
 
     return dados as { accessToken: string; tokenType: string; expiresInSeconds: number };
   }
 
-  async loginInstituicao(email: string, senha: string): Promise<{ accessToken: string; tokenType: string; expiresInSeconds: number }> {
+  async loginInstituicao(email: string, senha: string): Promise<{ accessToken: string; tokenType: string; expiresInSeconds: number; role?: string }> {
     const resposta = await fetch(`${environment.apiUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -132,9 +135,10 @@ export class AuthService {
       window.localStorage.setItem('accessToken', dados.accessToken);
       window.localStorage.setItem('tokenType', dados.tokenType ?? 'Bearer');
       window.localStorage.setItem('expiresInSeconds', String(dados.expiresInSeconds ?? 0));
+      if (dados.role) window.localStorage.setItem('usuarioRole', dados.role);
     }
 
-    return dados as { accessToken: string; tokenType: string; expiresInSeconds: number };
+    return dados as { accessToken: string; tokenType: string; expiresInSeconds: number; role?: string };
   }
 
   logout(): void {
@@ -144,7 +148,16 @@ export class AuthService {
     localStorage.removeItem('usuarioNome');
     localStorage.removeItem('usuarioEmail');
     localStorage.removeItem('usuarioFoto');
+    localStorage.removeItem('usuarioRole');
     this.instance.logoutRedirect({ postLogoutRedirectUri: environment.msalRedirectUri });
+  }
+
+  isAdmin(): boolean {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return false;
+
+    const role = localStorage.getItem('usuarioRole');
+    return role === 'ADMIN';
   }
 
   private async buscarFotoPerfil(conta: AccountInfo): Promise<string | undefined> {

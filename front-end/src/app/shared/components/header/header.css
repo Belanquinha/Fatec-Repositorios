@@ -74,7 +74,7 @@ header {
     gap: 0.5rem;
     background: none;
     border: 2px solid var(--amarelo-500);
-    border-radius: 2rem;
+    border-radius: 4px;
     padding: 0.35rem 0.75rem 0.35rem 0.35rem;
     cursor: pointer;
     transition: background-color 0.2s ease;

@@ -11,13 +11,13 @@
                 <span class="texto-login">Login institucional</span>
             </a>
         } @else {
+            @if (usuario?.foto) {
+                <img class="profile-photo" [src]="usuario!.foto" alt="Foto de perfil">
+            } @else {
+                <span class="material-symbols-outlined profile-icon">account_circle</span>
+            }
             <button class="profile-btn" (click)="mudarMenu()">
-                @if (usuario?.foto) {
-                    <img class="profile-photo" [src]="usuario!.foto" alt="Foto de perfil">
-                } @else {
-                    <span class="material-symbols-outlined profile-icon">account_circle</span>
-                }
-                <span class="profile-name">{{ usuario?.nome }}</span>
+                <span class="profile-name">{{ primeiroNome }}</span>
             </button>
         }
         <span class="material-symbols-outlined icon-header icon-menu" 
@@ -66,7 +66,7 @@
         </ul>
     </section>
 
-    <section [hidden]="logado == false"]>
+    <section [hidden]="logado == false">
         <h2>Perfil</h2>
         <ul>
             <li>
@@ -76,7 +76,21 @@
                     } @else {
                         <span class="material-symbols-outlined">account_circle</span>
                     }
-                    <span class="texto-link">{{ usuario?.nome }}</span>
+                    <span class="texto-link">{{ primeiroNome }}</span>
+                </a>
+            </li>
+            @if (isAdmin) {
+                <li>
+                    <a routerLink="/admin-main" class="frame" (click)="fecharMenu()">
+                        <span class="material-symbols-outlined">admin_panel_settings</span>
+                        <span class="texto-link">Admin</span>
+                    </a>
+                </li>
+            }
+            <li>
+                <a class="frame" (click)="logout()" style="cursor: pointer;">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span class="texto-link">Sair</span>
                 </a>
             </li>
         </ul>

@@ -17,6 +17,7 @@ export class Header implements OnInit, OnDestroy {
   estadoDoMenuAberto = false;
   isHovered = false;
   logado = false;
+  isAdmin = false;
   usuario: UsuarioLogado | null = null;
   private routerSubscription!: Subscription;
 
@@ -42,6 +43,7 @@ export class Header implements OnInit, OnDestroy {
   private async carregarUsuario(): Promise<void> {
     this.usuario = await this.authService.obterUsuarioLogado();
     this.logado = this.usuario !== null;
+    this.isAdmin = this.authService.isAdmin();
   }
 
   mudarMenu(): void {
@@ -50,6 +52,16 @@ export class Header implements OnInit, OnDestroy {
 
   loginMicrosoft(): void {
     this.authService.loginMicrosoft();
+  }
+
+  logout(): void {
+    this.authService.logout();
+  }
+
+  get primeiroNome(): string {
+    if (!this.usuario?.nome) return '';
+    const nome = this.usuario.nome.split(' ')[0];
+    return nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
   }
 
   fecharMenu(): void {

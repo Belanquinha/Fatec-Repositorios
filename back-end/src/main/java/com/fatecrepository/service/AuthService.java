@@ -45,7 +45,7 @@ public class AuthService {
 
             String token = jwtTokenProvider.generateToken(gestor);
             log.info("Login realizado com sucesso para gestor: {}", request.getEmail());
-            return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds());
+            return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds(), "GESTOR");
         }
 
         User user = userRepository.findByEmail(request.getEmail())
@@ -58,7 +58,7 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(user);
         log.info("Login realizado com sucesso para usuário: {}", request.getEmail());
 
-        return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds());
+        return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds(), user.getRole().name());
     }
 
     private void validarEmailDisponivel(String email) {
@@ -116,6 +116,6 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(user);
         log.info("Login Microsoft realizado com sucesso para: {}", email);
 
-        return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds(), user.getNome(), user.getEmail(), user.getFotoUrl());
+        return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds(), user.getNome(), user.getEmail(), user.getFotoUrl(), user.getRole().name());
     }
 }

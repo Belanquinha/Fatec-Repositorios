@@ -38,12 +38,20 @@ export class LoginInstituicao {
     this.mensagemErro = '';
 
     try {
-      await this.authService.loginInstituicao(email, senha);
-      this.router.navigateByUrl('/');
+      const resultado = await this.authService.loginInstituicao(email, senha);
+      if (resultado.role === 'ADMIN') {
+        this.router.navigateByUrl('/admin-main');
+      } else {
+        this.router.navigateByUrl('/');
+      }
     } catch (erro) {
       this.mensagemErro = erro instanceof Error ? erro.message : 'Erro ao realizar o login.';
     } finally {
       this.enviando = false;
     }
+  }
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
   }
 }

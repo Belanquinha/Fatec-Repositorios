@@ -37,4 +37,6 @@
     </section>
 </div>
 
-<a routerLink="/admin-main">Tela de Admin (temporario ate termos um login de admin)</a>
+@if (isAdmin) {
+    <a routerLink="/admin-main">Tela de Admin</a>
+}
