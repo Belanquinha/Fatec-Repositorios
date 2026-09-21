@@ -1,198 +1,417 @@
-<div class="frame-conteudo" #projetoForms>
-    <hgroup class="titulo-subtitulo frame-texto-pagina">
-        <h1>Cadastro de Projeto</h1>
-        <p>Preencha as quatro etapas abaixo com atenção. Todas as informações serão avaliadas na revisão.</p>
-    </hgroup>
-
-    <form  class="frame-forms">
-        <div class="frame-etapas">
-            <div class="frame-etapa">
-                <div class="quadrado-etapa" [class.ativo]="etapaAtual == 1" [class.concluido]="etapaAtual > 1">
-                    @if (etapaAtual > 1) {
-                        <span class="material-symbols-outlined">check</span>
-                    }
-                    @else {
-                        <p>1</p>
-                    }
-                </div>
-                <hgroup class="frame-quadrado-texto">
-                    <h2 [class.cinza]="etapaAtual !== 1">Capa do Projeto</h2>
-                    <p class="cinza">Indentidade e Apresentação</p>
-                </hgroup>
-            </div>
-
-            <div class="linha" [class.concluido]="etapaAtual > 1"></div>
-
-            <div class="frame-etapa">
-                <div class="quadrado-etapa" [class.ativo]="etapaAtual == 2" [class.concluido]="etapaAtual > 2">
-                    @if (etapaAtual > 2) {
-                        <span class="material-symbols-outlined">check</span>
-                    }
-                    @else {
-                        <p>2</p>
-                    }
-                </div>
-                <hgroup class="frame-quadrado-texto">
-                    <h2 [class.cinza]="etapaAtual !== 2">Informações</h2>
-                    <p class="cinza">Detalhes Academicos</p>
-                </hgroup>
-            </div>
-
-            <div class="linha" [class.concluido]="etapaAtual > 2"></div>
-
-            <div class="frame-etapa">
-                <div class="quadrado-etapa" [class.ativo]="etapaAtual == 3" [class.concluido]="etapaAtual > 3">
-                    @if (etapaAtual > 3) {
-                        <span class="material-symbols-outlined">check</span>
-                    }
-                    @else {
-                        <p>3</p>
-                    }
-                </div>
-                <hgroup class="frame-quadrado-texto">
-                    <h2 [class.cinza]="etapaAtual !== 3">Descrição</h2>
-                    <p class="cinza">Conteudo Completo</p>
-                </hgroup>
-            </div>
-
-            <div class="linha" [class.concluido]="etapaAtual > 3"></div>
-
-            <div class="frame-etapa">
-                <div class="quadrado-etapa" [class.ativo]="etapaAtual == 4" [class.concluido]="etapaAtual > 4">
-                    <p>4</p>
-                </div>
-                <hgroup class="frame-quadrado-texto">
-                    <h2 [class.cinza]="etapaAtual !== 4">Grupo e Contato</h2>
-                    <p class="cinza">Integrantes do Projeto</p>
-                </hgroup>
-            </div>
-            
+<div class="min-h-screen bg-branco-500 py-8 px-4 sm:px-6 lg:px-8">
+  <!-- Container Central -->
+  <div class="max-w-6xl mx-auto">
+    
+    <!-- Cabeçalho da Página -->
+    <div class="mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-extrabold text-cinza-900 tracking-tight">Cadastro de Projeto</h1>
+          <p class="text-sm text-cinza-400 mt-1">
+            Preencha as seções abaixo com atenção para submeter seu trabalho para a validação acadêmica.
+          </p>
         </div>
         
+        <!-- Status de Etapa / Progresso -->
+        <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-solid border-cinza-200 shadow-sm w-fit">
+          <span class="text-xs font-semibold text-cinza-400 uppercase tracking-wider">Progresso</span>
+          <span class="text-sm font-bold text-amarelo-600">Seção {{ secaoAtual }} de {{ totalSecoes }}</span>
+        </div>
+      </div>
+    </div>
 
-        <!-- etapa - 1 -->
-        <div class="inputs" [hidden]="etapaAtual !== 1">
-            <hgroup class="titulo-subtitulo">
-                <p>Etapa 1 de 4 - Capa do Projeto </p>
-                <p>Identidade e apresentação</p>
-            </hgroup>
+    <!-- Tela de Sucesso (Exibida pós-envio) -->
+    @if (enviadoComSucesso) {
+      <div class="bg-white border border-solid border-verde-200 rounded-xl p-8 shadow-lg text-center max-w-2xl mx-auto my-12 animate-fade-in">
+        <div class="w-16 h-16 bg-verde-50 text-verde-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span class="material-symbols-outlined text-4xl">mark_email_read</span>
+        </div>
+        <h2 class="text-2xl font-bold text-cinza-900">Projeto Enviado para Avaliação!</h2>
+        <p class="text-cinza-400 mt-2 leading-relaxed">
+          Seu trabalho foi encaminhado com sucesso para a caixa de análise do <strong class="text-cinza-800">Professor Responsável</strong>.
+          Assim que a validação for concluída, você receberá uma notificação e o projeto ficará visível no repositório.
+        </p>
+        <div class="mt-6 flex justify-center gap-4">
+          <button type="button" (click)="resetarFormulario()" 
+                  class="bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold px-6 py-2.5 rounded-lg shadow transition-colors">
+            Cadastrar Outro Projeto
+          </button>
+        </div>
+      </div>
+    } @else {
 
-            <div class="input-padrao">
-                <label>Titulo do Projeto</label>
-                <input placeholder="Nome do Seu Projeto">
+      <!-- Grid Principal: Sidebar (Navegação) + Conteúdo do Formulário -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+        
+        <!-- SIDEBAR DE NAVEGAÇÃO POR SEÇÕES -->
+        <aside class="bg-white border border-solid border-cinza-200 rounded-xl p-3 shadow-sm space-y-2 lg:sticky lg:top-8 overflow-hidden w-full box-border">
+          <p class="text-xs font-bold text-cinza-400 uppercase tracking-wider px-3 my-2">Seções do Projeto</p>
+          
+          <button type="button" 
+                  (click)="irParaSecao(1)"
+                  [class.bg-amarelo-50]="secaoAtual === 1"
+                  [class.border-amarelo-500]="secaoAtual === 1"
+                  [class.text-amarelo-800]="secaoAtual === 1"
+                  [class.shadow-sm]="secaoAtual === 1"
+                  class="w-full box-border flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all border border-solid border-transparent hover:bg-gray-50 cursor-pointer">
+            <div [class.bg-amarelo-500]="secaoAtual === 1"
+                 [class.text-cinza-900]="secaoAtual === 1"
+                 class="w-7 h-7 rounded-md bg-cinza-50 text-cinza-400 text-xs font-bold flex items-center justify-center shrink-0">
+              1
             </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold truncate">Capa & Informações</p>
+              <p class="text-xs text-cinza-400 truncate">Título e Capa do Projeto</p>
+            </div>
+          </button>
 
-            <label class="input-imagem">
-                <input type="file" accept="image/*" [hidden]="true" (change)="onCapaSelecionada($event)">
-                @if (capaPreview) {
-                    <img [src]="capaPreview" class="capa-preview">
-                } @else {
+          <button type="button" 
+                  (click)="irParaSecao(2)"
+                  [class.bg-amarelo-50]="secaoAtual === 2"
+                  [class.border-amarelo-500]="secaoAtual === 2"
+                  [class.text-amarelo-800]="secaoAtual === 2"
+                  [class.shadow-sm]="secaoAtual === 2"
+                  class="w-full box-border flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all border border-solid border-transparent hover:bg-gray-50 cursor-pointer">
+            <div [class.bg-amarelo-500]="secaoAtual === 2"
+                 [class.text-cinza-900]="secaoAtual === 2"
+                 class="w-7 h-7 rounded-md bg-cinza-50 text-cinza-400 text-xs font-bold flex items-center justify-center shrink-0">
+              2
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold truncate">Instituição & Professor</p>
+              <p class="text-xs text-cinza-400 truncate">Validação Acadêmica</p>
+            </div>
+          </button>
+
+          <button type="button" 
+                  (click)="irParaSecao(3)"
+                  [class.bg-amarelo-50]="secaoAtual === 3"
+                  [class.border-amarelo-500]="secaoAtual === 3"
+                  [class.text-amarelo-800]="secaoAtual === 3"
+                  [class.shadow-sm]="secaoAtual === 3"
+                  class="w-full box-border flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all border border-solid border-transparent hover:bg-gray-50 cursor-pointer">
+            <div [class.bg-amarelo-500]="secaoAtual === 3"
+                 [class.text-cinza-900]="secaoAtual === 3"
+                 class="w-7 h-7 rounded-md bg-cinza-50 text-cinza-400 text-xs font-bold flex items-center justify-center shrink-0">
+              3
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold truncate">Descrição & Conteúdo</p>
+              <p class="text-xs text-cinza-400 truncate">Editor em Blocos (Editor.js)</p>
+            </div>
+          </button>
+
+          <button type="button" 
+                  (click)="irParaSecao(4)"
+                  [class.bg-amarelo-50]="secaoAtual === 4"
+                  [class.border-amarelo-500]="secaoAtual === 4"
+                  [class.text-amarelo-800]="secaoAtual === 4"
+                  [class.shadow-sm]="secaoAtual === 4"
+                  class="w-full box-border flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all border border-solid border-transparent hover:bg-gray-50 cursor-pointer">
+            <div [class.bg-amarelo-500]="secaoAtual === 4"
+                 [class.text-cinza-900]="secaoAtual === 4"
+                 class="w-7 h-7 rounded-md bg-cinza-50 text-cinza-400 text-xs font-bold flex items-center justify-center shrink-0">
+              4
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold truncate">Grupo & Participantes</p>
+              <p class="text-xs text-cinza-400 truncate">Integrantes e Contatos</p>
+            </div>
+          </button>
+        </aside>
+
+        <!-- PAINEL PRINCIPAL DO FORMULÁRIO -->
+        <main class="lg:col-span-3 bg-white border border-solid border-cinza-200 rounded-xl p-6 sm:p-8 shadow-sm flex flex-col justify-between min-h-[500px]">
+          
+          <form (ngSubmit)="enviarParaAvaliacao()" class="space-y-6">
+
+            <!-- SEÇÃO 1: Dados Gerais & Imagem de Capa -->
+            @if (secaoAtual === 1) {
+              <div class="space-y-6 animate-fade-in">
+                <div>
+                  <h2 class="text-xl font-bold text-cinza-900">Seção 1: Capa & Informações Básicas</h2>
+                  <p class="text-sm text-cinza-400 mt-1">Defina a identidade visual e o título do seu projeto.</p>
+                </div>
+
+                <!-- Título do Projeto -->
+                <div class="space-y-2">
+                  <label class="block text-sm font-semibold text-cinza-700">Título do Projeto <span class="text-amarelo-600">*</span></label>
+                  <input type="text" 
+                         [(ngModel)]="titulo" 
+                         name="titulo"
+                         placeholder="Ex: Plataforma de Repositório Acadêmico Fatec"
+                         class="w-full px-4 py-3 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none transition-all text-cinza-900 shadow-sm">
+                </div>
+
+                <!-- Upload da Imagem de Capa -->
+                <div class="space-y-2">
+                  <label class="block text-sm font-semibold text-cinza-700">Imagem de Capa do Projeto <span class="text-amarelo-600">*</span></label>
+                  
+                  <div class="border-2 border-dashed border-cinza-300 hover:border-amarelo-500 rounded-xl p-6 text-center transition-all bg-branco-100 relative group cursor-pointer">
+                    <input type="file" 
+                           accept="image/*" 
+                           (change)="onCapaSelecionada($event)" 
+                           class="hidden" 
+                           id="capaInput">
                     
-                    <span class="material-symbols-outlined">upload</span>
-                    <p class="imagem-intrucoes">
-                        <span class="highlight">Clique Aqui</span> ou leve o Arquivo até Aqui<br>
-                        para Fazer Upload
-                    </p>
-                    <span class="text">tamanho Maximo (25MB)</span>
-                }
-            </label>
-
-            <div class="input-padrao">
-                <label>Descrição Curta</label>
-                <input placeholder="Resuma o seu projeto em poucas palavras.">
-                <p class="cinza">0 / 144 Caracteres</p> <!-- adicionar logica no front -->
-            </div>
-        </div>
-        
-        <!-- etapa 2 -->
-        <div class="inputs" [hidden]="etapaAtual !== 2">
-            <hgroup class="titulo-subtitulo">
-                <p>Etapa 2  de 4 - Informações </p>
-                <p>Detalhes Academicos</p>
-            </hgroup>
-
-            <div class="input-padrao">
-                <label>Instituição Resposavel</label>
-                <select>
-                    <option>Fatec Impiranga (Exemplo - isso vira do back, no caso as instituições que nos temos cadastradas)</option>
-                    <option>Fatec Pindamonhangaba</option>
-                </select>
-            </div>
-
-            <div class="input-padrao">
-                <label>Curso</label>
-                <select>
-                    <option>AMS (Exemplo - isso vira do back, vou adicionar uma tela no admin pra adicionar cursos)</option>
-                    <option>Jogos</option>
-                </select>
-            </div>
-
-            <div class="input-padrao">
-                <label>Link Repositorio</label>
-                <input placeholder="Ex: https://github.com/usuario/projeto">
-            </div>
-
-            <div class="input-padrao">
-                <label>Palavras Chave</label>
-                <input placeholder="Palavras unicas que definem seu projeto">
-                <p>0 / 144 Caracteres</p> <!-- adicionar logica no front -->
-            </div>
-        </div>
-
-        <!-- etapa 3 -->
-        <div class="inputs" [hidden]="etapaAtual !== 3">
-            <hgroup class="titulo-subtitulo">
-                <p>Etapa 3  de 4 - Descrição </p>
-                <p>Uma Explicação completa sobre o projeto como um todo</p>
-            </hgroup>
-            <h3>Aqui vai o frame do editor.js que terei que implementar <br></h3>
-            <p>alem disso n ha oq implementar nessa etapa</p>
-        </div>
-
-        <!-- etapa 4 -->
-        <div class="inputs" [hidden]="etapaAtual !== 4">
-            <hgroup class="titulo-subtitulo">
-                <p>Etapa 4  de 4 - Grupo e Contato </p>
-                <p>Integrantes do Projeto</p>
-            </hgroup>
-
-            <div class="input-padrao">
-                <label>Numero de Integrantes</label>
-                <select (change)="onQtdIntegrantesChange($event)">
-                    <option value="1">1</option>
-                    <option value="2" selected>2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                </select>
-            </div>
-
-            @for (i of integrantes; track i) {
-                <div class="frame-integrante">
-                    <div class="frame-texto-integrante">
-                        <span class="material-symbols-outlined">person</span>
-                        <h3>Integrante {{ i }}</h3>
-                    </div>
-                    <div class="input-padrao">
-                        <label>Nome do Integrante</label>
-                        <input placeholder="Nome Completo">
-                    </div>
-                    <div class="input-padrao">
-                        <label>Link do Linkedin</label>
-                        <input placeholder="Ex: https://www.linkedin.com/in/usuario">
-                    </div>
+                    @if (capaPreview) {
+                      <div class="relative w-full max-h-80 rounded-lg overflow-hidden flex items-center justify-center bg-cinza-900">
+                        <img [src]="capaPreview" class="max-h-80 object-contain w-full">
+                        <button type="button" 
+                                (click)="removerCapa($event)"
+                                class="absolute top-3 right-3 bg-cinza-900/80 hover:bg-red-600 text-white p-2 rounded-full transition-colors flex items-center justify-center">
+                          <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+                    } @else {
+                      <label for="capaInput" class="cursor-pointer flex flex-col items-center justify-center py-6">
+                        <div class="w-14 h-14 bg-amarelo-50 text-amarelo-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                          <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
+                        </div>
+                        <p class="text-sm font-semibold text-cinza-700">
+                          <span class="text-amarelo-600 underline">Clique aqui</span> ou arraste a imagem até aqui
+                        </p>
+                        <p class="text-xs text-cinza-400 mt-1">Recomendado: 1200x675px (PNG, JPG ou WEBP até 10MB)</p>
+                      </label>
+                    }
+                  </div>
                 </div>
+
+                <!-- Descrição Curta -->
+                <div class="space-y-2">
+                  <div class="flex justify-between items-center">
+                    <label class="block text-sm font-semibold text-cinza-700">Descrição Curta <span class="text-amarelo-600">*</span></label>
+                    <span class="text-xs font-mono" [class.text-red-500]="descricaoCurta.length > 144" [class.text-cinza-400]="descricaoCurta.length <= 144">
+                      {{ descricaoCurta.length }} / 144 caracteres
+                    </span>
+                  </div>
+                  <textarea [(ngModel)]="descricaoCurta" 
+                            name="descricaoCurta"
+                            rows="3"
+                            maxlength="144"
+                            placeholder="Resuma o seu projeto em poucas palavras para a listagem principal..."
+                            class="w-full px-4 py-3 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none transition-all text-cinza-900 shadow-sm resize-none"></textarea>
+                </div>
+              </div>
             }
-        </div>
 
-        <div class="frame-enviar">
-            <!-- voltar -->
-            <button type="button" (click)="VoltarEtapa(projetoForms)">← Voltar</button>
-            <!-- enviar -->
-            <button type="button" [hidden]="etapaAtual == 4" (click)="PassarEtapa(projetoForms)">Proximo →</button>
-            <button type="submit" [hidden]="etapaAtual !== 4">Enviar →</button>
-        </div>
+            <!-- SEÇÃO 2: Instituição & Validação Acadêmica -->
+            @if (secaoAtual === 2) {
+              <div class="space-y-6 animate-fade-in">
+                <div>
+                  <h2 class="text-xl font-bold text-cinza-900">Seção 2: Validação Acadêmica</h2>
+                  <p class="text-sm text-cinza-400 mt-1">Informe a unidade FATEC e o professor orientador responsável pela validação.</p>
+                </div>
 
-    </form>
+                <!-- Instituição Responsável -->
+                <div class="space-y-2">
+                  <label class="block text-sm font-semibold text-cinza-700">Instituição Responsável (FATEC) <span class="text-amarelo-600">*</span></label>
+                  <select [(ngModel)]="instituicao" 
+                          name="instituicao"
+                          class="w-full px-4 py-3 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm">
+                    <option value="">Selecione a unidade FATEC...</option>
+                    <option value="Fatec Ipiranga">Fatec Ipiranga</option>
+                    <option value="Fatec Pindamonhangaba">Fatec Pindamonhangaba</option>
+                    <option value="Fatec São José dos Campos">Fatec São José dos Campos</option>
+                    <option value="Fatec Taubaté">Fatec Taubaté</option>
+                    <option value="Fatec Baixada Santista">Fatec Baixada Santista</option>
+                  </select>
+                </div>
+
+                <!-- Autocomplete E-mail do Professor Responsável -->
+                <div class="space-y-2 relative">
+                  <label class="block text-sm font-semibold text-cinza-700">E-mail do Professor Responsável <span class="text-amarelo-600">*</span></label>
+                  <div class="relative">
+                    <input type="email" 
+                           [(ngModel)]="professorEmail" 
+                           name="professorEmail"
+                           (input)="onProfessorEmailInput()"
+                           (blur)="ocultarDropdownComDelay()"
+                           placeholder="Digite o nome ou e-mail corporativo do professor (@fatec.sp.gov.br)"
+                           class="w-full px-4 py-3 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm">
+                    
+                    @if (professorStatus === 'cadastrado') {
+                      <span class="absolute right-3 top-3.5 flex items-center gap-1 text-xs font-semibold text-verde-600 bg-verde-50 px-2.5 py-1 rounded-full">
+                        <span class="material-symbols-outlined text-sm">verified</span> Cadastrado
+                      </span>
+                    }
+                    @if (professorStatus === 'novo') {
+                      <span class="absolute right-3 top-3.5 flex items-center gap-1 text-xs font-semibold text-amarelo-700 bg-amarelo-50 px-2.5 py-1 rounded-full">
+                        <span class="material-symbols-outlined text-sm">mail</span> Convidado
+                      </span>
+                    }
+                  </div>
+
+                  <!-- Dropdown de Sugestões -->
+                  @if (mostrarDropdownProfessor && professoresFiltrados.length > 0) {
+                    <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-solid border-cinza-200 rounded-lg shadow-lg max-h-48 overflow-y-auto divide-y divide-cinza-50">
+                      @for (prof of professoresFiltrados; track prof.email) {
+                        <li (mousedown)="selecionarProfessor(prof)"
+                            class="px-4 py-3 hover:bg-amarelo-50 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between text-sm transition-colors">
+                          <span class="font-medium text-cinza-800">{{ prof.nome }}</span>
+                          <span class="text-xs text-cinza-400 font-mono">{{ prof.email }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  @if (professorStatus === 'novo') {
+                    <p class="text-xs text-amarelo-700 bg-amarelo-50 p-2.5 rounded-md flex items-center gap-2 mt-1 border border-amarelo-200">
+                      <span class="material-symbols-outlined text-base">info</span>
+                      O e-mail digitado receberá um convite de notificação para revisar o projeto após o envio.
+                    </p>
+                  }
+                </div>
+
+                <!-- Link do Repositório -->
+                <div class="space-y-2">
+                  <label class="block text-sm font-semibold text-cinza-700">Link do Repositório (GitHub / GitLab)</label>
+                  <input type="url" 
+                         [(ngModel)]="linkRepositorio" 
+                         name="linkRepositorio"
+                         placeholder="Ex: https://github.com/usuario/projeto-fatec"
+                         class="w-full px-4 py-3 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm">
+                </div>
+
+                <!-- Palavras-chave / Tags -->
+                <div class="space-y-2">
+                  <label class="block text-sm font-semibold text-cinza-700">Palavras-chave / Tags</label>
+                  <input type="text" 
+                         [(ngModel)]="palavrasChave" 
+                         name="palavrasChave"
+                         placeholder="Ex: Angular, Tailwind, Inovação, IA, TCC"
+                         class="w-full px-4 py-3 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm">
+                </div>
+              </div>
+            }
+
+            <!-- SEÇÃO 3: Conteúdo Detalhado (Editor.js Integration) -->
+            @if (secaoAtual === 3) {
+              <div class="space-y-6 animate-fade-in">
+                <div>
+                  <h2 class="text-xl font-bold text-cinza-900">Seção 3: Conteúdo Detalhado do Projeto</h2>
+                  <p class="text-sm text-cinza-400 mt-1">Escreva a documentação completa do projeto e inclua imagens/mídias adicionais.</p>
+                </div>
+
+                <!-- Contêiner Nativo do Editor.js -->
+                <div class="border border-solid border-cinza-300 rounded-xl p-6 bg-white min-h-[350px] shadow-sm">
+                  <div id="editorjs-container" class="prose max-w-none text-cinza-900 outline-none"></div>
+                </div>
+
+                <div class="bg-azul-50 border border-solid border-azul-200 rounded-lg p-4 flex items-start gap-3 text-azul-900 text-xs">
+                  <span class="material-symbols-outlined text-azul-600 text-lg shrink-0">image</span>
+                  <span><strong>Dica de Mídia:</strong> Você pode inserir imagens complementares, gráficos ou blocos de código clicando no ícone de mais (+) dentro do editor acima.</span>
+                </div>
+              </div>
+            }
+
+            <!-- SEÇÃO 4: Grupo & Integrantes -->
+            @if (secaoAtual === 4) {
+              <div class="space-y-6 animate-fade-in">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-xl font-bold text-cinza-900">Seção 4: Integrantes do Projeto</h2>
+                    <p class="text-sm text-cinza-400 mt-1">Adicione os participantes do grupo e seus links de contato.</p>
+                  </div>
+                  <button type="button" 
+                          (click)="adicionarIntegrante()"
+                          class="bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 text-xs font-bold px-3.5 py-2.5 rounded-lg shadow transition-colors flex items-center gap-1 cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">add</span> Adicionar Integrante
+                  </button>
+                </div>
+
+                <!-- Lista Dinâmica de Cards de Integrantes -->
+                <div class="space-y-4">
+                  @for (member of integrantes; track member.id; let idx = $index) {
+                    <div class="bg-white border border-solid border-cinza-300 rounded-xl p-5 shadow-sm space-y-4 relative group">
+                      <div class="flex items-center justify-between border-b border-cinza-100 pb-3">
+                        <div class="flex items-center gap-2">
+                          <span class="w-7 h-7 rounded-full bg-verde-50 text-verde-600 font-bold text-xs flex items-center justify-center">
+                            {{ idx + 1 }}
+                          </span>
+                          <h3 class="font-bold text-cinza-800 text-sm">Integrante {{ idx + 1 }}</h3>
+                        </div>
+
+                        @if (integrantes.length > 1) {
+                          <button type="button" 
+                                  (click)="removerIntegrante(idx)"
+                                  class="text-cinza-400 hover:text-red-600 p-1 transition-colors flex items-center cursor-pointer">
+                            <span class="material-symbols-outlined text-lg">delete</span>
+                          </button>
+                        }
+                      </div>
+
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Nome Completo -->
+                        <div class="space-y-1">
+                          <label class="block text-xs font-semibold text-cinza-600">Nome Completo</label>
+                          <input type="text" 
+                                 [(ngModel)]="member.nome" 
+                                 [name]="'nome_' + idx"
+                                 placeholder="Nome do integrante"
+                                 class="w-full px-3 py-2 text-sm rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 outline-none text-cinza-900 shadow-sm">
+                        </div>
+
+                        <!-- LinkedIn -->
+                        <div class="space-y-1">
+                          <label class="block text-xs font-semibold text-cinza-600">Perfil do LinkedIn</label>
+                          <input type="url" 
+                                 [(ngModel)]="member.linkedin" 
+                                 [name]="'linkedin_' + idx"
+                                 placeholder="https://linkedin.com/in/usuario"
+                                 class="w-full px-3 py-2 text-sm rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 outline-none text-cinza-900 shadow-sm">
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Aviso do Fluxo Acadêmico Pré-Submissão -->
+                <div class="bg-amarelo-50 border border-solid border-amarelo-200 rounded-xl p-4 flex items-start gap-3 text-xs text-amarelo-900">
+                  <span class="material-symbols-outlined text-amarelo-600 text-lg shrink-0">verified_user</span>
+                  <p>
+                    <strong>Aviso de Avaliação Acadêmica:</strong> Ao clicar em submeter, seu projeto será enviado diretamente ao Professor Responsável para análise prévia antes de tornar-se visível publicamente na FATEC.
+                  </p>
+                </div>
+              </div>
+            }
+
+            <!-- NAVEGAÇÃO & RODAPÉ DO FORMULÁRIO -->
+            <div class="pt-6 border-t border-solid border-cinza-200 flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
+              <div>
+                @if (secaoAtual > 1) {
+                  <button type="button" 
+                          (click)="secaoAnterior()"
+                          class="w-full sm:w-auto px-5 py-2.5 rounded-lg border border-solid border-cinza-300 text-cinza-700 hover:bg-cinza-50 font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span> Anterior
+                  </button>
+                }
+              </div>
+
+              <div class="flex items-center gap-3 w-full sm:w-auto">
+                @if (secaoAtual < totalSecoes) {
+                  <button type="button" 
+                          (click)="proximaSecao()"
+                          class="w-full sm:w-auto bg-cinza-900 hover:bg-cinza-800 text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                    Próximo <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                  </button>
+                }
+
+                @if (secaoAtual === totalSecoes) {
+                  <button type="submit" 
+                          class="w-full sm:w-auto bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-sm px-7 py-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <span>Enviar para Avaliação Acadêmica</span>
+                    <span class="material-symbols-outlined text-base">send</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+          </form>
+
+        </main>
+      </div>
+    }
+
+  </div>
 </div>

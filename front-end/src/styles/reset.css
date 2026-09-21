@@ -7,13 +7,18 @@
 }
 
 button {
-    all: unset;
+    background: none;
+    border: none;
+    font: inherit;
     cursor: pointer;
-}
-input {
-    all: unset;
+    box-sizing: border-box;
 }
 
+input, textarea, select {
+    font: inherit;
+    color: inherit;
+    box-sizing: border-box;
+}
 
 h1,
 h2,
