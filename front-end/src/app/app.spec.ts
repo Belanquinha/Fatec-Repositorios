@@ -16,6 +16,7 @@ describe('App', () => {
             obterUsuarioLogado: () => Promise.resolve(null),
             loginPopUp: () => {},
             logout: () => {},
+            isAdmin: () => false,
           },
         },
       ],

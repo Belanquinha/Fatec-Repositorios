@@ -68,3 +68,10 @@ app:
       secret: ${JWT_SECRET:dev-secret-change-this-key-with-at-least-32-chars}
       issuer: ${JWT_ISSUER:fatec-repository-api}
       expiration-hours: ${JWT_EXPIRATION_HOURS:24}
+
+faterepo:
+  seed:
+    mode: ${FATEREPO_SEED_MODE:upsert}   # upsert (padrão) | replace
+    files:                                # ordem declarada = ordem de carga (FK-safe)
+      - seeds/instituicoes.csv
+      # - seeds/projetos.csv   # futuro

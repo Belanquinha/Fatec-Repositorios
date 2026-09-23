@@ -11,16 +11,16 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "InstituicaoResponse", description = "Dados de uma instituição com o gestor responsável")
+@Schema(name = "InstituicaoResponse", description = "Dados de uma instituição do catálogo oficial")
 public class InstituicaoResponse {
     @Schema(description = "ID da instituição")
     private UUID id;
 
+    @Schema(description = "Código oficial da unidade")
+    private String codigoUnidade;
+
     @Schema(description = "Nome da instituição")
     private String nome;
-
-    @Schema(description = "CNPJ da instituição")
-    private String cnpj;
 
     @Schema(description = "Endereço da instituição")
     private String endereco;
@@ -31,8 +31,23 @@ public class InstituicaoResponse {
     @Schema(description = "Estado da instituição")
     private String estado;
 
-    @Schema(description = "Dados do gestor responsável pela instituição")
-    private GestorResponse gestor;
+    @Schema(description = "Região administrativa")
+    private String regiaoAdministrativa;
+
+    @Schema(description = "CNPJ da instituição")
+    private String cnpj;
+
+    @Schema(description = "Telefones da instituição")
+    private String telefone;
+
+    @Schema(description = "Site oficial")
+    private String site;
+
+    @Schema(description = "Link do logotipo")
+    private String linkLogo;
+
+    @Schema(description = "Se a instituição está ativa no catálogo")
+    private boolean ativo;
 
     @Schema(description = "Data de criação")
     private LocalDateTime criadoEm;

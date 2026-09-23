@@ -4,10 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -21,27 +19,28 @@ public class Instituicao {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(nullable = false, unique = true)
+    private String codigoUnidade;
+
     @Column(nullable = false)
     private String nome;
 
-    private String endereco;
-    private String cidade;
     private String estado;
 
-    @Column(nullable = false, unique = true)
-    private String cnpj;
+    @Column(nullable = false)
+    private boolean ativo = true;
 
-    @OneToOne(mappedBy = "instituicao", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    private Gestor gestor;
+    private String endereco;
+    private String cidade;
+    private String regiaoAdministrativa;
+    private String cnpj;
+    private String telefone;
+    private String site;
+    private String linkLogo;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 
     @Column(nullable = false)
     private LocalDateTime atualizadoEm = LocalDateTime.now();
-
-    @OneToMany(mappedBy = "instituicao", cascade = CascadeType.ALL, orphanRemoval = false)
-    @ToString.Exclude
-    private List<User> users;
 }

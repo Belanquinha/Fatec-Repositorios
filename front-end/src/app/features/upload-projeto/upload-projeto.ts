@@ -46,10 +46,10 @@ export class UploadProjeto implements AfterViewInit, OnDestroy {
 
   // Lista mockada de professores para o Autocomplete
   professoresBase: Professor[] = [
-    { nome: 'Prof. Dr. Carlos Eduardo', email: 'carlos.eduardo@fatec.sp.gov.br' },
-    { nome: 'Profa. Dra. Ana Maria Souza', email: 'ana.maria@fatec.sp.gov.br' },
-    { nome: 'Prof. Me. Roberto Silva', email: 'roberto.silva@fatec.sp.gov.br' },
-    { nome: 'Profa. Me. Patricia Lima', email: 'patricia.lima@fatec.sp.gov.br' },
+    { nome: 'Prof. Dr. Carlos Eduardo', email: 'carlos.eduardo@cps.sp.gov.br' },
+    { nome: 'Profa. Dra. Ana Maria Souza', email: 'ana.maria@cps.sp.gov.br' },
+    { nome: 'Prof. Me. Roberto Silva', email: 'roberto.silva@cps.sp.gov.br' },
+    { nome: 'Profa. Me. Patricia Lima', email: 'patricia.lima@cps.sp.gov.br' },
   ];
   professoresFiltrados: Professor[] = [];
 

@@ -1,10 +1,7 @@
 package com.fatecrepository.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,31 +9,41 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "InstituicaoRequest", description = "Dados para cadastro de uma instituição e do seu gestor")
+@Schema(name = "InstituicaoRequest", description = "Dados para cadastro de uma instituição do catálogo oficial")
 public class InstituicaoRequest {
 
-    @NotBlank(message = "Nome é obrigatório")
-    @Schema(description = "Nome da instituição", example = "Fatec Piranga")
-    private String nome;
+    @NotBlank(message = "Código da unidade é obrigatório")
+    @Schema(description = "Código oficial da unidade (chave de negócio)", example = "004")
+    private String codigoUnidade;
 
-    @NotBlank(message = "CNPJ é obrigatório")
-    @Pattern(regexp = "\\d{14}", message = "CNPJ deve ter 14 dígitos")
-    @Schema(description = "CNPJ da instituição", example = "00000000000100")
-    private String cnpj;
+    @NotBlank(message = "Nome é obrigatório")
+    @Schema(description = "Nome da instituição", example = "Fatec Ipiranga")
+    private String nome;
 
     @Schema(description = "Endereço da instituição", example = "Rua Frei João, 59 - Vila Nair")
     private String endereco;
 
-    @NotBlank(message = "Cidade é obrigatória")
     @Schema(description = "Cidade da instituição", example = "São Paulo")
     private String cidade;
 
-    @NotBlank(message = "Estado é obrigatório")
     @Schema(description = "Estado da instituição", example = "SP")
     private String estado;
 
-    @NotNull(message = "Gestor é obrigatório")
-    @Valid
-    @Schema(description = "Dados do gestor responsável pela instituição")
-    private GestorRequest gestor;
+    @Schema(description = "Região administrativa", example = "Capital")
+    private String regiaoAdministrativa;
+
+    @Schema(description = "CNPJ da instituição", example = "62.823.257/0016-87")
+    private String cnpj;
+
+    @Schema(description = "Telefones da instituição", example = "(19) 3406-3297 / 3406-5776")
+    private String telefone;
+
+    @Schema(description = "Site oficial", example = "http://www.fatec.edu.br")
+    private String site;
+
+    @Schema(description = "Link do logotipo", example = "https://bkpsitecpsnew.blob.core.windows.net/...")
+    private String linkLogo;
+
+    @Schema(description = "Se a instituição está ativa no catálogo", example = "true")
+    private Boolean ativo;
 }

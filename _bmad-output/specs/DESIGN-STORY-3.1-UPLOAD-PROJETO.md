@@ -41,7 +41,7 @@ A paleta de cores do arquivo [`paleta.css`](file:///c:/Users/Gabriel/Desktop/Fat
 - **Instituição (Fatec)**: Select populado dinamicamente via API (*ex: Fatec Ipiranga, Fatec Pindamonhangaba*).
 - **E-mail do Professor Responsável (Autocomplete Flexível)**:
   - Permite a digitação manual de e-mails não cadastrados com o badge informativo:  
-    `[ ✉️ Professor Convidado — Notificação de validação será enviada ]`
+    `[ ✉️ Professor Convidado — registro informativo, sem envio de notificações ]`
 - **Link do Repositório**: Input para URL do GitHub, GitLab ou Bitbucket.
 - **Palavras-chave**: Tags editáveis para categorização.
 

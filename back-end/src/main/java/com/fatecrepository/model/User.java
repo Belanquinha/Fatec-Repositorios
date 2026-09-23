@@ -25,16 +25,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = true)
-    private String senha;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
-
-    @ManyToOne(optional = true)
-    @JoinColumn(name = "instituicao_id", nullable = true)
-    private Instituicao instituicao;
 
     @Column(nullable = true)
     private String fotoUrl;

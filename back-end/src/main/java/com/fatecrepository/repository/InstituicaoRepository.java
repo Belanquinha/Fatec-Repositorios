@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface InstituicaoRepository extends JpaRepository<Instituicao, UUID> {
-    Optional<Instituicao> findByCnpj(String cnpj);
-}
 
+    Optional<Instituicao> findByCodigoUnidade(String codigoUnidade);
+
+    boolean existsByCodigoUnidade(String codigoUnidade);
+}

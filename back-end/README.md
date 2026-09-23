@@ -1,5 +1,10 @@
-# Fatec-Repositorios
+# Fatec-Repositorios (Back-end)
 
+API Spring Boot da plataforma Fatec-Repositorios. Autenticação via MSAL (tenant CPS), papel derivado do domínio do e-mail no back-end.
+
+## Banco de dados
+
+```sql
 CREATE DATABASE fatecrepository
     WITH
     OWNER = postgres
@@ -9,43 +14,13 @@ CREATE DATABASE fatecrepository
     TABLESPACE = pg_default
     CONNECTION LIMIT = -1
     IS_TEMPLATE = False;
+```
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+O seed do admin está em `init/01-create-admin.sql` e `data.sql`: o admin é identificado pelo **e-mail institucional** (via MSAL, sem senha). **Substitua o e-mail pelo de um e-mail real `@cps.sp.gov.br` do dono do projeto.**
 
-INSERT INTO usuarios (
-    id,
-    nome,
-    email,
-    senha,
-    role,
-    instituicao_id,
-    criado_em,
-    atualizado_em
-)
-VALUES (
-    gen_random_uuid(),
-    'Administrador',
-    'admin@fatec.com',
-    '$2b$10$Nf4yvyuawp07fbGGtWGPwupPEBsCN8bs53Nj0qqLBcOXwmkrugUs6',
-    'ADMIN',
-    NULL,
-    NOW(),
-    NOW()
-)
-ON CONFLICT (email) DO UPDATE
-SET
-    nome = EXCLUDED.nome,
-    senha = EXCLUDED.senha,
-    role = EXCLUDED.role,
-    atualizado_em = NOW();
+## Regras de domínio (papel)
 
-
-
-
-regra de instituição 
-
-CNPJ	14 dígitos, só números
-Telefone	10 ou 11 dígitos, só números
-Senha gestor	Mínimo 6 caracteres
-Nome, cidade, estado	Obrigatórios
-Email gestor	Formato válido
+- `@aluno.cps.sp.gov.br` → `ALUNO` (checado primeiro)
+- `@cps.sp.gov.br` → `PROFESSOR`
+- demais membros do tenant → `ALUNO` (fallback)
+- admin: papel `ADMIN` persiste no banco quando o e-mail é semeado em `data.sql`

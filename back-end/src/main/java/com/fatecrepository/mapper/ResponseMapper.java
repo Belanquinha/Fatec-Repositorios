@@ -1,10 +1,8 @@
 package com.fatecrepository.mapper;
 
 import com.fatecrepository.dto.response.AuthResponse;
-import com.fatecrepository.dto.response.GestorResponse;
 import com.fatecrepository.dto.response.InstituicaoResponse;
 import com.fatecrepository.dto.response.UsuarioResponse;
-import com.fatecrepository.model.Gestor;
 import com.fatecrepository.model.Instituicao;
 import com.fatecrepository.model.User;
 import org.springframework.stereotype.Component;
@@ -24,30 +22,20 @@ public class ResponseMapper {
         );
     }
 
-    public GestorResponse toGestorResponse(Gestor gestor) {
-        if (gestor == null) {
-            return null;
-        }
-
-        return new GestorResponse(
-            gestor.getId(),
-            gestor.getNome(),
-            gestor.getEmail(),
-            gestor.getTelefone(),
-            gestor.getCriadoEm(),
-            gestor.getAtualizadoEm()
-        );
-    }
-
     public InstituicaoResponse toInstituicaoResponse(Instituicao instituicao) {
         return new InstituicaoResponse(
             instituicao.getId(),
+            instituicao.getCodigoUnidade(),
             instituicao.getNome(),
-            instituicao.getCnpj(),
             instituicao.getEndereco(),
             instituicao.getCidade(),
             instituicao.getEstado(),
-            toGestorResponse(instituicao.getGestor()),
+            instituicao.getRegiaoAdministrativa(),
+            instituicao.getCnpj(),
+            instituicao.getTelefone(),
+            instituicao.getSite(),
+            instituicao.getLinkLogo(),
+            instituicao.isAtivo(),
             instituicao.getCriadoEm(),
             instituicao.getAtualizadoEm()
         );

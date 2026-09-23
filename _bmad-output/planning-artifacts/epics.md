@@ -25,7 +25,7 @@ FR5: Professor lists the official institution catalog (no free-text creation).
 FR6: Professor selects 0 to 4 institutions (optional at first login); a 5th selection is refused.
 FR7: Admin maintains the official institution catalog (import/curate).
 FR8: Student creates and publishes a project born directly as AGUARDANDO_APROVACAO (no draft state).
-FR9: Student must provide emailProfessorResponsavel (autocomplete in front-end), instituicaoId, complete project attributes, and project Integrantes.
+FR9: Student must provide emailProfessorResponsavel (autocomplete in front-end + free-text "Professor Convidado" accepted), instituicaoId, complete project attributes, and project Integrantes (nome, linkLinkedin).
 FR10: Professor sees an approval queue of projects tied to their selected institutions.
 FR11: Professor approves or rejects a project (rejection requires mandatory motivoRejeicao); state change visible to student.
 FR12: Unauthenticated visitors search and view details of APROVADO projects without login.
@@ -145,13 +145,14 @@ O admin mantém o catálogo oficial de instituições e o professor seleciona de
 ### Story 2.1: Admin mantém o catálogo de instituições
 
 As a admin do sistema,  
-I want incluir, editar, remover e importar instituições do catálogo oficial,  
+I want incluir, editar e remover instituições do catálogo oficial,  
 So that a lista disponível aos professores reflita os dados oficiais das instituições CPS.
 
 **Acceptance Criteria:**
-- **Given** que sou admin autenticado no fluxo administrativo
+- **Given** que sou admin autenticado no fluxo administrativo (via MSAL)
 - **When** administro o catálogo
-- **Then** consigo adicionar, editar, remover e importar instituições
+- **Then** consigo adicionar, editar e remover instituições (CRUD simples no MVP)
+- **And** o catálogo oficial é pré-populado no boot a partir dos recursos versionados (seed idempotente, sem importação em runtime)
 - **And** sem papel admin, qualquer alteração de catálogo é negada (403)
 
 ### Story 2.2: Professor lista o catálogo oficial
@@ -193,20 +194,22 @@ So that meu trabalho é submetido diretamente para aprovação.
 
 **Acceptance Criteria:**
 - **Given** que sou aluno autenticado
-- **When** crio um projeto com título, descrição curta, conteúdo EditorJS, link do repositório, imagem de capa, imagens extras, palavras-chave, ano de publicação, instituicaoId e integrantes
+- **When** crio um projeto com título, descrição curta, conteúdo EditorJS, link do repositório, imagem de capa, palavras-chave, ano de publicação, instituicaoId e integrantes
 - **Then** o projeto é salvo diretamente com estado `AGUARDANDO_APROVACAO` (não existe estado rascunho)
-- **And** os integrantes são salvos associados ao projeto (Projeto 1 ── N Integrante)
+- **And** os integrantes são salvos associados ao projeto (Projeto 1 ── N Integrante) com `nome` e `linkLinkedin`
+- **And** imagens complementares são blocos nativos do Editor.js (não existe `imagensExtras`)
 
 ### Story 3.2: Informar e-mail do professor responsável com autocomplete
 
 As a aluno,  
 I want selecionar/digitar o e-mail do professor responsável ao postar,  
-So that o projeto registre o responsável de forma consistente.
+So that o projeto registre o responsável de forma consistente, inclusive fora do tenant.
 
 **Acceptance Criteria:**
 - **Given** que estou criando um projeto como aluno
 - **When** digito/seleciono o e-mail do professor responsável
 - **Then** o front-end oferece autocomplete dos e-mails de professores cadastrados no tenant
+- **And** e-mails não cadastrados são aceitos como "Professor Convidado" (registro informativo, sem notificação no MVP)
 - **And** o atributo `emailProfessorResponsavel` é persistido obrigatoriamente
 - **And** tentar publicar sem `emailProfessorResponsavel` falha
 

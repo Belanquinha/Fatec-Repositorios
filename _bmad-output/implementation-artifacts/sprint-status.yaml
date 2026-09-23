@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-16-2026 00:00
-last_updated: 09-16-2026 00:00
+last_updated: 09-22-2026 16:30
 project: Fatec-Repositorios
 project_key: NOKEY
 tracking_system: file-system
@@ -42,8 +42,8 @@ development_status:
   1-4-aplicar-autorização-por-papel-no-servidor: backlog
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-admin-mantém-o-catálogo-de-instituições: backlog
+  epic-2: in-progress
+  2-1-admin-mantém-o-catálogo-de-instituições: in-progress
   2-2-professor-lista-o-catálogo-oficial: backlog
   2-3-professor-seleciona-de-1-a-4-instituições: backlog
   epic-2-retrospective: optional

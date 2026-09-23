@@ -1,4 +1,4 @@
----
+ok vc acha ---
 name: ARCHITECTURE-Fatec-Repositorios
 type: architecture-spine
 purpose: build-substrate
@@ -61,7 +61,7 @@ flowchart TB
 
 - **Binds:** CAP-2
 - **Prevents:** dois builders persistindo papéis contraditórios; lista manual de professores corporificando regra divergente do domínio
-- **Rule:** ao receber o token do Graph em `POST /auth/login-microsoft`, o back-end consulta `GET graph.microsoft.com/v1.0/me` e classifica pelo `userPrincipalName`/`mail`, **nesta ordem**: (1) termina em `@aluno.cps.sp.gov.br` → `ALUNO`; (2) termina em `@cps.sp.gov.br` → `PROFESSOR`; (3) qualquer outro mailbox do tenant → `ALUNO` (fallback). `UserRole` é `ADMIN | ALUNO | PROFESSOR`. O papel é recalculado a cada login e persistido como cache de conveniência.
+- **Rule:** ao receber o token do Graph em `POST /auth/login-microsoft`, o back-end consulta `GET graph.microsoft.com/v1.0/me` e classifica pelo `userPrincipalName`/`mail`, **nesta ordem**: (1) termina em `@aluno.cps.sp.gov.br` → `ALUNO`; (2) termina em `@cps.sp.gov.br` → `PROFESSOR`; (3) qualquer outro mailbox do tenant → `ALUNO` (fallback). `UserRole` é `ADMIN | ALUNO | PROFESSOR` (papel `GESTOR` **removido**). O papel do usuário é **classificado na criação**; o admin é identificado por **e-mail semeado no banco** (`data.sql`/`init/`, sem senha) e mantém o papel `ADMIN` persistido nos próximos logins.
 
 ### AD-3 — MSAL e back-end restritos ao tenant único da CPS
 
@@ -79,13 +79,13 @@ flowchart TB
 
 - **Binds:** CAP-3
 - **Prevents:** cadastro de instituição em texto livre por professor ou aluno
-- **Rule:** escrita em `/instituicoes` exige papel `ADMIN` (`hasRole("ADMIN")`); leitura é liberada para autenticados. Professor nunca cria instituição.
+- **Rule:** escrita em `/instituicoes` exige papel `ADMIN` (`hasRole("ADMIN")`); leitura é liberada para autenticados. Professor nunca cria instituição. No MVP o catálogo é mantido por **CRUD simples** (importação em lote fica pós-MVP).
 
-### AD-6 — Projeto persiste e-mail do professor responsável com autocomplete no front-end
+### AD-6 — Projeto persiste e-mail do professor responsável com autocomplete + e-mail livre
 
 - **Binds:** CAP-4
-- **Prevents:** projeto persistido sem e-mail do professor responsável
-- **Rule:** `Projeto.emailProfessorResponsavel` (string) é obrigatório na criação. O front-end provê autocomplete listando e-mails de professores cadastrados no tenant, mas o back-end valida e persiste a string do e-mail no atributo.
+- **Prevents:** projeto persistido sem e-mail do professor responsável; bloqueio de e-mails fora do tenant
+- **Rule:** `Projeto.emailProfessorResponsavel` (string) é obrigatório na criação. O front-end provê autocomplete listando e-mails de professores cadastrados no tenant, mas **permite digitar e-mail livre** ("Professor Convidado") — registro informativo, persistido como string. **Sem envio de notificações no MVP.**
 
 ### AD-7 — Ciclo de vida do projeto é uma máquina de estados sem RASCUNHO
 
@@ -97,7 +97,7 @@ flowchart TB
 
 - **Binds:** CAP-6
 - **Prevents:** projetos sem identificação dos integrantes ou dados formatados de maneira solta
-- **Rule:** a entidade `Integrante` é identificada por UUID próprio, associada via FK `projetoId` e contém `nome` (string), `linkLinkedin` (string) e `papelNoProjeto` (string).
+- **Rule:** a entidade `Integrante` é identificada por UUID próprio, associada via FK `projetoId` e contém `nome` (string) e `linkLinkedin` (string). **`papelNoProjeto` fora do MVP** (pode voltar quando o modelo de papéis/integrante for definido).
 
 ### AD-9 — Acesso público sem JWT para consulta de projetos APROVADOS
 
@@ -159,7 +159,6 @@ erDiagram
         text conteudoEditorJs
         string linkRepositorio
         string imagemCapaUrl
-        list_string imagensExtras
         list_string palavrasChave
         int anoPublicado
         string estado "AGUARDANDO_APROVACAO|APROVADO|REJEITADO"
@@ -174,7 +173,6 @@ erDiagram
         uuid projetoId FK
         string nome
         string linkLinkedin
-        string papelNoProjeto
     }
     PROFESSOR_INSTITUICAO {
         uuid usuarioId FK

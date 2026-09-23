@@ -57,12 +57,6 @@
             <li>
                 <app-microsoft-login-button></app-microsoft-login-button>
             </li>
-            <li>
-                <a routerLink="login-instituicao" class="frame">
-                    <span class="material-symbols-outlined">corporate_fare</span>
-                    <span class="texto-link">Login Instituição</span>
-                </a>
-            </li>
         </ul>
     </section>
 
@@ -81,7 +75,7 @@
             </li>
             @if (isAdmin) {
                 <li>
-                    <a routerLink="/admin-main" class="frame" (click)="fecharMenu()">
+                    <a routerLink="/projeto-forms" class="frame" (click)="fecharMenu()">
                         <span class="material-symbols-outlined">admin_panel_settings</span>
                         <span class="texto-link">Admin</span>
                     </a>

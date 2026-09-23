@@ -10,6 +10,6 @@ export const adminGuard: CanActivateFn = () => {
     return true;
   }
 
-  router.navigateByUrl('/login-instituicao');
+  router.navigateByUrl('/projeto-forms');
   return false;
 };
