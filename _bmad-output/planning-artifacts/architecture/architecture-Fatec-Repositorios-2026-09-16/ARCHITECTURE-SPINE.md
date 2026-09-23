@@ -141,8 +141,8 @@ back-end/src/main/java/com/fatecrepository/
   security/       # SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter, CustomUserDetailsService
 front-end/src/app/
   core/auth/      # AuthService (MSAL + /auth/login-microsoft), guards por papel
-  features/       # catalogo-publico, upload-projeto, ver-projeto, area-professor, admin/*
-  shared/         # card-projeto, header, footer, autocomplete-professor, editor-js
+  features/       # perfil (hub /perfil: identidade + abas por papel), catalogo-publico, upload-projeto, ver-projeto, admin/*
+  shared/         # card-projeto, header, footer, autocomplete-professor, editor-js, profile-header, profile-tab
 ```
 
 ```mermaid
@@ -191,3 +191,4 @@ erDiagram
 | CAP-5 Aprovação de projetos | `ProjetoService` (transição de estado) | AD-7 |
 | CAP-6 Entidade Integrante | `IntegranteRepository`/`ProjetoService` | AD-8 |
 | CAP-7 Catálogo público para visitantes | `ProjetoPublicoController`/`SecurityConfig` | AD-9 |
+| CAP-8 Perfil hub & landing única | front-end (rota `/perfil` protegida + abas por papel; identidade MSAL somente leitura) | AD-1 (papel do backend usado para renderização de UI) |

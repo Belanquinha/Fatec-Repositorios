@@ -14,4 +14,3 @@ docker compose down              # derruba tudo (banco continua existindo)
 
 
 
-& "C:\Users\aluno\AppData\Roaming\npm\opencode"

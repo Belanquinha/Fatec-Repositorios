@@ -1,7 +1,7 @@
 ---
 title: Fatec Repositorios
 created: 2026-09-16
-updated: 2026-09-20
+updated: 2026-09-23
 status: final
 ---
 
@@ -36,15 +36,15 @@ O objetivo é dar visibilidade e curadoria leve ao trabalho feito em classe. Por
 - **UJ-1. Mariana posta o projeto que nasce aguardando aprovação.**
   - **Persona + contexto:** Mariana, aluna da Fatec, terminou o projeto da disciplina.
   - **Entry state:** não autenticada no sistema; entra pelo navegador.
-  - **Path:** clica "Entrar" → autentica no tenant CPS via MSAL → cai no papel aluno (e-mail `@aluno.cps.sp.gov.br`) → acessa "Novo projeto" → preenche dados (título, descrição curta, conteúdo EditorJS, link repositório, imagem capa, palavras-chave, ano publicado), insere o e-mail do professor responsável (com autocomplete de professores já cadastrados no tenant e aceite de e-mail livre — "Professor Convidado"), vincula a instituição e registra os integrantes (nome, LinkedIn) → publica.
+  - **Path:** clica "Entrar" → autentica no tenant CPS via MSAL → cai no papel aluno (e-mail `@aluno.cps.sp.gov.br`) → aterrissa no **Perfil** com a aba "Meus projetos" pré-selecionada → aciona o CTA **"Novo Projeto"** → preenche dados (título, descrição curta, conteúdo EditorJS, link repositório, imagem capa, palavras-chave, ano publicado), insere o e-mail do professor responsável (com autocomplete de professores já cadastrados no tenant e aceite de e-mail livre — "Professor Convidado"), vincula a instituição e registra os integrantes (nome, LinkedIn) → publica.
   - **Climax:** o projeto é criado diretamente no estado `AGUARDANDO_APROVACAO` com o e-mail do professor responsável registrado.
-  - **Resolution:** Mariana acompanha o status nas próximas visitas até que mude para `APROVADO`.
+  - **Resolution:** Mariana acompanha o status nas abas do Perfil ("Meus projetos"), que agrupa por estado até `APROVADO`; se rejeitado, o `motivoRejeicao` aparece inline.
   - **Edge case:** se Mariana tentar publicar sem informar o e-mail do professor responsável ou sem instituição, a ação é bloqueada.
 
 - **UJ-2. Prof. Roberto associa instituições e gerencia a fila.**
   - **Persona + contexto:** Roberto, professor com e-mail `@cps.sp.gov.br`.
   - **Entry state:** autenticado via MSAL; papel professor atribuído pelo domínio.
-  - **Path:** acessa a área do professor → pode selecionar de 0 a 4 instituições do catálogo (seleção opcional no primeiro login) → visualiza a fila de projetos das suas instituições vinculadas → aprova ou rejeita com motivo obrigatório.
+  - **Path:** aterrissa no **Perfil**; sem vínculos no 1º acesso, a aba **"Instituições (0–4)"** é destacada como onboarding (não bloqueante); vincula de 0 a 4 unidades do catálogo; a fila é a aba **"Pendentes"** (projetos com `emailProfessorResponsavel` = Roberto destacados), com histórico na aba **"Aprovados"**; aprova/rejeita com `motivoRejeicao` obrigatório no dialog.
   - **Climax:** ao aprovar, o projeto muda para `APROVADO`; ao rejeitar, muda para `REJEITADO` registrando obrigatoriamente a justificativa em `motivoRejeicao`.
   - **Resolution:** Roberto pode ajustar suas instituições (de 0 a 4) a qualquer momento.
   - **Edge case:** Roberto tenta vincular a 5ª instituição → recusado pelo limite de 4.
@@ -158,21 +158,21 @@ Visitantes navegam e pesquisam projetos no estado `APROVADO` sem necessidade de 
 
 ### 4.8 Perfil de usuário (aluno e professor)
 
-**Description:** Todo usuário autenticado visualiza seus dados vindos da sessão MSAL (nome, e-mail institucional, papel) e o contexto do seu papel: aluno acessa Meus Projetos; professor visualiza/edita suas instituições vinculadas (0 a 4) e a Fila. Landing pós-login: 1º acesso do professor sem vínculos → Seleção de Instituições; retorno → Fila; aluno → Meus Projetos. (decisão de elicitação 2026-09-22)
+**Description:** Todo usuário autenticado cai no **Perfil** (`/perfil`, privado — só o próprio vê): hub único com layout compartilhado entre ALUNO e PROFESSOR (padrão estrutural de página de canal — bloco de identidade + atalhos + listas de conteúdo). Identidade do MSAL (nome, e-mail institucional, papel) **somente leitura** (FR-13). **ALUNO:** aba "Meus projetos" agrupada por estado (Aguardando aprovação / Publicados / Rejeitados com `motivoRejeicao` inline) + atalho CTA "Novo Projeto". **PROFESSOR:** abas "Pendentes" (fila, destacando quando `emailProfessorResponsavel` = o professor), "Aprovados" (histórico) e "Instituições (0–4)" com onboarding quando sem vínculos. **ADMIN:** atalho para Admin Main. Aprovação/rejeição permanece ação dedicada (dialog de motivo obrigatório); o perfil é hub, não workspace. (decisão de elicitação 2026-09-23 — correção de curso sobre o SPEC/FR-14)
 
 **Functional Requirements:**
 
-#### FR-13: Visualizar perfil e contexto do papel
-Usuário autenticado visualiza dados do MSAL (somente leitura) e o contexto do papel (aluno: Meus Projetos; professor: instituições vinculadas com edição até 4).
+#### FR-13: Visualizar perfil como hub e contexto do papel
+Usuário autenticado visualiza dados do MSAL (somente leitura) e o contexto do papel em abas/atalhos dirigidos por papel: aluno → "Meus projetos"; professor → "Pendentes", "Aprovados", "Instituições (0–4)"; admin → atalho Admin Main. `motivoRejeicao` exibido inline em projetos rejeitados do aluno.
 
 ### 4.9 Landing pós-login (fluxo)
 
-**Description:** Direcionamento automático após o retorno do MSAL, diferenciando primeiro acesso (professor sem vínculos) de retorno.
+**Description:** Direcionamento pós-MSAL para o hub único de Perfil, com aba/atalho pré-selecionado pelo estado do papel; primeiro acesso do professor (zerado) tratado como onboarding não-bloqueante.
 
 **Functional Requirements:**
 
-#### FR-14: Direcionar papel após login MSAL
-Após autenticar, aluno → Meus Projetos; professor sem instituições vinculadas → Seleção de Instituições; professor com vínculos → Fila de Aprovação; admin → Admin Main.
+#### FR-14: Aterrissar no Perfil após login MSAL
+Após autenticar via MSAL, **todo papel aterrissa no Perfil** (`/perfil`, rota protegida); a aba/atalho pré-selecionada é decidida pelo estado do papel: aluno → "Meus projetos"; professor sem instituições vinculadas → destaque/aba "Instituições (0–4)" (onboarding não bloqueante); professor com vínculos → "Pendentes"; admin → atalho Admin Main. Fluxo idempotente no 1º acesso (professor zerado nunca é bloqueado).
 
 ## 5. Non-Goals (Explicit)
 

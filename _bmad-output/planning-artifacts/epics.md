@@ -29,6 +29,8 @@ FR9: Student must provide emailProfessorResponsavel (autocomplete in front-end +
 FR10: Professor sees an approval queue of projects tied to their selected institutions.
 FR11: Professor approves or rejects a project (rejection requires mandatory motivoRejeicao); state change visible to student.
 FR12: Unauthenticated visitors search and view details of APROVADO projects without login.
+FR13: User sees profile as hub: MSAL identity (read-only) and role-driven tabs/shortcuts (aluno: Meus Projetos; professor: Pendentes, Aprovados, Instituições 0–4; admin: Admin Main).
+FR14: After MSAL login, every role lands on the Perfil with tab/shortcut preselected by role state (aluno → Meus Projetos; professor with 0 links → Instituições onboarding; professor with links → Pendentes; admin → Admin Main); idempotent first access.
 ```
 
 ### NonFunctional Requirements
@@ -56,6 +58,8 @@ FR9: Epic 3 - E-mail do professor responsável, atributos e integrantes no post
 FR10: Epic 4 - Fila de aprovação por instituição  
 FR11: Epic 4 - Aprovar/rejeitar com motivoRejeicao obrigatório  
 FR12: Epic 5 - Catálogo público para visitantes  
+FR13: Epic 6 - Perfil hub (identidade MSAL somente leitura + abas por papel)  
+FR14: Epic 6 - Landing única no Perfil por estado do papel  
 
 ## Epic List
 
@@ -78,6 +82,10 @@ O professor vê a fila de projetos das suas instituições e aprova/rejeita (com
 ### Epic 5: Catálogo Público para Visitantes
 Usuários não autenticados pesquisam e visualizam projetos no estado `APROVADO` sem login.
 **FRs covered:** FR12
+
+### Epic 6: Perfil — Hub do Usuário Autenticado
+Todo usuário autenticado aterrissa no Perfil (`/perfil`, protegido): hub único com layout compartilhado entre ALUNO e PROFESSOR, identidade MSAL somente leitura e abas/atalhos dirigidos por papel; superfícies avulsas ("Meus Projetos", "Fila", "Seleção de Instituições") viram abas.
+**FRs covered:** FR13, FR14
 
 ---
 
@@ -180,6 +188,8 @@ So that eu gerencie a aprovação apenas das instituições onde atuo.
 - **And** tentar adicionar uma 5ª instituição é recusado com mensagem clara (limite reforçado no servidor)
 - **And** posso alterar a seleção no futuro, mantendo entre 0 e 4 instituições
 
+Nota (correção de curso 2026-09-23): a superfície de seleção é apresentada como a aba **"Instituições (0–4)"** do Perfil (FR-13/FR-14), não como rota avulsa; as regras de vínculo 0–4 permanecem inalteradas no servidor.
+
 ---
 
 ## Epic 3: Postagem de Projetos
@@ -213,23 +223,27 @@ So that o projeto registre o responsável de forma consistente, inclusive fora d
 - **And** o atributo `emailProfessorResponsavel` é persistido obrigatoriamente
 - **And** tentar publicar sem `emailProfessorResponsavel` falha
 
+Nota (correção de curso 2026-09-23): o CTA "Novo Projeto" e o acompanhamento do estado vivem na aba **"Meus projetos"** do Perfil (FR-13/FR-14); esta story cobre apenas a criação e as regras da postagem, não superfície própria de listagem.
+
 ---
 
 ## Epic 4: Aprovação de Projetos
 
 O professor vê a fila de projetos das suas instituições e aprova/rejeita (com motivo obrigatório).
 
-### Story 4.1: Professor vê a fila de projetos das suas instituições
+### Story 4.1: Professor vê a fila ("Pendentes") na aba do Perfil
 
 As a professor,  
-I want visualizar os projetos vinculados às instituições que selecionei,  
-So that eu acompanhe e julgue o que foi produzido nas minhas unidades.
+I want acessar a fila dos projetos vinculados às minhas instituições pela aba **"Pendentes"** do Perfil,  
+So that eu acompanhe e julgue o que foi produzido nas minhas unidades no meu hub.
 
 **Acceptance Criteria:**
-- **Given** que sou professor com instituições selecionadas (de 0 a 4)
-- **When** abro a fila de aprovação
-- **Then** vejo os projetos vinculados às minhas instituições em estado `AGUARDANDO_APROVACAO`
+- **Given** que sou professor com instituições selecionadas (de 0 a 4) e estou no Perfil
+- **When** aciono a aba "Pendentes"
+- **Then** vejo os projetos das minhas instituições em estado `AGUARDANDO_APROVACAO`, como conteúdo da aba (não como rota paralela)
 - **And** projetos em que meu e-mail é o `emailProfessorResponsavel` aparecem destacados
+
+Rationale (correção de curso 2026-09-23): a "fila de aprovação" deixa de ser superfície/rota avulsa e vira aba do hub `/perfil` (CAP-8/FR-14).
 
 ### Story 4.2: Aprovar ou rejeitar projeto (motivoRejeicao obrigatório na rejeição)
 
@@ -257,9 +271,10 @@ So that eu conheça os trabalhos desenvolvidos pelos alunos da Fatec/CPS.
 
 **Acceptance Criteria:**
 - **Given** que não estou autenticado na aplicação
-- **When** aceso a página de catálogo público
-- **Then** visualizo a lista/cards de projetos com estado `APROVADO`
+- **When** acesso a página de catálogo público (a raiz `/` renderiza a Home — o redirect `'' → projeto-forms` deixa de existir)
+- **Then** visualizo a lista/cards de projetos com estado `APROVADO` (hero tipográfico + busca + filtros + grade; shell header/footer existentes)
 - **And** posso pesquisar por palavras-chave e filtrar por instituição sem requerer token JWT
+- **And** quando **logado**, a Home ganha uma faixa discreta de atalho para o Perfil — mas permanece a voz pública da plataforma (vitrine sem barreira de login)
 
 ### Story 5.2: Visualizar detalhes completos de um projeto aprovado
 
@@ -272,3 +287,24 @@ So that eu veja todo o conteúdo rico, imagens, integrantes e link do repositór
 - **When** seleciono um projeto aprovado
 - **Then** vejo o título, descrição curta, conteúdo EditorJS, integrantes, ano, palavras-chave e link do repositório
 - **And** o acesso ao endpoint público de detalhes não exige autenticação
+
+---
+
+## Epic 6: Perfil — Hub do Usuário Autenticado
+
+Todo usuário autenticado aterrissa no Perfil (`/perfil`, rota protegida): hub único com layout compartilhado entre ALUNO e PROFESSOR, identidade MSAL somente leitura e abas/atalhos dirigidos por papel; superfícies avulsas ("Meus Projetos", "Fila", "Seleção de Instituições") viram abas.
+
+### Story 6.1: Hub de Perfil com identidade MSAL e landing única
+
+As a usuário autenticado,  
+I want acessar meu Perfil como hub (bloco de identidade + atalhos + abas por papel) e aterrissar nele após o login,  
+So that eu encontre meu contexto e ações do meu papel em um só lugar, sem rotas paralelas.
+
+**Acceptance Criteria:**
+- **Given** que autentiquei via MSAL
+- **When** o login retorna
+- **Then** sou direcionado ao `/perfil` (rota **protegida**; só o próprio usuário vê o próprio perfil)
+- **And** a aba/atalho pré-selecionada segue o estado do papel: aluno → "Meus projetos"; professor zerado → destaque "Instituições (0–4)" (onboarding não bloqueante); professor com vínculos → "Pendentes"; admin → atalho Admin Main
+- **And** o bloco de identidade exibe avatar, nome (`h2`), e-mail institucional e papel — dados do MSAL **somente leitura** (FR-13)
+- **And** ALUNO e PROFESSOR compartilham o mesmo layout de hub (abas/atalhos dirigidos por papel — padrão canal)
+- **And** "Meus Projetos"/"Pendentes"/"Instituições" **não existem como rotas paralelas** (rotas: `/`, `/perfil`, `/projeto-forms`, `/projetos/:id`, `/admin`)

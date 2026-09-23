@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-16-2026 00:00
-last_updated: 09-22-2026 16:30
+last_updated: 09-23-2026 12:30
 project: Fatec-Repositorios
 project_key: NOKEY
 tracking_system: file-system
@@ -45,7 +45,7 @@ development_status:
   epic-2: in-progress
   2-1-admin-mantém-o-catálogo-de-instituições: in-progress
   2-2-professor-lista-o-catálogo-oficial: backlog
-  2-3-professor-seleciona-de-1-a-4-instituições: backlog
+  2-3-professor-seleciona-de-0-a-4-instituições: backlog
   epic-2-retrospective: optional
 
   epic-3: backlog
@@ -54,6 +54,15 @@ development_status:
   epic-3-retrospective: optional
 
   epic-4: backlog
-  4-1-professor-vê-a-fila-de-projetos-das-suas-instituições: backlog
+  4-1-professor-vê-a-fila-pendentes-na-aba-do-perfil: backlog
   4-2-aprovar-ou-rejeitar-projeto-com-estado-visível: backlog
   epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-pesquisar-e-listar-projetos-aprovados-na-vitrine-pública: backlog
+  5-2-visualizar-detalhes-completos-de-um-projeto-aprovado: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-perfil-hub-com-identidade-e-landing-única: backlog
+  epic-6-retrospective: optional
