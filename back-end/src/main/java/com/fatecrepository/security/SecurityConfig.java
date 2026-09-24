@@ -41,9 +41,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/instituicoes/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/instituicoes/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/instituicoes/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/uploads").authenticated()
+                .requestMatchers(HttpMethod.GET, "/professores/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/projetos").authenticated()
+                .requestMatchers(HttpMethod.GET, "/projetos/meus").authenticated()
+                .requestMatchers(HttpMethod.GET, "/projetos/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs").permitAll()
                 .requestMatchers("/error").permitAll()
-                    .anyRequest().permitAll()
+                .anyRequest().permitAll()
             )
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {

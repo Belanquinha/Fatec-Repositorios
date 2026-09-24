@@ -48,4 +48,39 @@ public class ResponseMapper {
     public AuthResponse toAuthResponse(String token, long expiresInSeconds, String nome, String email, String fotoUrl, String role) {
         return new AuthResponse(token, "Bearer", expiresInSeconds, nome, email, fotoUrl, role);
     }
+
+    public com.fatecrepository.dto.response.IntegranteResponse toIntegranteResponse(com.fatecrepository.model.Integrante integrante) {
+        return new com.fatecrepository.dto.response.IntegranteResponse(
+            integrante.getId(),
+            integrante.getNome(),
+            integrante.getLinkLinkedin()
+        );
+    }
+
+    public com.fatecrepository.dto.response.ProjetoResponse toProjetoResponse(com.fatecrepository.model.Projeto projeto) {
+        java.util.List<com.fatecrepository.dto.response.IntegranteResponse> integrantes = projeto.getIntegrantes() != null
+            ? projeto.getIntegrantes().stream().map(this::toIntegranteResponse).toList()
+            : java.util.Collections.emptyList();
+
+        return new com.fatecrepository.dto.response.ProjetoResponse(
+            projeto.getId(),
+            projeto.getTitulo(),
+            projeto.getDescricaoCurta(),
+            projeto.getConteudoEditorJs(),
+            projeto.getLinkRepositorio(),
+            projeto.getImagemCapaUrl(),
+            projeto.getPalavrasChave(),
+            projeto.getAnoPublicado(),
+            projeto.getEstado().name(),
+            projeto.getMotivoRejeicao(),
+            projeto.getEmailProfessorResponsavel(),
+            projeto.getInstituicao() != null ? projeto.getInstituicao().getId() : null,
+            projeto.getInstituicao() != null ? projeto.getInstituicao().getNome() : null,
+            projeto.getAutor() != null ? projeto.getAutor().getId() : null,
+            projeto.getAutor() != null ? projeto.getAutor().getNome() : null,
+            integrantes,
+            projeto.getCriadoEm(),
+            projeto.getAtualizadoEm()
+        );
+    }
 }

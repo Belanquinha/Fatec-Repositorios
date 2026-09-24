@@ -1,0 +1,245 @@
+<div [class]="isModal ? 'p-6 max-h-[85vh] flex flex-col bg-white' : 'min-h-screen bg-branco-500 py-8 px-4 sm:px-6 lg:px-8'">
+  
+  <div [class]="isModal ? 'w-full' : 'max-w-6xl mx-auto space-y-6'">
+
+    <!-- CABEÇALHO DA TELA / MODAL -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-cinza-100 pb-5">
+      <div>
+        @if (!isModal) {
+          <div class="flex items-center gap-2 mb-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-amarelo-100 text-amarelo-900 border border-amarelo-300">
+              Passo 1 de 2
+            </span>
+            <span class="text-xs text-cinza-400 font-medium">Submissão de Projeto Acadêmico</span>
+          </div>
+        }
+        <h1 class="text-2xl sm:text-3xl font-bold text-cinza-900 tracking-tight">
+          {{ isModal ? 'Trocar Unidade FATEC' : 'Selecione a Unidade FATEC' }}
+        </h1>
+        <p class="text-sm text-cinza-400 mt-1">
+          Escolha a instituição onde o trabalho de graduação ou projeto integrador foi desenvolvido.
+        </p>
+      </div>
+
+      @if (isModal) {
+        <button type="button" 
+                (click)="fechar()" 
+                class="self-start sm:self-auto p-2 text-cinza-400 hover:text-cinza-900 hover:bg-cinza-100 border border-transparent hover:border-cinza-300 transition-colors cursor-pointer"
+                aria-label="Fechar">
+          <span class="material-symbols-outlined text-2xl">close</span>
+        </button>
+      } @else {
+        <div class="flex items-center gap-2 bg-white px-4 py-2 border border-solid border-cinza-300 shadow-xs w-fit">
+          <span class="material-symbols-outlined text-amarelo-600 text-lg">school</span>
+          <span class="text-xs font-bold text-cinza-700">86 Unidades no Estado de SP</span>
+        </div>
+      }
+    </div>
+
+    <!-- CONTROLES: BARRA DE PESQUISA + FILTROS DE REGIÃO -->
+    <div class="space-y-4">
+      
+      <!-- Input de Busca Estilo Google Drive (100% Reto / Swiss Style) -->
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-cinza-400 text-xl pointer-events-none">
+          search
+        </span>
+        <input type="text"
+               [(ngModel)]="termoBusca"
+               (input)="aplicarFiltros()"
+               placeholder="Buscar por nome da Fatec, cidade ou código (ex: Adamantina, Santos, 291)..."
+               class="w-full pl-12 pr-10 py-3.5 bg-white border border-solid border-cinza-300 shadow-xs text-sm text-cinza-900 placeholder:text-cinza-400 outline-none focus:border-amarelo-500 focus:ring-1 focus:ring-amarelo-500 transition-all">
+        
+        @if (termoBusca) {
+          <button type="button" 
+                  (click)="limparBusca()" 
+                  class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-cinza-400 hover:text-cinza-900 hover:bg-cinza-100 transition-colors cursor-pointer"
+                  title="Limpar pesquisa">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        }
+      </div>
+
+      <!-- Filtros de Região Administrativa (Chips com Cantos Retos) -->
+      @if (regioesDisponiveis.length > 1) {
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+          <span class="text-xs font-bold text-cinza-400 uppercase tracking-wider mr-2 shrink-0">
+            Região:
+          </span>
+          @for (regiao of regioesDisponiveis; track regiao) {
+            <button type="button"
+                    (click)="selecionarRegiao(regiao)"
+                    [class.bg-cinza-900]="regiaoSelecionada === regiao"
+                    [class.text-white]="regiaoSelecionada === regiao"
+                    [class.border-cinza-900]="regiaoSelecionada === regiao"
+                    [class.bg-white]="regiaoSelecionada !== regiao"
+                    [class.text-cinza-600]="regiaoSelecionada !== regiao"
+                    [class.border-cinza-300]="regiaoSelecionada !== regiao"
+                    [class.hover:bg-cinza-100]="regiaoSelecionada !== regiao"
+                    class="shrink-0 px-3 py-1.5 text-xs font-medium border border-solid transition-colors cursor-pointer flex items-center gap-1.5">
+              {{ regiao }}
+              @if (regiaoSelecionada === regiao) {
+                <span class="text-[10px] bg-amarelo-500 text-cinza-900 font-bold px-1.5 py-0.2">
+                  {{ instituicoesFiltradas.length }}
+                </span>
+              }
+            </button>
+          }
+        </div>
+      }
+
+    </div>
+
+    <!-- MENSAGEM DE ERRO (se houver) -->
+    @if (erroCarregamento) {
+      <div class="p-4 bg-red-50 border border-red-300 text-red-800 text-sm flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-lg">error</span>
+          <span>{{ erroCarregamento }}</span>
+        </div>
+        <button type="button" (click)="carregarInstituicoes()" class="font-bold underline cursor-pointer">
+          Tentar novamente
+        </button>
+      </div>
+    }
+
+    <!-- TABELA ESTILO GOOGLE DRIVE (Cantos 100% Retos) -->
+    <div class="bg-white border border-solid border-cinza-300 shadow-xs overflow-hidden flex flex-col">
+      
+      <!-- Cabeçalho da Tabela -->
+      <div class="hidden sm:grid sm:grid-cols-12 gap-4 px-6 py-3.5 bg-cinza-50 border-b border-cinza-300 text-xs font-bold text-cinza-500 uppercase tracking-wider select-none">
+        <div class="col-span-2">Logo</div>
+        <div class="col-span-5">Unidade / FATEC</div>
+        <div class="col-span-3">Cidade & Região</div>
+        <div class="col-span-2 text-right">Código / Ação</div>
+      </div>
+
+      <!-- Estado: Carregando -->
+      @if (carregando) {
+        <div class="divide-y divide-cinza-200 animate-pulse">
+          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+              <div class="w-20 h-7 bg-cinza-100"></div>
+              <div class="flex-1 space-y-1.5">
+                <div class="w-1/3 h-4 bg-cinza-100"></div>
+                <div class="w-1/4 h-3 bg-cinza-50"></div>
+              </div>
+              <div class="w-28 h-4 bg-cinza-100"></div>
+              <div class="w-20 h-8 bg-cinza-100"></div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Estado: Lista Vazia -->
+      @if (!carregando && instituicoesFiltradas.length === 0) {
+        <div class="p-12 text-center space-y-3">
+          <span class="material-symbols-outlined text-5xl text-cinza-300">search_off</span>
+          <p class="font-semibold text-cinza-800 text-base">Nenhuma instituição encontrada</p>
+          <p class="text-xs text-cinza-400 max-w-md mx-auto">
+            Não encontramos nenhuma FATEC correspondente ao termo "{{ termoBusca }}". Verifique a grafia ou tente buscar pelo nome da cidade.
+          </p>
+          <button type="button" 
+                  (click)="limparBusca()" 
+                  class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-xs shadow-xs transition-colors cursor-pointer border border-amarelo-600">
+            <span class="material-symbols-outlined text-sm">refresh</span> Limpar filtros
+          </button>
+        </div>
+      }
+
+      <!-- Linhas de Instituições (Google Drive Style) -->
+      @if (!carregando && instituicoesFiltradas.length > 0) {
+        <div class="divide-y divide-cinza-200 overflow-y-auto max-h-[60vh] sm:max-h-[65vh]">
+          @for (inst of instituicoesFiltradas; track inst.id) {
+            
+            @let partes = separarNomeEPatrono(inst.nome);
+            @let isAtual = instituicaoAtualId === inst.id;
+
+            <div (click)="selecionar(inst)"
+                 [class.bg-amarelo-50]="isAtual"
+                 class="group px-6 py-3.5 sm:py-4 transition-all hover:bg-amarelo-50/70 cursor-pointer flex flex-col sm:grid sm:grid-cols-12 sm:gap-4 sm:items-center">
+              
+              <!-- Coluna 1: Logo Oficial da FATEC -->
+              <div class="sm:col-span-2 flex items-center gap-3 mb-2 sm:mb-0">
+                @if (temLogoValida(inst.codigoUnidade)) {
+                  <div class="h-9 w-24 flex items-center justify-start overflow-hidden bg-white/70 px-1 border border-cinza-100">
+                    <img [src]="getLogoUrl(inst.codigoUnidade)"
+                         (error)="onLogoError(inst.codigoUnidade)"
+                         [alt]="'Logo ' + inst.nome"
+                         loading="lazy"
+                         class="max-h-8 max-w-[95px] object-contain transition-transform group-hover:scale-105">
+                  </div>
+                } @else {
+                  <div class="h-9 w-9 bg-vermelho-50 border border-vermelho-200 text-vermelho-600 flex items-center justify-center font-bold text-xs shrink-0">
+                    <span class="material-symbols-outlined text-lg">school</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Coluna 2: Nome e Patrono da FATEC -->
+              <div class="sm:col-span-5 min-w-0 pr-2">
+                <div class="flex items-center gap-2">
+                  <p class="text-sm sm:text-base font-semibold text-cinza-900 group-hover:text-cinza-950 transition-colors truncate">
+                    {{ partes.principal }}
+                  </p>
+                  @if (isAtual) {
+                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-bold bg-verde-100 text-verde-800 border border-verde-300 shrink-0">
+                      <span class="material-symbols-outlined text-xs">check</span> Atual
+                    </span>
+                  }
+                </div>
+                @if (partes.patrono) {
+                  <p class="text-xs text-cinza-400 truncate mt-0.5 group-hover:text-cinza-600">
+                    {{ partes.patrono }}
+                  </p>
+                }
+                @if (inst.endereco) {
+                  <p class="text-[11px] text-cinza-400 truncate sm:hidden mt-0.5">
+                    {{ inst.cidade }} • Cód. {{ inst.codigoUnidade }}
+                  </p>
+                }
+              </div>
+
+              <!-- Coluna 3: Cidade & Região Administrativa -->
+              <div class="hidden sm:block sm:col-span-3 text-xs min-w-0">
+                <p class="font-medium text-cinza-800 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-sm text-amarelo-600">location_on</span>
+                  <span class="truncate">{{ inst.cidade }} - {{ inst.estado || 'SP' }}</span>
+                </p>
+                <p class="text-cinza-400 text-[11px] truncate mt-0.5 pl-4">
+                  {{ inst.regiaoAdministrativa || 'Estado de SP' }}
+                </p>
+              </div>
+
+              <!-- Coluna 4 & 5: Código & Botão de Seleção -->
+              <div class="sm:col-span-2 flex items-center justify-between sm:justify-end gap-3 mt-2 sm:mt-0">
+                <span class="text-xs font-mono font-semibold text-cinza-700 bg-cinza-100 border border-cinza-200 px-2 py-1">
+                  Cód. {{ inst.codigoUnidade }}
+                </span>
+
+                <button type="button"
+                        class="px-3.5 py-1.5 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer bg-white group-hover:bg-amarelo-500 text-cinza-700 group-hover:text-cinza-900 border border-cinza-300 group-hover:border-amarelo-600 shadow-2xs group-hover:shadow-xs">
+                  <span>Selecionar</span>
+                  <span class="material-symbols-outlined text-sm transition-transform group-hover:translate-x-0.5">arrow_forward</span>
+                </button>
+              </div>
+
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Rodapé Informativo da Tabela -->
+      <div class="px-6 py-3 bg-cinza-50 border-t border-cinza-300 flex flex-col sm:flex-row items-center justify-between text-xs text-cinza-400 gap-2">
+        <span>Exibindo <strong>{{ instituicoesFiltradas.length }}</strong> de <strong>{{ instituicoes.length }}</strong> FATECs</span>
+        <span class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-xs text-verde-600">verified</span>
+          Catálogo Oficial Centro Paula Souza
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

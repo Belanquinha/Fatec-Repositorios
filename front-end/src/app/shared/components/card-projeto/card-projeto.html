@@ -1,27 +1,33 @@
-<a class="card">
+<article class="card">
     <div class="frame-capa">
-        <img src="capa_card.png">
+        <img [src]="capaUrl" [alt]="titulo" class="imagem-capa" (error)="onImgError($event)">
+        <span class="badge-status">
+            <span class="material-symbols-outlined icon-status">check_circle</span>
+            Aprovado
+        </span>
     </div>
-    <div class="frame-descricao-projeto">
-        <h3 class="nome-projeto">Golden Maker</h3>
 
-        <div class="frame-descricao">
-            <p class="descricao">Este site oferece um espaço livre e criativo para produtores independentes mostrarem seu talento</p>
+    <div class="frame-descricao-projeto">
+        <div class="tags-container">
+            @for (tag of tags; track tag) {
+                <span class="tag-chip">{{ tag }}</span>
+            }
         </div>
 
-        <div class="frame-data">
-            <p class="letra-pequena">há 2 meses</p>
-            <p>•</p>
-            <p class="letra-pequena">120 visualizações</p>
+        <h3 class="nome-projeto" [title]="titulo">{{ titulo }}</h3>
+
+        <div class="frame-descricao">
+            <p class="descricao">{{ descricao }}</p>
         </div>
 
         <hr>
 
-        <div class="frame-nome-instituicao">
-            <p class="nome-instituicao">Fatec Ipiranga</p>
-            <p>•</p>
-            <p class="nome-instituicao">São Paulo</p>
+        <div class="frame-footer-card">
+            <div class="frame-nome-instituicao">
+                <span class="material-symbols-outlined icon-instituicao">school</span>
+                <span class="nome-instituicao">{{ instituicao }}</span>
+            </div>
+            <span class="ano-projeto">{{ ano }}</span>
         </div>
-
     </div>
-</a>
+</article>

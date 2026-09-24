@@ -1,6 +1,8 @@
-import { Component, NgZone, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, NgZone, OnInit, AfterViewInit, OnDestroy, inject } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 import EditorJS, { OutputData } from '@editorjs/editorjs';
 import Header from '@editorjs/header';
@@ -9,64 +11,91 @@ import CodeTool from '@editorjs/code';
 import Quote from '@editorjs/quote';
 import ImageTool from '@editorjs/image';
 
-interface Integrante {
+import { ProjetoService } from '../../core/services/projeto.service';
+import {
+  InstituicaoOption,
+  ProfessorOption,
+  ProjetoCreatePayload,
+} from '../../core/models/projeto.model';
+import { SelecionarInstituicao } from '../selecionar-instituicao/selecionar-instituicao';
+import { environment } from '../../../environments/environment';
+
+interface IntegranteLocal {
   id: number;
   nome: string;
   linkedin: string;
 }
 
-interface Professor {
-  nome: string;
-  email: string;
-}
-
 @Component({
   selector: 'app-upload-projeto',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, CommonModule],
+  imports: [ReactiveFormsModule, FormsModule, CommonModule, SelecionarInstituicao],
   templateUrl: './upload-projeto.html',
   styleUrl: './upload-projeto.css',
 })
-export class UploadProjeto implements AfterViewInit, OnDestroy {
+export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
+  private zone = inject(NgZone);
+  private projetoService = inject(ProjetoService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
   secaoAtual = 1;
   totalSecoes = 4;
 
   // Seção 1: Dados Gerais & Capa
   titulo = '';
   descricaoCurta = '';
+  capaArquivo: File | null = null;
   capaPreview: string | null = null;
+  imagemCapaUrl: string | null = null;
 
   // Seção 2: Instituição & Validação Acadêmica
-  instituicao = '';
+  instituicaoId = '';
+  instituicaoSelecionadaObjeto: InstituicaoOption | null = null;
+  instituicoes: InstituicaoOption[] = [];
+  carregandoInstituicoes = false;
+  mostrarModalTrocaInstituicao = false;
+
   professorEmail = '';
   professorStatus: 'cadastrado' | 'novo' | 'vazio' = 'vazio';
   mostrarDropdownProfessor = false;
   linkRepositorio = '';
   palavrasChave = '';
 
-  // Lista mockada de professores para o Autocomplete
-  professoresBase: Professor[] = [
-    { nome: 'Prof. Dr. Carlos Eduardo', email: 'carlos.eduardo@cps.sp.gov.br' },
-    { nome: 'Profa. Dra. Ana Maria Souza', email: 'ana.maria@cps.sp.gov.br' },
-    { nome: 'Prof. Me. Roberto Silva', email: 'roberto.silva@cps.sp.gov.br' },
-    { nome: 'Profa. Me. Patricia Lima', email: 'patricia.lima@cps.sp.gov.br' },
+  professoresBase: ProfessorOption[] = [
+    { id: '1', nome: 'Prof. Dr. Carlos Eduardo', email: 'carlos.eduardo@cps.sp.gov.br' },
+    { id: '2', nome: 'Profa. Dra. Ana Maria Souza', email: 'ana.maria@cps.sp.gov.br' },
+    { id: '3', nome: 'Prof. Me. Roberto Silva', email: 'roberto.silva@cps.sp.gov.br' },
+    { id: '4', nome: 'Profa. Me. Patricia Lima', email: 'patricia.lima@cps.sp.gov.br' },
   ];
-  professoresFiltrados: Professor[] = [];
+  professoresFiltrados: ProfessorOption[] = [];
 
   // Seção 3: Editor.js
   private editor: EditorJS | null = null;
   editorData: OutputData | null = null;
 
   // Seção 4: Lista Dinâmica de Integrantes
-  integrantes: Integrante[] = [
+  integrantes: IntegranteLocal[] = [
     { id: 1, nome: '', linkedin: '' },
     { id: 2, nome: '', linkedin: '' },
   ];
 
-  // Estado do envio
+  // Estado do envio e feedbacks
+  enviando = false;
   enviadoComSucesso = false;
+  erroMensagem: string | null = null;
 
-  constructor(private zone: NgZone) {}
+  ngOnInit() {
+    this.carregarProfessores();
+    this.carregarInstituicoes();
+
+    this.route.queryParams.subscribe((params) => {
+      if (params['instituicaoId']) {
+        this.instituicaoId = params['instituicaoId'];
+        this.sincronizarInstituicaoSelecionada();
+      }
+    });
+  }
 
   ngAfterViewInit() {
     if (this.secaoAtual === 3) {
@@ -76,6 +105,68 @@ export class UploadProjeto implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.destruirEditor();
+  }
+
+  // --- Carga de dados remotos ---
+  private carregarInstituicoes() {
+    this.carregandoInstituicoes = true;
+    this.projetoService.listarInstituicoes().subscribe({
+      next: (dados) => {
+        this.instituicoes = (dados || []).filter((i) => i.ativo);
+        this.carregandoInstituicoes = false;
+        this.sincronizarInstituicaoSelecionada();
+      },
+      error: (err) => {
+        console.warn('Não foi possível carregar instituições do backend:', err);
+        this.carregandoInstituicoes = false;
+      },
+    });
+  }
+
+  sincronizarInstituicaoSelecionada() {
+    if (this.instituicaoId && this.instituicoes.length > 0) {
+      const encontrada = this.instituicoes.find((i) => i.id === this.instituicaoId);
+      if (encontrada) {
+        this.instituicaoSelecionadaObjeto = encontrada;
+      }
+    }
+  }
+
+  abrirModalTrocaInstituicao() {
+    this.mostrarModalTrocaInstituicao = true;
+  }
+
+  fecharModalTrocaInstituicao() {
+    this.mostrarModalTrocaInstituicao = false;
+  }
+
+  onInstituicaoTrocada(nova: InstituicaoOption) {
+    this.instituicaoId = nova.id;
+    this.instituicaoSelecionadaObjeto = nova;
+    this.fecharModalTrocaInstituicao();
+    // Atualiza a URL sem recarregar
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { instituicaoId: nova.id },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  getLogoUrl(codigoUnidade?: string): string {
+    return codigoUnidade ? `/logos-fatec/${codigoUnidade}.png` : '';
+  }
+
+  private carregarProfessores() {
+    this.projetoService.listarProfessores().subscribe({
+      next: (profs) => {
+        if (profs && profs.length > 0) {
+          this.professoresBase = profs;
+        }
+      },
+      error: (err) => {
+        console.warn('Não foi possível buscar professores remotos, mantendo base inicial:', err);
+      },
+    });
   }
 
   // --- Inicialização do Editor.js ---
@@ -119,21 +210,35 @@ export class UploadProjeto implements AfterViewInit, OnDestroy {
               class: ImageTool,
               config: {
                 uploader: {
-                  uploadByFile: (file: File) => {
-                    return new Promise((resolve) => {
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        this.zone.run(() => {
-                          resolve({
-                            success: 1,
-                            file: {
-                              url: reader.result as string,
-                            },
-                          });
-                        });
+                  uploadByFile: async (file: File) => {
+                    try {
+                      const res = await firstValueFrom(this.projetoService.uploadImagem(file));
+                      const fullUrl = res.url.startsWith('http')
+                        ? res.url
+                        : `${environment.apiUrl}${res.url}`;
+                      return {
+                        success: 1,
+                        file: {
+                          url: fullUrl,
+                        },
                       };
-                      reader.readAsDataURL(file);
-                    });
+                    } catch (err) {
+                      console.warn('Upload remoto de imagem falhou, usando fallback Base64:', err);
+                      return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          this.zone.run(() => {
+                            resolve({
+                              success: 1,
+                              file: {
+                                url: reader.result as string,
+                              },
+                            });
+                          });
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
                   },
                 },
               },
@@ -168,6 +273,9 @@ export class UploadProjeto implements AfterViewInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const arquivo = input.files[0];
+      this.capaArquivo = arquivo;
+      this.erroMensagem = null;
+
       const reader = new FileReader();
       reader.onload = () => {
         this.zone.run(() => {
@@ -181,6 +289,8 @@ export class UploadProjeto implements AfterViewInit, OnDestroy {
   removerCapa(event?: Event) {
     if (event) event.stopPropagation();
     this.capaPreview = null;
+    this.capaArquivo = null;
+    this.imagemCapaUrl = null;
   }
 
   // --- Autocomplete Professor Responsável ---
@@ -206,7 +316,7 @@ export class UploadProjeto implements AfterViewInit, OnDestroy {
     this.professorStatus = encontrado ? 'cadastrado' : 'novo';
   }
 
-  selecionarProfessor(prof: Professor) {
+  selecionarProfessor(prof: ProfessorOption) {
     this.professorEmail = prof.email;
     this.professorStatus = 'cadastrado';
     this.mostrarDropdownProfessor = false;
@@ -262,27 +372,142 @@ export class UploadProjeto implements AfterViewInit, OnDestroy {
     }
   }
 
-  // --- Submissão Final ---
+  // --- Submissão Final Integrada ---
   async enviarParaAvaliacao() {
+    this.erroMensagem = null;
+
+    // 1. Validações preliminares
+    if (!this.titulo.trim()) {
+      this.erroMensagem = 'Por favor, informe o título do projeto.';
+      this.irParaSecao(1);
+      return;
+    }
+
+    if (!this.descricaoCurta.trim()) {
+      this.erroMensagem = 'Por favor, informe uma descrição curta para o projeto.';
+      this.irParaSecao(1);
+      return;
+    }
+
+    if (this.descricaoCurta.trim().length > 144) {
+      this.erroMensagem = 'A descrição curta não pode exceder 144 caracteres.';
+      this.irParaSecao(1);
+      return;
+    }
+
+    if (!this.capaArquivo && !this.capaPreview && !this.imagemCapaUrl) {
+      this.erroMensagem = 'Selecione uma imagem de capa para o projeto.';
+      this.irParaSecao(1);
+      return;
+    }
+
+    if (!this.instituicaoId) {
+      this.erroMensagem = 'Selecione a unidade FATEC responsável.';
+      this.irParaSecao(2);
+      return;
+    }
+
+    if (!this.professorEmail.trim()) {
+      this.erroMensagem = 'Informe o e-mail do professor responsável pela validação acadêmica.';
+      this.irParaSecao(2);
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.professorEmail.trim())) {
+      this.erroMensagem = 'Informe um e-mail válido para o professor responsável.';
+      this.irParaSecao(2);
+      return;
+    }
+
+    const integrantesValidos = this.integrantes.filter((i) => i.nome.trim().length > 0);
+    if (integrantesValidos.length === 0) {
+      this.erroMensagem = 'Informe ao menos um integrante com o nome completo preenchido.';
+      this.irParaSecao(4);
+      return;
+    }
+
+    // 2. Salvar conteúdo do Editor.js
     if (this.editor) {
       try {
         this.editorData = await this.editor.save();
-        console.log('Dados do Editor.js capturados:', this.editorData);
       } catch (err) {
         console.error('Erro ao salvar dados do Editor.js:', err);
       }
     }
-    this.enviadoComSucesso = true;
+
+    this.enviando = true;
+
+    try {
+      // 3. Upload da capa se arquivo físico estiver pendente
+      let capaFinalUrl = this.imagemCapaUrl;
+      if (this.capaArquivo) {
+        try {
+          const uploadRes = await firstValueFrom(this.projetoService.uploadImagem(this.capaArquivo));
+          capaFinalUrl = uploadRes.url;
+        } catch (uploadErr: any) {
+          console.error('Falha no upload da capa:', uploadErr);
+          // Se falhar upload de imagem no backend por estar offline ou não autorizado, prossegue se tiver preview
+          if (!capaFinalUrl && this.capaPreview) {
+            capaFinalUrl = this.capaPreview;
+          }
+        }
+      }
+
+      // 4. Tratamento das palavras-chave
+      const tags = this.palavrasChave
+        ? this.palavrasChave
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0)
+        : [];
+
+      // 5. Montagem do Payload
+      const payload: ProjetoCreatePayload = {
+        titulo: this.titulo.trim(),
+        descricaoCurta: this.descricaoCurta.trim(),
+        conteudoEditorJs: this.editorData ? JSON.stringify(this.editorData) : '',
+        linkRepositorio: this.linkRepositorio.trim() || undefined,
+        imagemCapaUrl: capaFinalUrl || undefined,
+        palavrasChave: tags,
+        anoPublicado: new Date().getFullYear(),
+        instituicaoId: this.instituicaoId,
+        emailProfessorResponsavel: this.professorEmail.trim().toLowerCase(),
+        integrantes: integrantesValidos.map((i) => ({
+          nome: i.nome.trim(),
+          linkLinkedin: i.linkedin.trim() || undefined,
+        })),
+      };
+
+      // 6. Chamada de criação do projeto
+      const projetoCriado = await firstValueFrom(this.projetoService.criarProjeto(payload));
+      console.log('Projeto submetido com sucesso:', projetoCriado);
+
+      this.enviando = false;
+      this.enviadoComSucesso = true;
+    } catch (err: any) {
+      console.error('Erro ao submeter projeto para avaliação:', err);
+      this.enviando = false;
+      const msgErro =
+        err?.error?.mensagem ||
+        err?.error?.message ||
+        'Não foi possível enviar o projeto para avaliação. Verifique sua conexão e tente novamente.';
+      this.erroMensagem = msgErro;
+    }
   }
 
   resetarFormulario() {
     this.destruirEditor();
     this.enviadoComSucesso = false;
+    this.enviando = false;
+    this.erroMensagem = null;
     this.secaoAtual = 1;
     this.titulo = '';
     this.descricaoCurta = '';
+    this.capaArquivo = null;
     this.capaPreview = null;
-    this.instituicao = '';
+    this.imagemCapaUrl = null;
+    this.instituicaoId = '';
     this.professorEmail = '';
     this.professorStatus = 'vazio';
     this.linkRepositorio = '';

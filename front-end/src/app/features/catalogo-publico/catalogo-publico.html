@@ -1,0 +1,203 @@
+<div class="home-container">
+    <!-- Hero Institucional Flat Technical -->
+    <header class="hero-section">
+        <div class="hero-content">
+            <div class="hero-eyebrow">
+                <span class="material-symbols-outlined icon-eyebrow">school</span>
+                <span>Centro Paula Souza • Faculdades de Tecnologia</span>
+            </div>
+            
+            <h1 class="hero-title">
+                Trabalhos que fazemos em sala, <span class="highlight-title">abertos a todos.</span>
+            </h1>
+
+            <p class="hero-subtitle">
+                Explore o acervo de projetos, protótipos de inovação e trabalhos de graduação desenvolvidos pela comunidade acadêmica das Fatecs em todo o estado de São Paulo.
+            </p>
+
+            <div class="hero-actions">
+                <a routerLink="/selecionar-instituicao" class="btn-primary-hero">
+                    <span class="material-symbols-outlined">upload_file</span>
+                    <span>Publicar Projeto</span>
+                </a>
+                <a href="#catalogo" class="btn-secondary-hero">
+                    <span class="material-symbols-outlined">search</span>
+                    <span>Explorar Acervo</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-stats">
+            <div class="stat-card">
+                <span class="stat-number">100%</span>
+                <span class="stat-label">Projetos Aprovados</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">Fatecs</span>
+                <span class="stat-label">Todas as Unidades</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">Aberto</span>
+                <span class="stat-label">Acesso Público</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Banner Contextual do Usuário Autenticado -->
+    @if (usuarioLogado) {
+        <section class="banner-auth">
+            <div class="banner-auth-content">
+                <div class="banner-auth-info">
+                    <span class="material-symbols-outlined icon-auth">verified_user</span>
+                    <div>
+                        <p class="banner-auth-title">Bem-vindo(a) de volta, {{ primeiroNome }}!</p>
+                        <p class="banner-auth-desc">Submeta novas produções acadêmicas para validação do orientador.</p>
+                    </div>
+                </div>
+                <a routerLink="/projeto-forms" class="btn-auth-action">
+                    <span class="material-symbols-outlined">add_circle</span>
+                    <span>Novo Projeto</span>
+                </a>
+            </div>
+        </section>
+    }
+
+    <!-- Seção de Busca e Filtros -->
+    <section id="catalogo" class="catalogo-section">
+        <div class="filtros-container">
+            <div class="filtros-bar">
+                <!-- Campo de Busca -->
+                <div class="busca-input-wrapper">
+                    <span class="material-symbols-outlined icon-busca">search</span>
+                    <input 
+                        type="text" 
+                        class="input-busca" 
+                        placeholder="Buscar por título, resumo, tecnologia ou palavra-chave..."
+                        [(ngModel)]="termoBusca"
+                        (input)="aplicarFiltros()"
+                    >
+                    @if (termoBusca) {
+                        <button class="btn-limpar-campo" (click)="termoBusca = ''; aplicarFiltros()" title="Limpar busca">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    }
+                </div>
+
+                <!-- Select de Instituição -->
+                <div class="select-instituicao-wrapper">
+                    <span class="material-symbols-outlined icon-select">domain</span>
+                    <select 
+                        class="select-instituicao" 
+                        [(ngModel)]="instituicaoSelecionadaId" 
+                        (change)="aplicarFiltros()"
+                    >
+                        <option value="">Todas as Unidades (Fatecs)</option>
+                        @for (inst of instituicoes; track inst.id) {
+                            <option [value]="inst.nome">{{ inst.nome }} ({{ inst.cidade || 'SP' }})</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Chips de Categorias Rápidas -->
+            <div class="tags-filtro-row">
+                <span class="tags-filtro-label">Áreas & Temas:</span>
+                <div class="tags-chips-list">
+                    @for (tag of tagsDisponiveis; track tag) {
+                        <button 
+                            type="button" 
+                            class="chip-filtro" 
+                            [class.chip-ativo]="tagSelecionada === tag"
+                            (click)="selecionarTag(tag)"
+                        >
+                            {{ tag }}
+                        </button>
+                    }
+                </div>
+
+                @if (temFiltrosAtivos) {
+                    <button type="button" class="btn-limpar-todos" (click)="limparFiltros()">
+                        <span class="material-symbols-outlined icon-limpar">filter_alt_off</span>
+                        <span>Limpar Filtros</span>
+                    </button>
+                }
+            </div>
+
+            <!-- Contador de Resultados -->
+            <div class="resultados-meta" aria-live="polite">
+                @if (!carregando) {
+                    <span class="meta-texto">
+                        Exibindo <strong>{{ projetosFiltrados.length }}</strong> {{ projetosFiltrados.length === 1 ? 'projeto encontrado' : 'projetos encontrados' }}
+                        @if (temFiltrosAtivos) {
+                            <span class="meta-filtro-aviso">(com filtros aplicados)</span>
+                        }
+                    </span>
+                }
+            </div>
+        </div>
+
+        <!-- Grade de Projetos / Estados de Interface -->
+        <div class="grade-projetos-container">
+            <!-- Loading Skeletons -->
+            @if (carregando) {
+                <div class="grid-projetos">
+                    @for (i of [1,2,3,4,5,6]; track i) {
+                        <div class="skeleton-card">
+                            <div class="skeleton-img"></div>
+                            <div class="skeleton-body">
+                                <div class="skeleton-tags"></div>
+                                <div class="skeleton-line skeleton-title"></div>
+                                <div class="skeleton-line skeleton-desc"></div>
+                                <div class="skeleton-line skeleton-desc-short"></div>
+                                <div class="skeleton-line skeleton-footer"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Estado de Erro -->
+            @else if (erroCarregamento) {
+                <div class="painel-alerta-erro">
+                    <span class="material-symbols-outlined icon-erro">error</span>
+                    <div class="painel-alerta-content">
+                        <h3>Não foi possível carregar os projetos</h3>
+                        <p>{{ erroCarregamento }}</p>
+                    </div>
+                    <button class="btn-tentar-novamente" (click)="carregarDados()">
+                        <span class="material-symbols-outlined">refresh</span>
+                        <span>Tentar Novamente</span>
+                    </button>
+                </div>
+            }
+
+            <!-- Estado Vazio (Sem resultados) -->
+            @else if (projetosFiltrados.length === 0) {
+                <div class="estado-vazio">
+                    <div class="icon-vazio-wrapper">
+                        <span class="material-symbols-outlined icon-vazio">search_off</span>
+                    </div>
+                    <h3 class="vazio-titulo">Nenhum projeto encontrado</h3>
+                    <p class="vazio-mensagem">
+                        Não encontramos nenhum trabalho que corresponda aos filtros de pesquisa selecionados. Tente ajustar o termo de busca ou limpar os filtros.
+                    </p>
+                    @if (temFiltrosAtivos) {
+                        <button type="button" class="btn-primary-vazio" (click)="limparFiltros()">
+                            <span class="material-symbols-outlined">restart_alt</span>
+                            <span>Limpar Todos os Filtros</span>
+                        </button>
+                    }
+                </div>
+            }
+
+            <!-- Grade de Projetos com Sucesso -->
+            @else {
+                <div class="grid-projetos">
+                    @for (proj of projetosFiltrados; track proj.id) {
+                        <app-card-projeto [projeto]="proj"></app-card-projeto>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+</div>

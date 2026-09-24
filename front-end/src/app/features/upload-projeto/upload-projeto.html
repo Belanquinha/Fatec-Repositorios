@@ -125,6 +125,19 @@
           
           <form (ngSubmit)="enviarParaAvaliacao()" class="space-y-6">
 
+            <!-- Banner de Alerta / Erro (Cor Laranja #D97706, Regra Semântica Sem Vermelho CPS) -->
+            @if (erroMensagem) {
+              <div class="bg-amber-50 border border-amber-500 text-amber-950 p-4 rounded-lg flex items-center justify-between gap-3 text-sm animate-fade-in shadow-sm">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-amber-600 shrink-0">warning</span>
+                  <span class="font-medium">{{ erroMensagem }}</span>
+                </div>
+                <button type="button" (click)="erroMensagem = null" class="text-amber-800 hover:text-amber-950 p-1 cursor-pointer">
+                  <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+              </div>
+            }
+
             <!-- SEÇÃO 1: Dados Gerais & Imagem de Capa -->
             @if (secaoAtual === 1) {
               <div class="space-y-6 animate-fade-in">
@@ -203,19 +216,73 @@
                   <p class="text-sm text-cinza-400 mt-1">Informe a unidade FATEC e o professor orientador responsável pela validação.</p>
                 </div>
 
-                <!-- Instituição Responsável -->
+                <!-- Instituição Responsável (FATEC) -->
                 <div class="space-y-2">
-                  <label class="block text-sm font-semibold text-cinza-700">Instituição Responsável (FATEC) <span class="text-amarelo-600">*</span></label>
-                  <select [(ngModel)]="instituicao" 
-                          name="instituicao"
-                          class="w-full px-4 py-3 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm">
-                    <option value="">Selecione a unidade FATEC...</option>
-                    <option value="Fatec Ipiranga">Fatec Ipiranga</option>
-                    <option value="Fatec Pindamonhangaba">Fatec Pindamonhangaba</option>
-                    <option value="Fatec São José dos Campos">Fatec São José dos Campos</option>
-                    <option value="Fatec Taubaté">Fatec Taubaté</option>
-                    <option value="Fatec Baixada Santista">Fatec Baixada Santista</option>
-                  </select>
+                  <div class="flex items-center justify-between">
+                    <label class="block text-sm font-semibold text-cinza-700">
+                      Instituição Responsável (FATEC) <span class="text-amarelo-600">*</span>
+                    </label>
+                    @if (instituicaoSelecionadaObjeto) {
+                      <button type="button" 
+                              (click)="abrirModalTrocaInstituicao()" 
+                              class="text-xs font-bold text-azul-700 hover:text-azul-900 hover:underline flex items-center gap-1 cursor-pointer transition-colors">
+                        <span class="material-symbols-outlined text-sm">swap_horiz</span> Trocar FATEC
+                      </button>
+                    }
+                  </div>
+
+                  @if (instituicaoSelecionadaObjeto) {
+                    <!-- Card de FATEC Selecionada (Cantos Retos / Swiss Style) -->
+                    <div class="border border-solid border-cinza-300 hover:border-amarelo-500 p-4 bg-white shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div class="flex items-center gap-4">
+                        <div class="h-10 w-24 bg-cinza-50 flex items-center justify-center p-1 border border-cinza-200 shrink-0">
+                          <img [src]="getLogoUrl(instituicaoSelecionadaObjeto.codigoUnidade)"
+                               (error)="$event.target.style.display='none'"
+                               [alt]="'Logo ' + instituicaoSelecionadaObjeto.nome"
+                               class="max-h-8 max-w-full object-contain">
+                        </div>
+                        <div class="min-w-0">
+                          <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-cinza-900 text-sm sm:text-base truncate">
+                              {{ instituicaoSelecionadaObjeto.nome }}
+                            </h3>
+                            <span class="px-2 py-0.5 text-[11px] font-mono font-bold bg-cinza-100 border border-cinza-200 text-cinza-700 shrink-0">
+                              Cód. {{ instituicaoSelecionadaObjeto.codigoUnidade }}
+                            </span>
+                          </div>
+                          <p class="text-xs text-cinza-400 mt-0.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs text-amarelo-600">location_on</span>
+                            <span>{{ instituicaoSelecionadaObjeto.cidade }} - {{ instituicaoSelecionadaObjeto.estado || 'SP' }}</span>
+                            @if (instituicaoSelecionadaObjeto.regiaoAdministrativa) {
+                              <span>• {{ instituicaoSelecionadaObjeto.regiaoAdministrativa }}</span>
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      <button type="button" 
+                              (click)="abrirModalTrocaInstituicao()" 
+                              class="sm:self-center px-3.5 py-2 bg-cinza-50 hover:bg-amarelo-500 hover:text-cinza-900 text-cinza-700 text-xs font-bold border border-cinza-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs">
+                        <span class="material-symbols-outlined text-sm">edit</span> Alterar Unidade
+                      </button>
+                    </div>
+                  } @else {
+                    <!-- Estado quando nenhuma instituição foi selecionada previamente -->
+                    <div class="border-2 border-dashed border-cinza-300 p-6 text-center bg-gray-50/70 space-y-3">
+                      <div class="w-12 h-12 bg-amarelo-50 text-amarelo-600 border border-amarelo-200 flex items-center justify-center mx-auto">
+                        <span class="material-symbols-outlined text-2xl">account_balance</span>
+                      </div>
+                      <div>
+                        <p class="font-bold text-cinza-800 text-sm">Nenhuma unidade FATEC selecionada</p>
+                        <p class="text-xs text-cinza-400 mt-0.5">Selecione onde o projeto acadêmico foi desenvolvido para continuar.</p>
+                      </div>
+                      <button type="button" 
+                              (click)="abrirModalTrocaInstituicao()" 
+                              class="inline-flex items-center gap-2 px-5 py-2.5 bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-xs shadow-xs transition-all cursor-pointer border border-amarelo-600">
+                        <span class="material-symbols-outlined text-base">search</span> Selecionar Unidade FATEC
+                      </button>
+                    </div>
+                  }
                 </div>
 
                 <!-- Autocomplete E-mail do Professor Responsável -->
@@ -399,9 +466,16 @@
 
                 @if (secaoAtual === totalSecoes) {
                   <button type="submit" 
-                          class="w-full sm:w-auto bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-sm px-7 py-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-                    <span>Enviar para Avaliação Acadêmica</span>
-                    <span class="material-symbols-outlined text-base">send</span>
+                          [disabled]="enviando"
+                          [class.opacity-60]="enviando"
+                          class="w-full sm:w-auto bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-sm px-7 py-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
+                    @if (enviando) {
+                      <span class="inline-block w-4 h-4 border-2 border-cinza-900 border-t-transparent rounded-full animate-spin"></span>
+                      <span>Submetendo projeto...</span>
+                    } @else {
+                      <span>Enviar para Avaliação Acadêmica</span>
+                      <span class="material-symbols-outlined text-base">send</span>
+                    }
                   </button>
                 }
               </div>
@@ -412,6 +486,20 @@
         </main>
       </div>
     }
-
   </div>
+
+  <!-- MODAL DE SELEÇÃO / TROCA DE INSTITUIÇÃO -->
+  @if (mostrarModalTrocaInstituicao) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-cinza-900/60 backdrop-blur-xs animate-fade-in">
+      <div class="bg-white shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-solid border-cinza-300 animate-scale-up">
+        <app-selecionar-instituicao 
+          [isModal]="true" 
+          [instituicaoAtualId]="instituicaoId"
+          (instituicaoSelecionada)="onInstituicaoTrocada($event)" 
+          (fecharModal)="fecharModalTrocaInstituicao()">
+        </app-selecionar-instituicao>
+      </div>
+    </div>
+  }
+
 </div>
