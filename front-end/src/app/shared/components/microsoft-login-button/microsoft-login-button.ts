@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
 
@@ -9,6 +9,8 @@ import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
   styleUrl: './microsoft-login-button.css',
 })
 export class MicrosoftLoginButton implements OnInit {
+  private readonly cdr = inject(ChangeDetectorRef);
+
   usuarioLogado = false;
   usuario: UsuarioLogado | null = null;
   inicializando = true;
@@ -32,7 +34,12 @@ export class MicrosoftLoginButton implements OnInit {
       .catch((error) => {
         console.error('Erro ao inicializar o login da Microsoft: ', error);
       })
-      .finally(() => (this.inicializando = false));
+      .finally(() => {
+        this.inicializando = false;
+        // A aplicação é zoneless: sem isto o botão ficaria permanentemente desabilitado,
+        // já que `inicializando` só muda depois de um await.
+        this.cdr.markForCheck();
+      });
   }
 
   private async carregarUsuario(): Promise<void> {
@@ -45,7 +52,9 @@ export class MicrosoftLoginButton implements OnInit {
   }
 
   logout(): void {
-    this.authService.logout();
+    this.authService.logout().catch((erro) => {
+      console.error('Erro ao encerrar a sessão: ', erro);
+    });
     this.usuarioLogado = false;
     this.usuario = null;
   }

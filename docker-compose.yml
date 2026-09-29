@@ -35,6 +35,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-this-key-with-at-least-32-chars}
       JWT_ISSUER: ${JWT_ISSUER:-fatec-repository-api}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+      MSAL_TENANT_ID: ${MSAL_TENANT_ID:-eabe64c5-68f5-4a76-8301-9577a679e449}
     ports:
       - "4040:4040"
     networks:
@@ -46,8 +47,8 @@ services:
       args:
         NG_APP_API_URL: /api
         NG_APP_MSAL_CLIENT_ID: 146c36f9-abf3-48b0-a533-5f462e5e4eed
-        NG_APP_MSAL_AUTHORITY: https://login.microsoftonline.com/2f8088c4-b1f9-4578-afcf-fcec0c6c421c
-        NG_APP_MSAL_REDIRECT_URI: http://localhost:4200/
+        NG_APP_MSAL_AUTHORITY: https://login.microsoftonline.com/${MSAL_TENANT_ID:-eabe64c5-68f5-4a76-8301-9577a679e449}
+        NG_APP_MSAL_REDIRECT_URI: ${MSAL_REDIRECT_URI:-http://localhost:4200/}
     container_name: fatec-frontend
     restart: unless-stopped
     depends_on:

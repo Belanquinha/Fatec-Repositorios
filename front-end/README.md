@@ -18,6 +18,20 @@ E quando tiver rodando, entre na URL: `http://localhost:4200/`.
 
 O build usa o `@ngx-env/builder`, que lê o arquivo **`.env` na raiz do front-end** (mesma pasta do `package.json`) e injeta as variáveis `NG_APP_*` em `import.meta.env` no momento do build.
 
+### Pré-requisito: app registration single-tenant
+
+O app **só funciona** com uma conta do tenant da CPS. O app registration no Entra ID precisa:
+
+- estar configurado como **Single tenant**, apontando para o tenant `eabe64c5-68f5-4a76-8301-9577a679e449` (AD-3);
+- ter a **Redirect URI** `http://localhost:4200/` registrada **exatamente assim, com a barra final**.
+
+Duas divergências quebram o login e nenhuma delas aparece como erro de build:
+
+| Sintoma | Causa |
+| --- | --- |
+| `AADSTS50011` | redirect URI sem a barra final (ou com barra a mais) |
+| conta de fora da CPS não entra | authority `common` em vez do GUID do tenant |
+
 1. Copie o molde e preencha:
 
    ```bash
@@ -37,7 +51,18 @@ O build usa o `@ngx-env/builder`, que lê o arquivo **`.env` na raiz do front-en
    ng serve
    ```
 
-> ⚠️ O valor vai no **`.env`**, **não** em `src/environments/environment.ts`. Os arquivos `environment*.ts` apenas leem `import.meta.env['NG_APP_*']` com fallback de desenvolvimento. `clientId`/`redirectUri`/`apiUrl` **não são segredos** (SPA auth code + PKCE); nunca coloque um "client secret" no front-end. 
+> ⚠️ O valor vai no **`.env`**, **não** em `src/environments/environment.ts`. Os arquivos `environment*.ts` apenas leem `import.meta.env['NG_APP_*']` e, quando a variável vem **vazia ou em branco**, caem no padrão embutido: o tenant `eabe64c5-68f5-4a76-8301-9577a679e449` e o redirect `http://localhost:4200/`. Esse padrão é o valor canônico do projeto — ele existe para que nenhum build saia multi-tenant, não para ser editado. `clientId`/`redirectUri`/`apiUrl` **não são segredos** (SPA auth code + PKCE); nunca coloque um "client secret" no front-end.
+
+## Configuração via Docker / variáveis do ambiente
+
+O `docker-compose.yml` deriva a configuração dos mesmos valores, então existe **uma única fonte de verdade**. Qualquer uma delas pode ser sobrescrita no ambiente:
+
+| Variável | Onde é usada | Padrão |
+| --- | --- | --- |
+| `MSAL_TENANT_ID` | authority do front-end **e** `app.security.msal.tenant-id` do back-end | `eabe64c5-68f5-4a76-8301-9577a679e449` |
+| `MSAL_REDIRECT_URI` | redirect URI do front-end | `http://localhost:4200/` |
+
+O back-end recusa com **401** qualquer token cujo `tid` não seja o `MSAL_TENANT_ID`, antes de chamar o Microsoft Graph. Trocar o tenant exige mudar o app registration junto — os dois lados leem a mesma variável.
 
 
 

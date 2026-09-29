@@ -68,6 +68,9 @@ app:
       secret: ${JWT_SECRET:dev-secret-change-this-key-with-at-least-32-chars}
       issuer: ${JWT_ISSUER:fatec-repository-api}
       expiration-hours: ${JWT_EXPIRATION_HOURS:24}
+    msal:
+      # Tenant único da CPS (AD-3). Qualquer token com outro 'tid' é recusado com 401.
+      tenant-id: ${MSAL_TENANT_ID:eabe64c5-68f5-4a76-8301-9577a679e449}
 
 faterepo:
   seed:

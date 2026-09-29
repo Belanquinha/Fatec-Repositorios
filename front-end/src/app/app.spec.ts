@@ -13,8 +13,9 @@ describe('App', () => {
           provide: AuthService,
           useValue: {
             inicializar: () => Promise.resolve(),
+            quandoPronto: () => Promise.resolve(),
             obterUsuarioLogado: () => Promise.resolve(null),
-            loginPopUp: () => {},
+            loginMicrosoft: () => Promise.resolve(),
             logout: () => {},
             isAdmin: () => false,
           },

@@ -7,3 +7,7 @@ dist
 *.iml
 Dockerfile
 .dockerignore
+
+# Arquivos de ambiente nunca entram na imagem; a config chega por build args
+.env
+.env.*

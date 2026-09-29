@@ -1,1 +1,6 @@
 * text=auto
+
+# O wrapper do Maven é um script em lote híbrido: a parte batch precisa de CRLF para não
+# quebrar silenciosamente quando o checkout normaliza para LF.
+*.cmd text eol=crlf
+mvnw text eol=lf

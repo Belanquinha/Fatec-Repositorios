@@ -11,10 +11,57 @@ const GRAPH_PHOTO_URL = 'https://graph.microsoft.com/v1.0/me/photo/$value';
   providedIn: 'root',
 })
 export class AuthService {
+  /**
+   * MSAL Browser v3+ exige `await initialize()` antes de qualquer acesso ao cache. A promessa é
+   * memorizada para que `inicializar()` seja idempotente e possa ser aguardado por qualquer
+   * componente, independentemente de quem chegar primeiro.
+   */
+  private pronto?: Promise<void>;
+
+  /**
+   * Separado de `pronto` de propósito: `pronto` registra que a inicialização *foi tentada*,
+   * enquanto isto registra que ela *concluiu*. Ler `getAllAccounts()` sobre uma instância cujo
+   * `initialize()` falhou lança `uninitialized_public_client_application`.
+   */
+  private inicializadoComSucesso = false;
+
   constructor(@Inject(MSAL_INSTANCE) private instance: IPublicClientApplication) {}
 
   async inicializar(): Promise<void> {
+    this.pronto ??= this.executarInicializacao();
+    const tentativa = this.pronto;
+
+    try {
+      await tentativa;
+    } catch (erro) {
+      // Libera a memorização para que uma chamada posterior possa tentar de novo, em vez de
+      // repetir a mesma rejeição pelo resto da vida da página.
+      if (this.pronto === tentativa) {
+        this.pronto = undefined;
+        this.inicializadoComSucesso = false;
+      }
+      throw erro;
+    }
+  }
+
+  async quandoPronto(): Promise<void> {
+    await (this.pronto ?? this.inicializar());
+  }
+
+  get conta(): AccountInfo | undefined {
+    if (!this.inicializadoComSucesso) {
+      return undefined;
+    }
+    return this.instance.getAllAccounts()[0] ?? undefined;
+  }
+
+  private async executarInicializacao(): Promise<void> {
     await this.instance.initialize();
+    await this.inicializado();
+    this.inicializadoComSucesso = true;
+  }
+
+  private async inicializado(): Promise<void> {
     try {
       await this.instance.handleRedirectPromise();
     } catch (e: any) {
@@ -26,11 +73,6 @@ export class AuthService {
         throw e;
       }
     }
-  }
-
-  get conta(): AccountInfo | undefined {
-    const contas = this.instance.getAllAccounts();
-    return contas.length > 0 ? contas[0] : undefined;
   }
 
   async obterUsuarioLogado(): Promise<UsuarioLogado | null> {
@@ -67,13 +109,17 @@ export class AuthService {
   }
 
   async loginMicrosoft(): Promise<void> {
+    // O link de login aparece antes da inicialização resolver; sem esta espera o
+    // `loginRedirect` roda sobre uma instância não inicializada.
+    await this.quandoPronto();
+
     const request: RedirectRequest = {
       scopes: GRAPH_SCOPES,
       authority: environment.msalAuthority,
       redirectUri: environment.msalRedirectUri,
     };
 
-    const resultado = await this.instance.loginRedirect(request);
+    await this.instance.loginRedirect(request);
   }
 
   async loginMicrosoftViaApi(): Promise<{ accessToken: string; tokenType: string; expiresInSeconds: number }> {
@@ -115,33 +161,7 @@ export class AuthService {
     return dados as { accessToken: string; tokenType: string; expiresInSeconds: number };
   }
 
-  async loginInstituicao(email: string, senha: string): Promise<{ accessToken: string; tokenType: string; expiresInSeconds: number; role?: string }> {
-    const resposta = await fetch(`${environment.apiUrl}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, senha }),
-    });
-
-    console.log(resposta)
-
-    const dados = await resposta.json().catch(() => null);
-
-    if (!resposta.ok) {
-      const mensagem = dados?.mensagem ?? dados?.message ?? 'Não foi possível realizar o login.';
-      throw new Error(mensagem);
-    }
-
-    if (typeof window !== 'undefined' && dados?.accessToken) {
-      window.localStorage.setItem('accessToken', dados.accessToken);
-      window.localStorage.setItem('tokenType', dados.tokenType ?? 'Bearer');
-      window.localStorage.setItem('expiresInSeconds', String(dados.expiresInSeconds ?? 0));
-      if (dados.role) window.localStorage.setItem('usuarioRole', dados.role);
-    }
-
-    return dados as { accessToken: string; tokenType: string; expiresInSeconds: number; role?: string };
-  }
-
-  logout(): void {
+  async logout(): Promise<void> {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('tokenType');
     localStorage.removeItem('expiresInSeconds');
@@ -149,7 +169,10 @@ export class AuthService {
     localStorage.removeItem('usuarioEmail');
     localStorage.removeItem('usuarioFoto');
     localStorage.removeItem('usuarioRole');
-    this.instance.logoutRedirect({ postLogoutRedirectUri: environment.msalRedirectUri });
+
+    // `logoutRedirect` também exige a instância inicializada.
+    await this.quandoPronto();
+    await this.instance.logoutRedirect({ postLogoutRedirectUri: environment.msalRedirectUri });
   }
 
   isAdmin(): boolean {

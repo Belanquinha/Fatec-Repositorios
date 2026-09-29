@@ -10,9 +10,9 @@ RUN npm ci
 # Copia o código e compila (produção por padrão)
 COPY . .
 ARG NG_APP_API_URL=/api
-ARG NG_APP_MSAL_CLIENT_ID=
-ARG NG_APP_MSAL_AUTHORITY=https://login.microsoftonline.com/common
-ARG NG_APP_MSAL_REDIRECT_URI=http://localhost
+ARG NG_APP_MSAL_CLIENT_ID=146c36f9-abf3-48b0-a533-5f462e5e4eed
+ARG NG_APP_MSAL_AUTHORITY=https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449
+ARG NG_APP_MSAL_REDIRECT_URI=http://localhost:4200/
 ENV NG_APP_API_URL=$NG_APP_API_URL \
     NG_APP_MSAL_CLIENT_ID=$NG_APP_MSAL_CLIENT_ID \
     NG_APP_MSAL_AUTHORITY=$NG_APP_MSAL_AUTHORITY \
