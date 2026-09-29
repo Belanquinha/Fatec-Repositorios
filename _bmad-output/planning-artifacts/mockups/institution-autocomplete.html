@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>institution-autocomplete — mock de composição (Fatec-Repositorios)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   TOKENS — DESIGN.md (Fatec-Repositorios · Flat Technical / Swiss)
+   border-radius 0 em TUDO. Sem gradientes, sem blur, sem cor em sombra.
+   ============================================================ */
+:root{
+  --primary:#DCA703;            /* botão primário SOMENTE */
+  --primary-hover:#C89803;
+  --primary-foreground:#202124;
+  --primary-soft:#FCF6E6;       /* fundo da linha ativa */
+  --surface:#FEFEFE;
+  --background:#F4F6F9;
+  --text:#202124;
+  --text-strong:#0D0E0F;
+  --text-muted:#4D4D50;
+  --border:#6A6A6C;             /* limite de controle */
+  --border-soft:#98989A;        /* decorativo — nunca limite de UI */
+  --accent-ink:#8A6802;         /* foco / aresta ativa / check — 5.13:1 */
+  --status-pending:#8A6802;
+  --error-border:#202124;       /* recusa: cinza, NUNCA #B20000 */
+  --neutral-panel:#F0F0F0;
+  --cps:#B20000;                /* institucional — não usado em estado */
+
+  --elev-card:0 1px 2px rgba(13,14,15,.06), 0 2px 6px rgba(13,14,15,.04);
+  --elev-raised:0 4px 12px rgba(13,14,15,.10);
+  --elev-sticky:0 -4px 12px rgba(13,14,15,.08);
+
+  --font:'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;border-radius:0 !important;}
+
+html{background:var(--background);}
+body{
+  margin:0;background:var(--background);color:var(--text);
+  font-family:var(--font);font-size:1rem;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,h5,p,ul,ol,figure{margin:0;}
+ul{padding:0;list-style:none;}
+
+.ms{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;
+  font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;
+  display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;
+  -webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;
+  font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
+
+.wrap{max-width:1152px;margin:0 auto;padding:0 16px;}
+
+/* ---------- tipografia ---------- */
+.label{font-family:var(--font);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.h1{font-size:2rem;font-weight:700;line-height:1.2;color:var(--text-strong);letter-spacing:-.01em;}
+.h3{font-size:1.25rem;font-weight:600;line-height:1.3;color:var(--text-strong);}
+.h4{font-size:1.125rem;font-weight:600;line-height:1.4;color:var(--text-strong);}
+.body-sm{font-size:.875rem;line-height:1.5;color:var(--text-muted);}
+.caption{font-size:.8125rem;line-height:1.55;color:var(--text-muted);}
+strong.ink{color:var(--text);font-weight:600;}
+
+/* ---------- masthead ---------- */
+.masthead{padding:32px 0 8px;}
+.masthead h1{margin-top:8px;}
+.masthead p{margin-top:8px;max-width:78ch;}
+
+/* ---------- legenda de regras ---------- */
+.legend{background:var(--surface);border:1px solid var(--border-soft);
+  box-shadow:var(--elev-card);margin-top:24px;}
+.legend-head{padding:16px 24px;border-bottom:1px solid var(--border-soft);}
+.legend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+.legend-cell{padding:16px 24px;border-right:1px solid var(--border-soft);}
+.legend-cell:last-child{border-right:0;}
+.legend-cell h4{margin:8px 0 4px;font-size:.9375rem;font-weight:700;color:var(--text-strong);}
+.swatch{display:inline-flex;align-items:center;gap:8px;}
+.sw{width:16px;height:16px;border:1px solid var(--border);display:inline-block;}
+
+/* ---------- frames ---------- */
+.frame{background:var(--surface);border:1px solid var(--border-soft);
+  box-shadow:var(--elev-card);margin-top:40px;}
+.frame-head{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;
+  justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border-soft);}
+.frame-id{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+.frame-id b{color:var(--text-strong);}
+.frame-cap{max-width:62ch;font-size:.875rem;line-height:1.5;color:var(--text-muted);}
+.frame-body{padding:24px;}
+
+/* barra de contexto (rota + papel) */
+.route{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  padding:8px 12px;background:var(--background);border:1px solid var(--border-soft);
+  font-size:.75rem;letter-spacing:.04em;color:var(--text-muted);}
+.route .sep{color:var(--border-soft);}
+.badge{border:1px solid var(--border);padding:2px 6px;font-size:.6875rem;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--text);background:var(--surface);}
+
+/* ---------- seções / sub-painéis ---------- */
+.sub{margin-top:24px;border-top:1px dashed var(--border-soft);padding-top:16px;}
+.sub:first-child{margin-top:0;border-top:0;padding-top:0;}
+.sub-tag{font-size:.6875rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+
+/* ---------- campo (institution-autocomplete) ---------- */
+.field-group{margin-top:8px;}
+.field-label{display:block;font-size:.75rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text);margin-bottom:8px;}
+.field-label .req{color:var(--text-muted);font-weight:400;letter-spacing:0;text-transform:none;}
+.combo{position:relative;}
+.field{display:flex;align-items:center;gap:8px;height:48px;background:var(--surface);
+  border:1px solid var(--border);}
+.field .ms-lead{color:var(--text-muted);font-size:20px;}
+.field input{flex:1 1 auto;min-width:0;height:100%;border:0;outline:0;background:transparent;
+  font-family:var(--font);font-size:1rem;color:var(--text);padding:0;}
+.field input::placeholder{color:var(--text-muted);}
+.field .caret{color:var(--text);padding-right:12px;}
+/* estado de foco: anel 2px accent-ink (NÃO #DCA703) */
+.field.is-focus{border-color:var(--accent-ink);box-shadow:0 0 0 2px var(--accent-ink);}
+.field.is-refused{border:2px solid var(--error-border);}
+.field .counter-pill{margin-right:12px;font-size:.75rem;font-weight:700;letter-spacing:.04em;color:var(--accent-ink);}
+.help{margin-top:8px;}
+.help.refusal{background:var(--neutral-panel);border-left:2px solid var(--error-border);padding:10px 12px;}
+
+/* ---------- popup (combo-popup) ---------- */
+.popup{position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:30;
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--elev-raised);
+  max-height:320px;overflow:auto;}
+.popup-status{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 12px;border-bottom:1px solid var(--border-soft);
+  font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+.popup-status .live{font-weight:400;letter-spacing:.02em;text-transform:none;}
+
+/* ---------- linhas de opção (combo-option) ---------- */
+.opt{display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid var(--border-soft);}
+.opt:last-child{border-bottom:0;}
+.opt .thumb{flex:0 0 24px;width:24px;height:24px;display:block;object-fit:contain;}
+.opt .thumb-fb{display:none;flex:0 0 24px;width:24px;height:24px;align-items:center;justify-content:center;
+  background:var(--background);border:1px solid var(--border-soft);}
+.opt .thumb-fb .ms{font-size:16px;color:var(--text-muted);}
+.opt-text{flex:1 1 auto;min-width:0;}
+.opt-title{font-size:1rem;font-weight:700;line-height:1.35;color:var(--text-strong);}
+.opt-meta{font-size:.875rem;line-height:1.4;color:var(--text-muted);}
+.opt .mark{color:var(--accent-ink);font-size:20px;}
+/* ativo: primary-soft + aresta esquerda 2px accent-ink */
+.opt.is-active{background:var(--primary-soft);box-shadow:inset 2px 0 0 var(--accent-ink);}
+.opt.is-active .opt-title{color:var(--text-strong);}
+.opt-empty{padding:16px 12px;}
+.opt-empty h4{font-size:1rem;font-weight:600;color:var(--text);}
+
+/* ---------- chips ---------- */
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 4px 0 10px;
+  background:var(--surface);border:1px solid var(--border);font-size:.875rem;color:var(--text);}
+.chip .ms-x{font-size:18px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;
+  width:24px;height:24px;}
+.chip--keyword{background:var(--primary);border:1px solid var(--primary);color:var(--primary-foreground);font-weight:600;}
+.chip--keyword .ms-x{color:var(--primary-foreground);}
+.chip-row .divider{color:var(--border);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;}
+
+/* ---------- contador (selection-counter) ---------- */
+.counter-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:8px 16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-soft);}
+.counter{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+.counter b{color:var(--text-strong);}
+.counter--cap{color:var(--accent-ink);}
+.counter--cap b{color:var(--accent-ink);}
+
+/* ---------- botões ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;
+  padding:0 28px;font-family:var(--font);font-size:1rem;font-weight:700;border:1px solid transparent;cursor:default;}
+.btn-primary{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary);}
+.btn-primary .ms{font-size:18px;}
+.btn-secondary{background:transparent;color:var(--text);border-color:var(--border);font-weight:600;height:40px;padding:0 16px;}
+.btn-ghost{background:transparent;border:0;padding:0;color:var(--accent-ink);font-size:.875rem;
+  font-weight:600;text-decoration:underline;text-underline-offset:3px;height:auto;}
+
+/* ---------- anotações ---------- */
+.note{border-left:2px solid var(--border);padding:8px 12px;background:var(--background);
+  font-size:.8125rem;line-height:1.55;color:var(--text-muted);}
+.note b{color:var(--text);font-weight:600;}
+.callout{position:relative;border:1px solid var(--border);background:var(--surface);padding:12px 16px;
+  font-size:.8125rem;line-height:1.55;color:var(--text-muted);}
+.callout b{display:block;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-strong);margin-bottom:4px;}
+.overlay-gap{border:1px dashed var(--border-soft);background:#F7F8FA;
+  display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;}
+.overlay-gap span{font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+
+/* ---------- frame D: mobile ---------- */
+.frame-d-body{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;}
+.device{flex:0 0 375px;max-width:100%;position:relative;height:520px;background:var(--surface);
+  border:1px solid var(--border);overflow:hidden;}
+.device-top{height:44px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;
+  gap:8px;padding:0 12px;font-size:.75rem;color:var(--text-muted);background:var(--background);}
+.device-scroll{padding:16px 12px 88px;}
+.sticky-footer{position:absolute;left:0;right:0;bottom:0;z-index:20;background:var(--surface);
+  border-top:1px solid var(--border-soft);box-shadow:var(--elev-sticky);padding:12px;}
+.sticky-footer .btn{width:100%;}
+.sticky-foot-note{margin-top:6px;text-align:center;font-size:.75rem;color:var(--text-muted);}
+.anchor-arrow{font-size:.75rem;color:var(--text-muted);margin-top:8px;display:flex;gap:6px;align-items:center;}
+
+footer.doc{margin:40px 0 64px;font-size:.8125rem;color:var(--text-muted);}
+
+@media print{body{background:#fff;}.frame{break-inside:avoid;}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ===================== MASTHEAD ===================== -->
+  <header class="masthead">
+    <span class="label">Fatec-Repositorios · Design Suíço / Flat Technical</span>
+    <h1 class="h1">institution-autocomplete — mock de composição</h1>
+    <p class="body-sm">
+      Um componente, três modos. Este arquivo é <strong class="ink">referência de composição</strong>, não uma terceira fonte de verdade:
+      em qualquer conflito, <strong class="ink">DESIGN.md e EXPERIENCE.md vencem</strong>. Tokens visuais aqui foram lidos dos dois spines
+      (paleta, rampa tipográfica, cantos retos, elevação, ARIA).
+    </p>
+    <p class="body-sm" style="margin-top:8px;">
+      Nomes e códigos de unidades além de Fatec Ipiranga são ilustrativos, para layout; o catálogo real são as 86 unidades
+      em operação semeadas a partir da exportação oficial do CPS.
+    </p>
+  </header>
+
+  <!-- ===================== LEGENDA ===================== -->
+  <section class="legend" aria-label="Legenda de regras">
+    <div class="legend-head">
+      <span class="label">Legenda de regras não óbvias</span>
+    </div>
+    <div class="legend-grid">
+      <div class="legend-cell">
+        <span class="swatch"><i class="sw" style="background:#FFFFFF;border-color:#D5D5D7;"></i> <i class="sw" style="background:#8A6802;border-color:#8A6802;"></i></span>
+        <h4>Nunca vermelho em recusa</h4>
+        <p class="caption">Erro, teto de vínculos e “unidade fora do catálogo” são <strong class="ink">neutros</strong>: tinta
+          <strong class="ink">#202124</strong>, legenda <strong class="ink">#4D4D50</strong>, painel <strong class="ink">#F0F0F0</strong> e
+          2px <strong class="ink">error-border #202124</strong> no campo. <strong class="ink">#B20000 é marca institucional CPS e nunca estado</strong> —
+          recusa de catálogo não é erro do sistema. Não é descuido, é decisão.</p>
+      </div>
+      <div class="legend-cell">
+        <span class="swatch"><i class="sw" style="background:#DCA703;border-color:#DCA703;"></i> <i class="sw" style="background:#8A6802;border-color:#8A6802;"></i></span>
+        <h4>Amarelo marca ação; anel marca foco</h4>
+        <p class="caption"><strong class="ink">#DCA703</strong> só preenche o botão primário. Foco, aresta da opção ativa e
+          “check” de selecionada usam <strong class="ink">accent-ink #8A6802</strong>: o amarelo da marca dá 2.18:1 no branco
+          (reprova WCAG 1.4.11) e o amarelo escurecido dá 5.13:1.</p>
+      </div>
+      <div class="legend-cell">
+        <span class="swatch"><i class="sw" style="background:#FFFFFF;border-color:#6A6A6C;"></i> <i class="sw" style="background:#FFFFFF;border-color:#98989A;"></i></span>
+        <h4>Borda de UI é <span style="color:#6A6A6C;">#6A6A6C</span></h4>
+        <p class="caption">Campo, chips e popup usam 1px <strong class="ink">border #6A6A6C</strong>.
+          <strong class="ink">border-soft #98989A</strong> é estrutural/decorrativo e não serve de limite de controle.</p>
+      </div>
+      <div class="legend-cell">
+        <span class="label">Logotipos</span>
+        <h4>24px, quadrados, radius 0</h4>
+        <p class="caption">85 PNGs reais em <code>front-end/public/logos-fatec/&lt;codigo&gt;.png</code>, referenciados por
+          caminho relativo. Arquivo ausente cai no tile de fallback com o ícone <span class="ms" style="font-size:16px;vertical-align:-3px;">school</span> —
+          sem imagem quebrada.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FRAME A ===================== -->
+  <section class="frame" id="frame-a">
+    <div class="frame-head">
+      <span class="frame-id"><b>Frame A</b> · mode=single</span>
+      <p class="frame-cap">Formulário do aluno, Seção 2 de <code>/projeto-forms</code>. Prova o par
+        <em>popup aberto (consulta “ipir”, uma linha ativa)</em> → <em>valor confirmado com metadado + “Alterar”</em>.</p>
+    </div>
+    <div class="frame-body">
+
+      <div class="route">
+        <span>/projeto-forms</span><span class="sep">·</span>
+        <span>Seção 2 — Instituição</span><span class="sep">·</span>
+        <span class="badge">Aluna Fatec</span><span class="sep">·</span>
+        <span>instituicaoId gravado em 1 unidade</span>
+      </div>
+
+      <!-- 1. estado aberto -->
+      <div class="sub">
+        <span class="sub-tag">1 · Estado aberto — consulta “ipir”, popup com rolagem interna (teto 320px)</span>
+
+        <div class="field-group" style="max-width:520px;">
+          <label class="field-label" for="a-input">Instituição <span class="req">· obrigatória</span></label>
+          <div class="combo">
+            <div class="field is-focus">
+              <span class="ms ms-lead">search</span>
+              <input id="a-input" value="ipir" readonly aria-expanded="true" aria-controls="a-list" aria-activedescendant="a-opt-0" />
+              <span class="ms caret">caret-down</span>
+            </div>
+
+            <div class="popup" id="a-list" role="listbox" aria-label="Instituições do catálogo">
+              <div class="popup-status">
+                <span>Catálogo oficial CPS</span>
+                <span class="live" aria-live="polite">2 unidades para “ipir”</span>
+              </div>
+
+              <div class="opt is-active" id="a-opt-0" role="option" aria-selected="false">
+                <img class="thumb" src="../../front-end/public/logos-fatec/291.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                <span class="thumb-fb" aria-hidden="true"><span class="ms">school</span></span>
+                <span class="opt-text">
+                  <span class="opt-title">Fatec Ipiranga</span>
+                  <span class="opt-meta">Cód. 291 · São Paulo · Região Litoral</span>
+                </span>
+              </div>
+
+              <div class="opt" role="option" aria-selected="false">
+                <img class="thumb" src="../../front-end/public/logos-fatec/290.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                <span class="thumb-fb" aria-hidden="true"><span class="ms">school</span></span>
+                <span class="opt-text">
+                  <span class="opt-title">Fatec Ipiranga – Unidade Móoca</span>
+                  <span class="opt-meta">Cód. 290 · São Paulo · Região Litoral</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <p class="help caption">
+            <strong class="ink">Enter</strong> confirma a opção ativa e fecha o popup · <strong class="ink">Esc</strong> fecha mantendo a consulta
+            · <strong class="ink">Tab</strong> confirma e sai · o foco nunca sai do input (<code>aria-activedescendant</code>).
+          </p>
+        </div>
+      </div>
+
+      <div class="overlay-gap" style="height:228px;margin-top:24px;">
+        <span>Popup flutuante · elevation.raised 0 4px 12px rgba(13,14,15,.10) · sobrepõe o conteúdo, nunca o empurra</span>
+      </div>
+
+      <!-- 2. estado confirmado -->
+      <div class="sub">
+        <span class="sub-tag">2 · Estado confirmado — Enter fixou o valor; metadado + “Alterar” reabrem a consulta</span>
+
+        <div class="field-group" style="max-width:520px;">
+          <label class="field-label" for="a-committed">Instituição</label>
+          <div class="combo">
+            <div class="field">
+              <img class="thumb" style="flex:0 0 24px;width:24px;height:24px;" src="../../front-end/public/logos-fatec/291.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+              <span class="thumb-fb" aria-hidden="true"><span class="ms">school</span></span>
+              <input id="a-committed" value="Fatec Ipiranga" readonly aria-expanded="false" />
+              <span class="ms caret">caret-down</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;margin-top:10px;">
+            <span class="opt-meta">Cód. 291 · São Paulo · Região Litoral</span>
+            <button class="btn-ghost" type="button">Alterar</button>
+          </div>
+          <p class="help body-sm">Buscamos no catálogo oficial do Centro Paula Souza (86 unidades em operação).
+            O casamento é por nome, cidade, código ou região — com acento ou sem.</p>
+        </div>
+
+        <div class="note" style="margin-top:16px;max-width:60ch;">
+          <b>Sem texto livre, sempre.</b> Catálogo fechado (CAP-3/AD-5): nada renderiza antes de digitar e nada é
+          cadastrado aqui. Se a unidade não existir, a saída é um beco sem saída honesto em cinza —
+          “Sua unidade não está no catálogo oficial”, com os campos buscados e o contato de suporte.
+          Nunca vermelho.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FRAME B ===================== -->
+  <section class="frame" id="frame-b">
+    <div class="frame-head">
+      <span class="frame-id"><b>Frame B</b> · mode=multi</span>
+      <p class="frame-cap">Aba “Instituições (0–4)” do <code>/perfil</code> — professor. <strong>Não é uma página:</strong> o campo, a fileira de
+        chips, o contador e o “Salvar vínculos” vivem dentro da aba, sem sair do Perfil. Prova o <em>teto de 4 recusado inline, em cinza</em>.</p>
+    </div>
+    <div class="frame-body">
+
+      <div class="route">
+        <span>/perfil</span><span class="sep">·</span>
+        <span>aba “Instituições (0–4)”</span><span class="sep">·</span>
+        <span class="badge">Professor CPS</span><span class="sep">·</span>
+        <span>0–4 vínculos · salvar é explícito</span>
+      </div>
+
+      <div class="sub" style="max-width:640px;">
+        <span class="sub-tag">1 · Seleção em andamento — 3 de 4</span>
+        <h3 class="h3" style="margin-top:8px;">Vincule as unidades onde você atua</h3>
+
+        <div class="field-group" style="margin-top:16px;">
+          <label class="field-label" for="b-input">Adicionar instituição</label>
+          <div class="combo">
+            <!-- campo sem consulta => SEM popup (State Patterns) -->
+            <div class="field">
+              <span class="ms ms-lead">search</span>
+              <input id="b-input" value="" placeholder="Busque por nome, cidade, código ou região" readonly aria-expanded="false" />
+              <span class="counter-pill">3 / 4</span>
+              <span class="ms caret">caret-down</span>
+            </div>
+          </div>
+          <p class="help body-sm">Consulta vazia: <strong class="ink">nenhum popup</strong>. Cada confirmação acrescenta um chip
+            e reabre a consulta para a próxima.</p>
+        </div>
+
+        <div class="chip-row" style="margin-top:20px;">
+          <span class="chip">
+            <img class="thumb" style="flex:0 0 16px;width:16px;height:16px;" src="../../front-end/public/logos-fatec/291.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <span class="thumb-fb" aria-hidden="true"><span class="ms" style="font-size:12px;">school</span></span>
+            Fatec Ipiranga
+            <span class="ms-x" role="img" aria-label="Remover Fatec Ipiranga"><span class="ms">close</span></span>
+          </span>
+          <span class="chip">
+            <img class="thumb" style="flex:0 0 16px;width:16px;height:16px;" src="../../front-end/public/logos-fatec/296.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <span class="thumb-fb" aria-hidden="true"><span class="ms" style="font-size:12px;">school</span></span>
+            Fatec São Paulo
+            <span class="ms-x" role="img" aria-label="Remover Fatec São Paulo"><span class="ms">close</span></span>
+          </span>
+          <span class="chip">
+            <img class="thumb" style="flex:0 0 16px;width:16px;height:16px;" src="../../front-end/public/logos-fatec/251.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <span class="thumb-fb" aria-hidden="true"><span class="ms" style="font-size:12px;">school</span></span>
+            Fatec Mauá
+            <span class="ms-x" role="img" aria-label="Remover Fatec Mauá"><span class="ms">close</span></span>
+          </span>
+          <span class="divider">alterações não salvas</span>
+        </div>
+
+        <div class="counter-row">
+          <span class="counter"><b>3</b> de 4 unidades</span>
+          <span style="display:flex;gap:8px;align-items:center;">
+            <button class="btn-secondary" type="button">Cancelar</button>
+            <button class="btn btn-primary" type="button" style="height:40px;padding:0 20px;">Salvar vínculos</button>
+          </span>
+        </div>
+        <p class="caption" style="margin-top:8px;">Contador escrito por extenso, nunca “3/4” solto. A remoção do chip é estado local
+          imediato — só “Salvar vínculos” chama o servidor; sair com pendência pede confirmação.</p>
+      </div>
+
+      <div class="sub" style="max-width:640px;">
+        <span class="sub-tag">2 · Teto atingido — 5ª unidade recusada inline, cinza e amarelo, sem modal</span>
+
+        <div class="field-group" style="margin-top:16px;">
+          <label class="field-label" for="b-cap">Adicionar instituição</label>
+          <div class="combo">
+            <div class="field is-refused">
+              <span class="ms ms-lead">search</span>
+              <input id="b-cap" value="" placeholder="Busque por nome, cidade, código ou região" readonly aria-expanded="false"
+                     aria-describedby="b-cap-refusal" />
+              <span class="counter-pill">4 / 4</span>
+              <span class="ms caret">caret-down</span>
+            </div>
+          </div>
+          <p class="help refusal body-sm" id="b-cap-refusal" aria-live="polite" style="max-width:56ch;">
+            <strong class="ink" style="display:block;color:#202124;">Máximo de 4 instituições por professor.</strong>
+            Para trocar uma unidade, remova um vínculo da lista. Nenhum modal, nenhum campo vermelho.
+          </p>
+        </div>
+
+        <div class="chip-row" style="margin-top:20px;">
+          <span class="chip">
+            <img class="thumb" style="flex:0 0 16px;width:16px;height:16px;" src="../../front-end/public/logos-fatec/291.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <span class="thumb-fb" aria-hidden="true"><span class="ms" style="font-size:12px;">school</span></span>
+            Fatec Ipiranga
+            <span class="ms-x" role="img" aria-label="Remover Fatec Ipiranga"><span class="ms">close</span></span>
+          </span>
+          <span class="chip">
+            <img class="thumb" style="flex:0 0 16px;width:16px;height:16px;" src="../../front-end/public/logos-fatec/296.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <span class="thumb-fb" aria-hidden="true"><span class="ms" style="font-size:12px;">school</span></span>
+            Fatec São Paulo
+            <span class="ms-x" role="img" aria-label="Remover Fatec São Paulo"><span class="ms">close</span></span>
+          </span>
+          <span class="chip">
+            <img class="thumb" style="flex:0 0 16px;width:16px;height:16px;" src="../../front-end/public/logos-fatec/251.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <span class="thumb-fb" aria-hidden="true"><span class="ms" style="font-size:12px;">school</span></span>
+            Fatec Mauá
+            <span class="ms-x" role="img" aria-label="Remover Fatec Mauá"><span class="ms">close</span></span>
+          </span>
+          <span class="chip">
+            <img class="thumb" style="flex:0 0 16px;width:16px;height:16px;" src="../../front-end/public/logos-fatec/269.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <span class="thumb-fb" aria-hidden="true"><span class="ms" style="font-size:12px;">school</span></span>
+            Fatec Santos
+            <span class="ms-x" role="img" aria-label="Remover Fatec Santos"><span class="ms">close</span></span>
+          </span>
+        </div>
+
+        <div class="counter-row">
+          <span class="counter counter--cap"><b>4</b> de 4 unidades</span>
+          <button class="btn btn-primary" type="button" style="height:40px;padding:0 20px;">Salvar vínculos</button>
+        </div>
+        <p class="caption" style="margin-top:8px;">No teto o contador vira <strong class="ink">accent-ink #8A6802</strong> (não #DCA703, que
+          reprovaria contraste a 2.18:1) e a recusa é <strong class="ink">texto + aria-live</strong> — nunca só cor, nunca vermelho CPS.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FRAME C ===================== -->
+  <section class="frame" id="frame-c">
+    <div class="frame-head">
+      <span class="frame-id"><b>Frame C</b> · mode=filter</span>
+      <p class="frame-cap">Home pública, visitante anônimo. Prova que o filtro é o <em>mesmo componente</em> (sem
+        <code>&lt;select&gt;</code> de 86 opções) e que o chip de instituição convive com o chip de palavra-chave.</p>
+    </div>
+    <div class="frame-body">
+
+      <div class="route">
+        <span>/</span><span class="sep">·</span>
+        <span>vitrine pública de projetos aprovados</span><span class="sep">·</span>
+        <span class="badge">Visitante</span><span class="sep">·</span>
+        <span>sem token · sem login (CAP-7)</span>
+      </div>
+
+      <div class="sub">
+        <span class="sub-tag">Barra de busca + filtros</span>
+
+        <div style="max-width:720px;margin-top:12px;">
+          <label class="field-label" for="c-search">Buscar por título, tag ou instituição</label>
+          <div class="field" style="max-width:420px;">
+            <span class="ms ms-lead">search</span>
+            <input id="c-search" value="energia" readonly />
+          </div>
+        </div>
+
+        <div style="max-width:720px;margin-top:24px;">
+          <label class="field-label" for="c-filter">Filtrar por instituição</label>
+          <div class="combo" style="max-width:420px;">
+            <div class="field">
+              <span class="ms ms-lead">search</span>
+              <input id="c-filter" value="" placeholder="Busque por nome, cidade, código ou região" readonly aria-expanded="false" />
+              <span class="ms caret">caret-down</span>
+            </div>
+          </div>
+          <p class="help body-sm">Mesmo campo, mesma geometria, outro template. O popup só abre com consulta não vazia.</p>
+        </div>
+
+        <div class="chip-row" style="margin-top:20px;align-items:center;">
+          <span class="label">Filtros ativos</span>
+          <span class="chip">
+            <img class="thumb" style="flex:0 0 16px;width:16px;height:16px;" src="../../front-end/public/logos-fatec/291.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <span class="thumb-fb" aria-hidden="true"><span class="ms" style="font-size:12px;">school</span></span>
+            Fatec Ipiranga
+            <span class="ms-x" role="img" aria-label="Remover filtro de instituição"><span class="ms">close</span></span>
+          </span>
+          <span class="chip chip--keyword">
+            energia
+            <span class="ms-x" role="img" aria-label="Remover filtro de palavra-chave"><span class="ms">close</span></span>
+          </span>
+          <button class="btn-secondary" type="button">Limpar</button>
+        </div>
+
+        <p class="caption" style="margin-top:12px;max-width:70ch;">
+          <strong class="ink">institution-chip</strong> (instituição) é contorno neutro: é um valor de catálogo, não um destaque.
+          <strong class="ink">filter-chip</strong> (palavra-chave) é o chip ativo em <strong class="ink">#DCA703</strong> com texto
+          <strong class="ink">#202124</strong> — o único amarelo de destaque da página. O botão “Limpar” só existe com filtro ativo, e a grade
+          filtra por <code>instituicaoId</code> de verdade.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FRAME D ===================== -->
+  <section class="frame" id="frame-d">
+    <div class="frame-head">
+      <span class="frame-id"><b>Frame D</b> · &lt;md (375px)</span>
+      <p class="frame-cap">Formulário do aluno em celular. Prova o popup <em>100% da largura do campo, ancorado</em> e o
+        <em>rodapé sticky de submit nunca coberto</em>.</p>
+    </div>
+    <div class="frame-body">
+      <div class="frame-d-body">
+
+        <div class="device">
+          <div class="device-top">
+            <span class="ms" style="font-size:16px;">school</span>
+            <span>LuePad · /projeto-forms</span>
+          </div>
+
+          <div class="device-scroll">
+            <span class="sub-tag">Seção 2 de 4 · Instituição</span>
+            <div class="field-group" style="margin-top:10px;">
+              <label class="field-label" for="d-input">Instituição <span class="req">· obrigatória</span></label>
+              <div class="combo">
+                <div class="field is-focus">
+                  <span class="ms ms-lead">search</span>
+                  <input id="d-input" value="ipe" readonly aria-expanded="true" aria-controls="d-list" />
+                  <span class="ms caret">caret-down</span>
+                </div>
+
+                <div class="popup" id="d-list" role="listbox" aria-label="Instituições do catálogo" style="z-index:30;">
+                  <div class="popup-status">
+                    <span>Catálogo</span>
+                    <span class="live" aria-live="polite">2 unidades</span>
+                  </div>
+                  <div class="opt is-active" role="option" aria-selected="false">
+                    <img class="thumb" src="../../front-end/public/logos-fatec/291.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                    <span class="thumb-fb" aria-hidden="true"><span class="ms">school</span></span>
+                    <span class="opt-text">
+                      <span class="opt-title">Fatec Ipiranga</span>
+                      <span class="opt-meta">Cód. 291 · São Paulo · Região Litoral</span>
+                    </span>
+                  </div>
+                  <div class="opt" role="option" aria-selected="false">
+                    <img class="thumb" src="../../front-end/public/logos-fatec/292.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                    <span class="thumb-fb" aria-hidden="true"><span class="ms">school</span></span>
+                    <span class="opt-text">
+                      <span class="opt-title">Fatec Barueri</span>
+                      <span class="opt-meta">Cód. 292 · Barueri · Região Metropolitana</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <p class="help body-sm" style="font-size:.8125rem;">Popup ancorado, largura do campo, rolagem interna. Sem overflow horizontal.</p>
+            </div>
+          </div>
+
+          <!-- rodapé sticky: z-index 20, popup z-index 30 -->
+          <div class="sticky-footer">
+            <button class="btn btn-primary" type="button">
+              <span class="ms">check</span> Enviar projeto
+            </button>
+            <p class="sticky-foot-note">Você pode revisar antes de enviar</p>
+          </div>
+        </div>
+
+        <div style="flex:1 1 260px;min-width:240px;">
+          <div class="callout">
+            <b>O rodapé nunca fica coberto</b>
+            O popup abre <strong style="color:#202124;">z-index 30</strong> acima do rodapé sticky <strong style="color:#202124;">z-index 20</strong>:
+            quando as duas camadas se cruzam, quem aparece por cima é sempre a lista, e o CTA “Enviar projeto”
+            permanece alcançável por toque logo abaixo. Em <code>&lt;md</code> o popup é a <strong style="color:#202124;">100% da largura do campo</strong>
+            — nunca um popover flutuante que transbordaria a tela.
+          </div>
+          <div class="anchor-arrow"><span aria-hidden="true">↓</span> elevação sticky: 0 -4px 12px rgba(13,14,15,.08)</div>
+          <div class="note" style="margin-top:16px;">
+            <b>Toque antes de hover.</b> Nada no popup ou nos chips depende de hover: abre por foco, clique ou teclado em
+            qualquer viewport, e os alvos de remoção têm ≥ 40×40px no toque.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer class="doc">
+    Fatec-Repositorios · mock de composição — <code>institution-autocomplete</code> · mode single / multi / filter.
+    Em conflito, <strong class="ink">DESIGN.md e EXPERIENCE.md vencem</strong>. Logotipos: 85 PNGs em
+    <code>front-end/public/logos-fatec/</code>, com fallback no ícone <span class="ms" style="font-size:15px;vertical-align:-2px;">school</span>.
+  </footer>
+
+</div>
+</body>
+</html>
