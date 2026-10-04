@@ -1,0 +1,60 @@
+# Perfil de testes E2E de API (bdd-qa).
+# Objetivo: subir o contexto Spring completo contra um PostgreSQL dedicado,
+# sem tocar no banco de desenvolvimento e sem depender da rede Microsoft.
+spring:
+  datasource:
+    url: jdbc:postgresql://${TEST_DB_HOST:localhost}:${TEST_DB_PORT:5433}/${TEST_DB_NAME:fatecrepository_test}
+    username: ${TEST_DB_USER:postgres}
+    password: ${TEST_DB_PASSWORD:123456}
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      # O schema é de responsabilidade do Hibernate (ddl-auto=create-drop);
+      # data.sql é desligado para não semear o admin fora do controle do teste.
+      mode: never
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    open-in-view: false
+    defer-datasource-initialization: false
+    properties:
+      hibernate:
+        format_sql: false
+
+server:
+  port: 0
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+app:
+  upload:
+    dir: ${java.io.tmpdir}/fatecrepository-e2e-uploads
+  security:
+    jwt:
+      # Segredo determinístico do perfil de teste: permite que o teste gere
+      # tokens reais via JwtTokenProvider e os envie de volta pela API.
+      secret: e2e-test-secret-fatec-repository-com-pelo-menos-32-chars
+      issuer: fatec-repository-api
+      expiration-hours: 24
+    msal:
+      tenant-id: eabe64c5-68f5-4a76-8301-9577a679e449
+      jwks-uri: https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449/discovery/v2.0/keys
+
+faterepo:
+  seed:
+    # Desligado por padrão: os testes de seed ficam isolados em SeedCatalogoE2ETest,
+    # que exercita o CatalogoSeeder explicitamente.
+    mode: upsert
+    files: []
+
+logging:
+  level:
+    root: WARN
+    com.fatecrepository: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN

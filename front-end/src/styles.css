@@ -3,10 +3,15 @@
 @import './styles/paleta.css';
 @import './styles/tipografia.css';
 @import './styles/reset.css';
+@import './styles/editorjs.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+* {
+    border-radius: 0;
+}
 
 html, body {
     margin: 0;
@@ -31,10 +36,6 @@ img {
     max-width: 100%;
     height: auto;
     vertical-align: middle;
-}
-
-a {
-  text-decoration: none;
 }
 
 .esconder-mobile {

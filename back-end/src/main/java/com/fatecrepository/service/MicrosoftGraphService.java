@@ -1,5 +1,6 @@
 package com.fatecrepository.service;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
@@ -26,6 +27,12 @@ public class MicrosoftGraphService {
         this.objectMapper = new ObjectMapper();
     }
 
+    /**
+     * O Graph devolve campos que não interessam aqui — {@code @odata.context}, {@code @odata.type},
+     * {@code businessPhones}, entre outros. Sem {@code ignoreUnknown = true} o Jackson aborta no
+     * primeiro campo excedente e o login devolve 401 mesmo com um token válido.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @Data
     public static class GraphUser {
         private String id;

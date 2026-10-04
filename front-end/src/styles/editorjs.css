@@ -1,0 +1,129 @@
+/*
+ * Ajustes visuais do Editor.js (tela de Cadastro de Projeto).
+ *
+ * O Editor.js cria o próprio DOM via JavaScript e injeta o CSS dele em runtime,
+ * fora do encapsulamento de estilos do Angular. O CSS original dos blocos
+ * (`.ce-header`, `.ce-paragraph`, listas) depende de valores padrão de
+ * headings/listas do navegador para criar hierarquia visual — e tanto o
+ * Preflight do Tailwind quanto o reset do projeto zeram esses valores.
+ * Resultado sem estas regras: títulos com o mesmo tamanho do corpo e blocos
+ * colados uns nos outros.
+ */
+
+.editor-conteudo {
+    color: var(--cinza-700);
+    font-size: 1rem;
+}
+
+/* Espaçamento entre blocos (o CSS do Editor.js não define nada para .ce-paragraph) */
+.editor-conteudo .ce-paragraph {
+    padding: 0.35em 0;
+}
+
+.editor-conteudo .ce-block:first-of-type .ce-paragraph {
+    padding-top: 0;
+}
+
+/* Hierarquia de títulos (o Preflight zera font-size e font-weight de h1..h6) */
+.editor-conteudo .ce-header {
+    font-weight: 700;
+    color: var(--cinza-900);
+    line-height: 1.3;
+    padding: 0.9em 0 0.3em;
+}
+
+.editor-conteudo h2.ce-header {
+    font-size: 1.5rem;
+}
+
+.editor-conteudo h3.ce-header {
+    font-size: 1.25rem;
+}
+
+.editor-conteudo h4.ce-header {
+    font-size: 1.1rem;
+}
+
+.editor-conteudo .ce-block:first-of-type .ce-header {
+    padding-top: 0;
+}
+
+/*
+ * Listas: o Preflight remove list-style, margin e padding de ol, ul e menu.
+ * As listas do próprio Editor.js (.cdx-list) já desenham o marcador via
+ * ::before/contadores, então ficam de fora para não ganhar marcador duplicado.
+ */
+.editor-conteudo :is(ol, ul):not(.cdx-list) {
+    padding-left: 1.35rem;
+}
+
+.editor-conteudo ol:not(.cdx-list) {
+    list-style-type: decimal;
+}
+
+.editor-conteudo ul:not(.cdx-list) {
+    list-style-type: disc;
+}
+
+.editor-conteudo ol:not(.cdx-list) ol {
+    list-style-type: lower-alpha;
+}
+
+/* Links */
+.editor-conteudo a {
+    color: var(--azul-600);
+    text-decoration: underline;
+}
+
+/* Placeholder: legível, porém claramente "ainda não digitado" */
+.editor-conteudo [data-placeholder]:empty::before,
+.editor-conteudo [data-placeholder][data-empty='true']::before,
+.editor-conteudo [data-placeholder-active]:empty::before,
+.editor-conteudo [data-placeholder-active][data-empty='true']::before {
+    color: var(--cinza-300);
+    font-style: italic;
+}
+
+/* Estado vazio do editor: regra mais específica do próprio Editor.js */
+.editor-conteudo .ce-block:only-of-type .ce-paragraph[data-placeholder-active]:empty::before,
+.editor-conteudo .ce-block:only-of-type .ce-paragraph[data-placeholder-active][data-empty='true']::before {
+    color: var(--cinza-300);
+    font-style: italic;
+}
+
+/* Bloco selecionado, na cor de destaque do projeto */
+.editor-conteudo .ce-block--selected .ce-block__content {
+    background: var(--amarelo-50);
+}
+
+/* Cantos retos, no lugar do padrão arredondado do Editor.js */
+.editor-conteudo .ce-toolbar__plus,
+.editor-conteudo .ce-toolbar__settings-btn,
+.editor-conteudo .cdx-settings-button,
+.editor-conteudo .ce-inline-tool,
+.editor-conteudo .ce-inline-toolbar {
+    border-radius: 0;
+}
+
+.editor-conteudo .ce-popover {
+    --border-radius: 0;
+    --color-border: var(--cinza-200);
+    --color-text-secondary: var(--cinza-400);
+}
+
+/* Bloco de código */
+.editor-conteudo .ce-code__textarea {
+    background: var(--cinza-50);
+    border-color: var(--cinza-200);
+    border-radius: 0;
+}
+
+/* Imagens */
+.editor-conteudo .image-tool__image {
+    border-radius: 0;
+}
+
+.editor-conteudo .image-tool__caption {
+    font-size: 0.875rem;
+    color: var(--cinza-400);
+}

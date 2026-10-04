@@ -3,6 +3,7 @@ import { MSAL_INSTANCE } from '@azure/msal-angular';
 import { IPublicClientApplication } from '@azure/msal-browser';
 
 import { AuthService } from './auth.service';
+import { environment } from '../../../environments/environment';
 
 interface InstanciaMsalDouble {
   initialize: ReturnType<typeof vi.fn>;
@@ -35,9 +36,31 @@ function criarAuthService(instancia: InstanciaMsalDouble): AuthService {
   return TestBed.inject(AuthService);
 }
 
+/**
+ * JWT com o formato que `sessao-navegador` sabe ler: três segmentos, e um `exp` no payload.
+ *
+ * A assinatura não é validada no front-end (quem valida é o back-end), então `header.payload.`
+ * com assinatura falsa serve. O que importa nos testes é o `exp`.
+ */
+function criarJwt(expEmSegundos: number): string {
+  const payload = btoa(JSON.stringify({ exp: expEmSegundos }))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  return `header.${payload}.assinatura`;
+}
+
+const EM_HORA = 3600;
+
+/** Token válido por uma hora a partir de agora. */
+function criarJwtValido(): string {
+  return criarJwt(Math.floor(Date.now() / 1000) + EM_HORA);
+}
+
 describe('AuthService', () => {
   afterEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   describe('conta', () => {
@@ -181,6 +204,151 @@ describe('AuthService', () => {
       const authService = criarAuthService(criarInstanciaMsal());
 
       expect((authService as unknown as Record<string, unknown>)['loginInstituicao']).toBeUndefined();
+    });
+  });
+
+  describe('obterUsuarioLogado', () => {
+    /**
+     * Regressão do bug relatado: com a conta no cache do MSAL mas sem sessão
+     * confirmada pelo back-end, a UI exibia um perfil no canto. O cache do MSAL
+     * prova apenas que a Microsoft autenticou a pessoa no navegador.
+     */
+    it('deve devolver null mesmo com conta no MSAL quando o back-end não respondeu', async () => {
+      const conta = { name: 'Aluno', username: 'aluno@aluno.cps.sp.gov.br' };
+      const authService = criarAuthService(
+        criarInstanciaMsal({ getAllAccounts: vi.fn().mockReturnValue([conta]) })
+      );
+      await authService.inicializar();
+
+      await expect(authService.obterUsuarioLogado()).resolves.toBeNull();
+    });
+
+    it('deve devolver null quando há identidade guardada mas o token foi removido', async () => {
+      localStorage.setItem('usuarioNome', 'Aluno da CPS');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+      localStorage.setItem('usuarioRole', 'ADMIN');
+
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.obterUsuarioLogado()).resolves.toBeNull();
+      // O papel não pode sobreviver à sessão: isAdmin() já exige o token.
+      expect(authService.isAdmin()).toBe(false);
+    });
+
+    it('deve devolver o usuário quando o back-end confirmou a sessão', async () => {
+      localStorage.setItem('accessToken', criarJwtValido());
+      localStorage.setItem('usuarioNome', 'Aluno da CPS');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+      localStorage.setItem('usuarioFoto', 'https://exemplo.test/foto.png');
+      localStorage.setItem('usuarioRole', 'ADMIN');
+
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.obterUsuarioLogado()).resolves.toEqual({
+        nome: 'Aluno da CPS',
+        email: 'aluno@aluno.cps.sp.gov.br',
+        foto: 'https://exemplo.test/foto.png',
+        role: 'ADMIN',
+      });
+      expect(authService.isAdmin()).toBe(true);
+    });
+
+    /**
+     * A chave existir não é prova de nada: o JWT vence e o `localStorage` não. Sem esta checagem a
+     * tela anunciava "logado" e toda chamada autenticada voltava 401 — o sintoma que fazia um login
+     * de desenvolvimento parececido com defeito.
+     */
+    it('deve devolver null quando o token guardada venceu, mesmo com as chaves de perfil intactas', async () => {
+      localStorage.setItem('accessToken', criarJwt(Math.floor(Date.now() / 1000) - 1));
+      localStorage.setItem('usuarioNome', 'Aluno da CPS');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+      localStorage.setItem('usuarioRole', 'ADMIN');
+
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.obterUsuarioLogado()).resolves.toBeNull();
+      // O papel guardado ao lado de um token vencido descreveria uma sessão que a API não reconhece.
+      expect(authService.isAdmin()).toBe(false);
+    });
+
+    it('deve descartar as chaves de sessão quando o token venceu, em vez de só ignorá-las', async () => {
+      localStorage.setItem('accessToken', criarJwt(Math.floor(Date.now() / 1000) - 1));
+      localStorage.setItem('usuarioNome', 'Aluno da CPS');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+
+      const authService = criarAuthService(criarInstanciaMsal());
+      await authService.obterUsuarioLogado();
+
+      // Deixar o token vencido no lugar manteria a UI anunciando um login que nada consegue usar.
+      expect(localStorage.getItem('accessToken')).toBeNull();
+      expect(localStorage.getItem('usuarioNome')).toBeNull();
+    });
+
+    it('deve tratar token sem formato de JWT como vencido, sem lançar', async () => {
+      localStorage.setItem('accessToken', 'jwt-da-sessao');
+      localStorage.setItem('usuarioNome', 'Aluno da CPS');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      // Na dúvida o estado é "deslogado", que é o estado em que a pessoa ainda se recupera.
+      await expect(authService.obterUsuarioLogado()).resolves.toBeNull();
+    });
+
+    it('deve tratar token com payload ilegível como vencido, sem lançar', async () => {
+      localStorage.setItem('accessToken', 'header.nao-e-json.assinatura');
+      localStorage.setItem('usuarioNome', 'Aluno da CPS');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.obterUsuarioLogado()).resolves.toBeNull();
+    });
+
+    it('deve tratar token sem claim exp como vencido', async () => {
+      localStorage.setItem('accessToken', `header.${btoa('{"sub":"x"}')}.assinatura`);
+      localStorage.setItem('usuarioNome', 'Aluno da CPS');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.obterUsuarioLogado()).resolves.toBeNull();
+    });
+
+    it('deve aceitar token recém-emitido, com exp no segundo seguinte', async () => {
+      localStorage.setItem('accessToken', criarJwt(Math.floor(Date.now() / 1000) + 10));
+      localStorage.setItem('usuarioNome', 'Aluno da CPS');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.obterUsuarioLogado()).resolves.not.toBeNull();
+    });
+  });
+
+  describe('limparSessaoLocal', () => {
+    it('deve remover todas as chaves de sessão sem tocar no cache do MSAL', () => {
+      localStorage.setItem('accessToken', 'jwt');
+      localStorage.setItem('tokenType', 'Bearer');
+      localStorage.setItem('expiresInSeconds', '3600');
+      localStorage.setItem('usuarioNome', 'Aluno');
+      localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
+      localStorage.setItem('usuarioFoto', 'foto');
+      localStorage.setItem('usuarioRole', 'ADMIN');
+      localStorage.setItem('outra-chave', 'deve-sobreviver');
+
+      const instancia = criarInstanciaMsal();
+      const authService = criarAuthService(instancia);
+
+      authService.limparSessaoLocal();
+
+      expect(localStorage.getItem('accessToken')).toBeNull();
+      expect(localStorage.getItem('usuarioNome')).toBeNull();
+      expect(localStorage.getItem('usuarioEmail')).toBeNull();
+      expect(localStorage.getItem('usuarioFoto')).toBeNull();
+      expect(localStorage.getItem('usuarioRole')).toBeNull();
+      expect(localStorage.getItem('outra-chave')).toBe('deve-sobreviver');
+      expect(instancia.logoutRedirect).not.toHaveBeenCalled();
     });
   });
 
@@ -329,6 +497,157 @@ describe('AuthService', () => {
       await authService.inicializar();
 
       expect(authService.conta).toBe(conta);
+    });
+  });
+  describe('loginDev', () => {
+    /** Resposta de sucesso no formato que o back-end devolve nos dois logins. */
+    function respostaOk(overrides: Record<string, unknown> = {}): Response {
+      return {
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            accessToken: criarJwtValido(),
+            tokenType: 'Bearer',
+            expiresInSeconds: 86400,
+            nome: 'Maria da CPS',
+            email: 'maria@cps.sp.gov.br',
+            role: 'PROFESSOR',
+            ...overrides,
+          }),
+      } as unknown as Response;
+    }
+
+    it('deve gravar a sessão devolvida, para ficar indistinguível de um login Microsoft', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respostaOk()));
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await authService.loginDev('maria@cps.sp.gov.br');
+
+      // As mesmas chaves nos dois caminhos: nenhuma tela precisa saber por qual deles a pessoa
+      // entrou, e o header e os guardas passam a enxergar a sessão nova sem tratamento especial.
+      expect(localStorage.getItem('usuarioNome')).toBe('Maria da CPS');
+      expect(localStorage.getItem('usuarioEmail')).toBe('maria@cps.sp.gov.br');
+      expect(localStorage.getItem('usuarioRole')).toBe('PROFESSOR');
+      await expect(authService.obterUsuarioLogado()).resolves.not.toBeNull();
+    });
+
+    it('deve chamar o endpoint de desenvolvimento com o e-mail informado', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(respostaOk());
+      vi.stubGlobal('fetch', fetchMock);
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await authService.loginDev('gabriel@aluno.cps.sp.gov.br');
+
+      const [url, opcoes] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${environment.apiUrl}/auth/dev-login`);
+      expect(opcoes.method).toBe('POST');
+      expect(JSON.parse(String(opcoes.body))).toEqual({ email: 'gabriel@aluno.cps.sp.gov.br' });
+    });
+
+    it('deve lançar a mensagem do back-end quando o login é recusado', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          json: () => Promise.resolve({ mensagem: 'E-mail inválido' }),
+        } as unknown as Response)
+      );
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.loginDev('nao-e-email')).rejects.toThrow('E-mail inválido');
+    });
+
+    it('não deve gravar sessão quando o back-end recusa', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          json: () => Promise.resolve({ mensagem: 'E-mail inválido' }),
+        } as unknown as Response)
+      );
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.loginDev('nao-e-email')).rejects.toThrow();
+
+      // Uma sessão recusada não pode deixar resíduo: a próxima renderização mostraria "logado".
+      expect(localStorage.getItem('accessToken')).toBeNull();
+    });
+
+    it('não deve tocar no cache do MSAL', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respostaOk()));
+      const instancia = criarInstanciaMsal();
+      const authService = criarAuthService(instancia);
+
+      await authService.loginDev('maria@cps.sp.gov.br');
+
+      // O login de desenvolvimento não passa pela Microsoft, então não deve disparar redirect nem
+      // nem no Graph: mexer no cache do MSAL expulsaria a pessoa da sessão real da Microsoft.
+      expect(instancia.loginRedirect).not.toHaveBeenCalled();
+      expect(instancia.handleRedirectPromise).not.toHaveBeenCalled();
+      expect(instancia.acquireTokenSilent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('contasDev', () => {
+    afterEach(() => {
+      // `environment` é um objeto comum e a flag é build-time: o teste precisa devolvê-la ao
+      // padrão para não vazar para os testes seguintes.
+      environment.devAuthEnabled = false;
+    });
+
+    it('não deve chamar a API quando a flag está desligada', async () => {
+      // O runner de testes sobe com o environment de DESENVOLVIMENTO, onde a flag está ligada.
+      // Aqui ela é desligada à mão para exercitar o caminho do build de produção.
+      environment.devAuthEnabled = false;
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.contasDev()).resolves.toEqual([]);
+
+      // A rota nem existe no back-end de produção. Sem este corte, o bundle de produção pediria
+      // um endpoint inexistente em toda montagem da tela de login.
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('deve devolver a lista de atalhos quando o recurso está ligado', async () => {
+      environment.devAuthEnabled = true;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve([
+              { email: 'gabriel@aluno.cps.sp.gov.br', rotulo: 'Aluno' },
+              { email: 'maria@cps.sp.gov.br', rotulo: 'Professor' },
+            ]),
+        } as unknown as Response)
+      );
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.contasDev()).resolves.toEqual([
+        { email: 'gabriel@aluno.cps.sp.gov.br', rotulo: 'Aluno' },
+        { email: 'maria@cps.sp.gov.br', rotulo: 'Professor' },
+      ]);
+    });
+
+    it('deve devolver lista vazia quando o back-end responde 404', async () => {
+      // Acontece quando o front está em modo dev mas o back-end subiu sem o perfil `dev`.
+      environment.devAuthEnabled = true;
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve({}) }));
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      await expect(authService.contasDev()).resolves.toEqual([]);
+    });
+
+    it('deve devolver lista vazia quando a rede falha, sem quebrar a tela de login', async () => {
+      environment.devAuthEnabled = true;
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+      const authService = criarAuthService(criarInstanciaMsal());
+
+      // Um atalho de desenvolvimento não pode derrubar a página de login, cujo caminho principal
+      // é o botão do Microsoft.
+      await expect(authService.contasDev()).resolves.toEqual([]);
     });
   });
 });

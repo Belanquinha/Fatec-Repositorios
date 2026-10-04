@@ -13,40 +13,40 @@ import { ProjetoResponseModel } from '../../../core/models/projeto.model';
 export class CardProjeto {
   @Input() projeto?: ProjetoResponseModel;
 
+  /**
+   * Os getters abaixo não inventam conteúdo: um campo ausente no projeto resulta
+   * em string vazia (ou lista vazia) e o template decide o que exibir no lugar.
+   */
+
   get capaUrl(): string {
-    return this.projeto?.imagemCapaUrl || 'capa_card.png';
+    return this.projeto?.imagemCapaUrl ?? '';
   }
 
   get titulo(): string {
-    return this.projeto?.titulo || 'Golden Maker';
+    return this.projeto?.titulo ?? '';
   }
 
   get descricao(): string {
-    return (
-      this.projeto?.descricaoCurta ||
-      'Este site oferece um espaço livre e criativo para produtores independentes mostrarem seu talento.'
-    );
+    return this.projeto?.descricaoCurta ?? '';
   }
 
   get instituicao(): string {
-    return this.projeto?.instituicaoNome || 'Fatec Ipiranga';
+    return this.projeto?.instituicaoNome ?? '';
   }
 
   get tags(): string[] {
-    if (this.projeto?.palavrasChave && this.projeto.palavrasChave.length > 0) {
-      return this.projeto.palavrasChave.slice(0, 3);
-    }
-    return ['Tecnologia', 'Inovação'];
+    return this.projeto?.palavrasChave?.slice(0, 3) ?? [];
   }
 
-  get ano(): number {
-    return this.projeto?.anoPublicado || 2026;
+  get ano(): number | null {
+    return this.projeto?.anoPublicado ?? null;
   }
 
+  /** Sem capa cadastrada, o template mostra um bloco neutro no lugar da imagem. */
   onImgError(event: Event) {
     const target = event.target as HTMLImageElement;
     if (target) {
-      target.src = 'capa_card.png';
+      target.style.display = 'none';
     }
   }
 }

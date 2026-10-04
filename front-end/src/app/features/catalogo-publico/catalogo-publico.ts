@@ -27,19 +27,16 @@ export class CatalogoPublico implements OnInit {
   instituicaoSelecionadaId: string = '';
   tagSelecionada: string = 'Todas';
 
-  tagsDisponiveis: string[] = [
-    'Todas',
-    'Web',
-    'IoT',
-    'IA & Dados',
-    'Gestão',
-    'Mobile',
-    'Sustentabilidade',
-    'Saúde'
-  ];
+  /**
+   * Filtros derivados dos projetos que o backend devolveu, em vez de uma lista
+   * fixa: qualquer tag que exista nos dados fica filtrável e nada é oferecido
+   * que não exista no acervo.
+   */
+  tagsDisponiveis: string[] = ['Todas'];
 
   carregando: boolean = true;
   erroCarregamento: string | null = null;
+  erroCarregarInstituicoes = false;
   usuarioLogado: UsuarioLogado | null = null;
 
   ngOnInit(): void {
@@ -58,15 +55,21 @@ export class CatalogoPublico implements OnInit {
     this.projetoService.listarInstituicoes().subscribe({
       next: (insts) => {
         this.instituicoes = insts.filter((i) => i.ativo);
+        this.erroCarregarInstituicoes = false;
       },
-      error: () => {
-        // Fallback silencioso tratado pelo serviço
+      error: (err) => {
+        // O filtro por instituição é acessório: um erro aqui não deve derrubar
+        // o catálogo, mas também não pode ser escondido atrás de dados falsos.
+        this.instituicoes = [];
+        this.erroCarregarInstituicoes = true;
+        console.error('Erro ao carregar instituições:', err);
       }
     });
 
     this.projetoService.listarProjetosPublicos().subscribe({
       next: (projetos) => {
         this.todosProjetos = projetos;
+        this.atualizarTagsDisponiveis();
         this.aplicarFiltros();
         this.carregando = false;
       },
@@ -77,6 +80,17 @@ export class CatalogoPublico implements OnInit {
         this.carregando = false;
       }
     });
+  }
+
+  private atualizarTagsDisponiveis(): void {
+    const tags = new Set<string>();
+    this.todosProjetos.forEach((proj) => proj.palavrasChave?.forEach((t) => tags.add(t)));
+    this.tagsDisponiveis = ['Todas', ...Array.from(tags).sort((a, b) => a.localeCompare(b, 'pt-BR'))];
+
+    // A tag selecionada pode não existir mais após recarregar
+    if (!this.tagsDisponiveis.includes(this.tagSelecionada)) {
+      this.tagSelecionada = 'Todas';
+    }
   }
 
   aplicarFiltros(): void {

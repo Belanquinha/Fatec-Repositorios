@@ -8,7 +8,11 @@ services:
     environment:
       POSTGRES_DB: fatecrepository
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      # `${VAR:?msg}` aborta o compose com a mensagem se a variável não existir.
+      # O formato anterior (`${VAR:-123456}`) era o pior dos dois mundos: o
+      # stack subia com uma senha previsível e o erro só apareceria como
+      # "connection refused" muito depois.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD - copie .env.example para .env}
     ports:
       - "5433:5432"
     volumes:
@@ -31,24 +35,33 @@ services:
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/fatecrepository
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-this-key-with-at-least-32-chars}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD - copie .env.example para .env}
+      # Obrigatório e sem default: o valor padrão anterior estava versionado no
+      # repositório, então um deploy que esquecesse esta variável passaria a
+      # assinar token JWT com chave pública — qualquer um poderia forjar sessão
+      # de admin. Ver application.yml.
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET com ao menos 32 caracteres - copie .env.example para .env}
       JWT_ISSUER: ${JWT_ISSUER:-fatec-repository-api}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
       MSAL_TENANT_ID: ${MSAL_TENANT_ID:-eabe64c5-68f5-4a76-8301-9577a679e449}
+# Login de desenvolvimento (/auth/dev-login): são DOIS interruptores e os dois
+      # estão desligados. Ligue apenas na sua máquina, e remova ao terminar.
+      # Ligado, qualquer um que alcance a porta entra como o e-mail que informar,
+      # inclusive o admin — leia back-end/README.md antes.
+      #
+      # ⚠ ATIVO TEMPORARIAMENTE PARA TESTE LOCAL — comente de volta ao terminar.
+      SPRING_PROFILES_ACTIVE: dev
+      DEV_AUTH_ENABLED: "true"
     ports:
       - "4040:4040"
     networks:
       - fatec
 
   frontend:
+    # Sem `build.args`: o front-end não recebe configuração por build.
+    # A API é a constante relativa `/api` e o nginx abaixo decide o destino.
     build:
       context: ./front-end
-      args:
-        NG_APP_API_URL: /api
-        NG_APP_MSAL_CLIENT_ID: 146c36f9-abf3-48b0-a533-5f462e5e4eed
-        NG_APP_MSAL_AUTHORITY: https://login.microsoftonline.com/${MSAL_TENANT_ID:-eabe64c5-68f5-4a76-8301-9577a679e449}
-        NG_APP_MSAL_REDIRECT_URI: ${MSAL_REDIRECT_URI:-http://localhost:4200/}
     container_name: fatec-frontend
     restart: unless-stopped
     depends_on:

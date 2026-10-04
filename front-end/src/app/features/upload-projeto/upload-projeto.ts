@@ -1,4 +1,14 @@
-import { Component, NgZone, OnInit, AfterViewInit, OnDestroy, inject } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  NgZone,
+  OnInit,
+  AfterViewInit,
+  AfterViewChecked,
+  OnDestroy,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -17,7 +27,6 @@ import {
   ProfessorOption,
   ProjetoCreatePayload,
 } from '../../core/models/projeto.model';
-import { SelecionarInstituicao } from '../selecionar-instituicao/selecionar-instituicao';
 import { environment } from '../../../environments/environment';
 
 interface IntegranteLocal {
@@ -29,7 +38,7 @@ interface IntegranteLocal {
 @Component({
   selector: 'app-upload-projeto',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, CommonModule, SelecionarInstituicao],
+  imports: [ReactiveFormsModule, FormsModule, CommonModule],
   templateUrl: './upload-projeto.html',
   styleUrl: './upload-projeto.css',
 })
@@ -50,11 +59,18 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   imagemCapaUrl: string | null = null;
 
   // Seção 2: Instituição & Validação Acadêmica
+  @ViewChild('inputInstituicao') private inputInstituicao?: ElementRef<HTMLInputElement>;
+  private readonly limiteSugestoes = 50;
   instituicaoId = '';
   instituicaoSelecionadaObjeto: InstituicaoOption | null = null;
   instituicoes: InstituicaoOption[] = [];
+  instituicoesFiltradas: InstituicaoOption[] = [];
+  instituicoesEncontradas = 0;
+  buscaInstituicao = '';
+  mostrarDropdownInstituicao = false;
+  instituicaoDestaque = -1;
   carregandoInstituicoes = false;
-  mostrarModalTrocaInstituicao = false;
+  erroCarregarInstituicoes = false;
 
   professorEmail = '';
   professorStatus: 'cadastrado' | 'novo' | 'vazio' = 'vazio';
@@ -62,16 +78,19 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   linkRepositorio = '';
   palavrasChave = '';
 
-  professoresBase: ProfessorOption[] = [
-    { id: '1', nome: 'Prof. Dr. Carlos Eduardo', email: 'carlos.eduardo@cps.sp.gov.br' },
-    { id: '2', nome: 'Profa. Dra. Ana Maria Souza', email: 'ana.maria@cps.sp.gov.br' },
-    { id: '3', nome: 'Prof. Me. Roberto Silva', email: 'roberto.silva@cps.sp.gov.br' },
-    { id: '4', nome: 'Profa. Me. Patricia Lima', email: 'patricia.lima@cps.sp.gov.br' },
-  ];
+  /**
+   * Sugestões vindas de `/professores`. Vazio enquanto o backend não responde —
+   * o campo de e-mail continua aceitando digitação livre, só não há autocompletar.
+   */
+  professoresBase: ProfessorOption[] = [];
   professoresFiltrados: ProfessorOption[] = [];
+  erroCarregarProfessores = false;
 
   // Seção 3: Editor.js
+  @ViewChild('editorjsContainer') private editorjsContainer?: ElementRef<HTMLDivElement>;
   private editor: EditorJS | null = null;
+  private editorInicializacaoPendente = false;
+  private editorFila: Promise<void> = Promise.resolve();
   editorData: OutputData | null = null;
 
   // Seção 4: Lista Dinâmica de Integrantes
@@ -98,18 +117,27 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    if (this.secaoAtual === 3) {
-      this.inicializarEditor();
+    this.tentarIniciarEditor();
+  }
+
+  ngAfterViewChecked() {
+    if (this.editorInicializacaoPendente) {
+      this.tentarIniciarEditor();
     }
   }
 
   ngOnDestroy() {
-    this.destruirEditor();
+    this.editorInicializacaoPendente = false;
+    this.encadearEditor(async () => {
+      await this.sairDaSecaoDoEditor();
+      this.editorData = null;
+    });
   }
 
   // --- Carga de dados remotos ---
   private carregarInstituicoes() {
     this.carregandoInstituicoes = true;
+    this.erroCarregarInstituicoes = false;
     this.projetoService.listarInstituicoes().subscribe({
       next: (dados) => {
         this.instituicoes = (dados || []).filter((i) => i.ativo);
@@ -117,8 +145,10 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         this.sincronizarInstituicaoSelecionada();
       },
       error: (err) => {
-        console.warn('Não foi possível carregar instituições do backend:', err);
+        this.instituicoes = [];
         this.carregandoInstituicoes = false;
+        this.erroCarregarInstituicoes = true;
+        console.warn('Não foi possível carregar instituições do backend:', err);
       },
     });
   }
@@ -132,140 +162,282 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  abrirModalTrocaInstituicao() {
-    this.mostrarModalTrocaInstituicao = true;
-  }
-
-  fecharModalTrocaInstituicao() {
-    this.mostrarModalTrocaInstituicao = false;
-  }
-
-  onInstituicaoTrocada(nova: InstituicaoOption) {
-    this.instituicaoId = nova.id;
-    this.instituicaoSelecionadaObjeto = nova;
-    this.fecharModalTrocaInstituicao();
-    // Atualiza a URL sem recarregar
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { instituicaoId: nova.id },
-      queryParamsHandling: 'merge',
-    });
-  }
-
   getLogoUrl(codigoUnidade?: string): string {
     return codigoUnidade ? `/logos-fatec/${codigoUnidade}.png` : '';
   }
 
+  // --- Autocomplete da Instituição (FATEC) ---
+  onInstituicaoBusca(termo: string) {
+    this.buscaInstituicao = termo;
+    this.mostrarDropdownInstituicao = true;
+    this.aplicarFiltroInstituicoes();
+  }
+
+  abrirDropdownInstituicao() {
+    if (this.carregandoInstituicoes) {
+      return;
+    }
+    this.mostrarDropdownInstituicao = true;
+    this.aplicarFiltroInstituicoes();
+  }
+
+  ocultarDropdownInstituicaoComDelay() {
+    setTimeout(() => {
+      this.mostrarDropdownInstituicao = false;
+      this.instituicaoDestaque = -1;
+    }, 200);
+  }
+
+  private aplicarFiltroInstituicoes() {
+    const termo = this.normalizarTexto(this.buscaInstituicao);
+
+    const encontradas = !termo
+      ? this.instituicoes
+      : this.instituicoes.filter(
+          (inst) =>
+            this.normalizarTexto(inst.nome).includes(termo) ||
+            this.normalizarTexto(inst.cidade || '').includes(termo) ||
+            this.normalizarTexto(inst.codigoUnidade || '').includes(termo) ||
+            this.normalizarTexto(inst.endereco || '').includes(termo)
+        );
+
+    this.instituicoesEncontradas = encontradas.length;
+    this.instituicoesFiltradas = encontradas.slice(0, this.limiteSugestoes);
+    this.instituicaoDestaque = this.instituicoesFiltradas.length > 0 ? 0 : -1;
+  }
+
+  selecionarInstituicao(inst: InstituicaoOption) {
+    this.instituicaoId = inst.id;
+    this.instituicaoSelecionadaObjeto = inst;
+    this.buscaInstituicao = '';
+    this.instituicoesFiltradas = [];
+    this.instituicoesEncontradas = 0;
+    this.mostrarDropdownInstituicao = false;
+    this.instituicaoDestaque = -1;
+    this.atualizarQueryParamInstituicao(inst.id);
+  }
+
+  trocarInstituicao() {
+    this.instituicaoId = '';
+    this.instituicaoSelecionadaObjeto = null;
+    this.buscaInstituicao = '';
+    this.instituicoesFiltradas = [];
+    this.instituicoesEncontradas = 0;
+    this.mostrarDropdownInstituicao = false;
+    this.instituicaoDestaque = -1;
+    this.atualizarQueryParamInstituicao(null);
+    setTimeout(() => this.inputInstituicao?.nativeElement.focus());
+  }
+  onInstituicaoKeydown(event: KeyboardEvent) {
+    const total = this.instituicoesFiltradas.length;
+    if (!this.mostrarDropdownInstituicao || total === 0) {
+      return;
+    }
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.instituicaoDestaque = (this.instituicaoDestaque + 1) % total;
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.instituicaoDestaque = (this.instituicaoDestaque - 1 + total) % total;
+        break;
+      case 'Enter': {
+        event.preventDefault();
+        const alvo = this.instituicoesFiltradas[this.instituicaoDestaque] ?? this.instituicoesFiltradas[0];
+        if (alvo) {
+          this.selecionarInstituicao(alvo);
+        }
+        break;
+      }
+      case 'Escape':
+        this.mostrarDropdownInstituicao = false;
+        this.instituicaoDestaque = -1;
+        break;
+    }
+  }
+
+  // Atualiza a URL sem recarregar, preservando os demais query params
+  private atualizarQueryParamInstituicao(id: string | null) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { instituicaoId: id },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  private normalizarTexto(texto: string): string {
+    return (texto || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
   private carregarProfessores() {
+    this.erroCarregarProfessores = false;
     this.projetoService.listarProfessores().subscribe({
       next: (profs) => {
-        if (profs && profs.length > 0) {
-          this.professoresBase = profs;
-        }
+        this.professoresBase = profs ?? [];
       },
       error: (err) => {
-        console.warn('Não foi possível buscar professores remotos, mantendo base inicial:', err);
+        this.professoresBase = [];
+        this.erroCarregarProfessores = true;
+        console.warn('Não foi possível carregar a lista de professores:', err);
       },
     });
   }
 
   // --- Inicialização do Editor.js ---
-  private inicializarEditor() {
-    setTimeout(() => {
-      const container = document.getElementById('editorjs-container');
-      if (!container || this.editor) return;
+  // Criar, salvar e destruir o editor passa por uma fila serial: o template usa
+  // @if na Seção 3, então o DOM do editor é destruído a cada troca de seção e a
+  // instância precisa ser derrubada e recriada. Sem a fila, um "destroy"
+  // atrasado poderia apagar um editor recém-criado.
+  private encadearEditor(operacao: () => Promise<void>): Promise<void> {
+    this.editorFila = this.editorFila.then(operacao).catch((err) => {
+      console.error('Falha ao processar o Editor.js:', err);
+    });
+    return this.editorFila;
+  }
 
-      try {
-        this.editor = new EditorJS({
-          holder: 'editorjs-container',
-          placeholder: 'Escreva a documentação do projeto ou insira imagens e blocos de código...',
-          tools: {
-            header: {
-              class: Header,
-              config: {
-                placeholder: 'Digite um cabeçalho...',
-                levels: [2, 3, 4],
-                defaultLevel: 2,
-              },
+  private solicitarInicializacaoEditor() {
+    this.editorInicializacaoPendente = true;
+    this.tentarIniciarEditor();
+  }
+
+  // Só inicializa quando o contêiner já existe na view (o @if pode ainda não ter
+  // renderizado). Se não estiver pronto, a flag permanece e ngAfterViewChecked
+  // tenta de novo no próximo ciclo de detecção.
+  private tentarIniciarEditor() {
+    if (!this.editorInicializacaoPendente || this.editor || !this.editorjsContainer) {
+      return;
+    }
+    this.editorInicializacaoPendente = false;
+    this.encadearEditor(() => this.criarEditor());
+  }
+
+  private async criarEditor(): Promise<void> {
+    const holder = this.editorjsContainer?.nativeElement;
+    if (!holder || this.editor) {
+      return;
+    }
+
+    try {
+      const editor = new EditorJS({
+        holder,
+        placeholder: 'Escreva a documentação do projeto ou insira imagens e blocos de código...',
+        tools: {
+          header: {
+            class: Header,
+            config: {
+              placeholder: 'Digite um cabeçalho...',
+              levels: [2, 3, 4],
+              defaultLevel: 2,
             },
-            list: {
-              class: List,
-              inlineToolbar: true,
+          },
+          list: {
+            class: List,
+            inlineToolbar: true,
+          },
+          code: {
+            class: CodeTool,
+            config: {
+              placeholder: 'Cole o código do projeto aqui...',
             },
-            code: {
-              class: CodeTool,
-              config: {
-                placeholder: 'Cole o código do projeto aqui...',
-              },
+          },
+          quote: {
+            class: Quote,
+            inlineToolbar: true,
+            config: {
+              quotePlaceholder: 'Digite uma citação ou destaque...',
+              captionPlaceholder: 'Autor da citação',
             },
-            quote: {
-              class: Quote,
-              inlineToolbar: true,
-              config: {
-                quotePlaceholder: 'Digite uma citação ou destaque...',
-                captionPlaceholder: 'Autor da citação',
-              },
-            },
-            image: {
-              class: ImageTool,
-              config: {
-                uploader: {
-                  uploadByFile: async (file: File) => {
-                    try {
-                      const res = await firstValueFrom(this.projetoService.uploadImagem(file));
-                      const fullUrl = res.url.startsWith('http')
-                        ? res.url
-                        : `${environment.apiUrl}${res.url}`;
-                      return {
-                        success: 1,
-                        file: {
-                          url: fullUrl,
-                        },
-                      };
-                    } catch (err) {
-                      console.warn('Upload remoto de imagem falhou, usando fallback Base64:', err);
-                      return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          this.zone.run(() => {
-                            resolve({
-                              success: 1,
-                              file: {
-                                url: reader.result as string,
-                              },
-                            });
+          },
+          image: {
+            class: ImageTool,
+            config: {
+              uploader: {
+                uploadByFile: async (file: File) => {
+                  try {
+                    const res = await firstValueFrom(this.projetoService.uploadImagem(file));
+                    const fullUrl = res.url.startsWith('http')
+                      ? res.url
+                      : `${environment.apiUrl}${res.url}`;
+                    return {
+                      success: 1,
+                      file: {
+                        url: fullUrl,
+                      },
+                    };
+                  } catch (err) {
+                    console.warn('Upload remoto de imagem falhou, usando fallback Base64:', err);
+                    return new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        this.zone.run(() => {
+                          resolve({
+                            success: 1,
+                            file: {
+                              url: reader.result as string,
+                            },
                           });
-                        };
-                        reader.readAsDataURL(file);
-                      });
-                    }
-                  },
+                        });
+                      };
+                      reader.readAsDataURL(file);
+                    });
+                  }
                 },
               },
             },
           },
-          data: this.editorData || undefined,
-          onChange: async () => {
-            if (this.editor) {
-              this.editorData = await this.editor.save();
-            }
-          },
-        });
-      } catch (err) {
-        console.error('Erro ao inicializar Editor.js:', err);
-      }
-    }, 100);
+        },
+        data: this.editorData || undefined,
+        onChange: async () => {
+          if (this.editor) {
+            this.editorData = await this.editor.save();
+          }
+        },
+      });
+
+      this.editor = editor;
+      await editor.isReady;
+    } catch (err) {
+      this.destruirEditor();
+      console.error('Erro ao inicializar Editor.js:', err);
+    }
+  }
+
+  private async salvarConteudoEditor(): Promise<void> {
+    if (!this.editor) {
+      return;
+    }
+    try {
+      this.editorData = await this.editor.save();
+    } catch (err) {
+      console.error('Erro ao salvar dados do Editor.js:', err);
+    }
+  }
+
+  // Persiste o conteúdo antes de derrubar a instância, para que ele volte
+  // preenchido ao reabrir a Seção 3.
+  private async sairDaSecaoDoEditor(): Promise<void> {
+    await this.salvarConteudoEditor();
+    this.destruirEditor();
   }
 
   private destruirEditor() {
-    if (this.editor && typeof this.editor.destroy === 'function') {
+    if (!this.editor) {
+      return;
+    }
+    if (typeof this.editor.destroy === 'function') {
       try {
         this.editor.destroy();
-      } catch (e) {
+      } catch {
         // Ignora se o DOM já foi removido
       }
-      this.editor = null;
     }
+    this.editor = null;
   }
 
   // --- Capa do Projeto ---
@@ -346,29 +518,30 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
 
   // --- Navegação entre Seções ---
   irParaSecao(secao: number) {
-    if (secao >= 1 && secao <= this.totalSecoes) {
-      this.secaoAtual = secao;
-      if (secao === 3) {
-        this.inicializarEditor();
-      }
-    }
+    this.trocarSecao(secao);
   }
 
   proximaSecao() {
-    if (this.secaoAtual < this.totalSecoes) {
-      this.secaoAtual++;
-      if (this.secaoAtual === 3) {
-        this.inicializarEditor();
-      }
-    }
+    this.trocarSecao(this.secaoAtual + 1);
   }
 
   secaoAnterior() {
-    if (this.secaoAtual > 1) {
-      this.secaoAtual--;
-      if (this.secaoAtual === 3) {
-        this.inicializarEditor();
-      }
+    this.trocarSecao(this.secaoAtual - 1);
+  }
+
+  private trocarSecao(secao: number) {
+    if (secao < 1 || secao > this.totalSecoes || secao === this.secaoAtual) {
+      return;
+    }
+
+    if (this.secaoAtual === 3) {
+      this.encadearEditor(() => this.sairDaSecaoDoEditor());
+    }
+
+    this.secaoAtual = secao;
+
+    if (secao === 3) {
+      this.solicitarInicializacaoEditor();
     }
   }
 
@@ -427,14 +600,8 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // 2. Salvar conteúdo do Editor.js
-    if (this.editor) {
-      try {
-        this.editorData = await this.editor.save();
-      } catch (err) {
-        console.error('Erro ao salvar dados do Editor.js:', err);
-      }
-    }
+    // 2. Salvar conteúdo do Editor.js (aguarda qualquer teardown pendente)
+    await this.encadearEditor(() => this.salvarConteudoEditor());
 
     this.enviando = true;
 
@@ -497,7 +664,11 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   }
 
   resetarFormulario() {
-    this.destruirEditor();
+    this.editorInicializacaoPendente = false;
+    this.encadearEditor(async () => {
+      await this.sairDaSecaoDoEditor();
+      this.editorData = null;
+    });
     this.enviadoComSucesso = false;
     this.enviando = false;
     this.erroMensagem = null;
@@ -508,11 +679,17 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.capaPreview = null;
     this.imagemCapaUrl = null;
     this.instituicaoId = '';
+    this.instituicaoSelecionadaObjeto = null;
+    this.buscaInstituicao = '';
+    this.instituicoesFiltradas = [];
+    this.instituicoesEncontradas = 0;
+    this.mostrarDropdownInstituicao = false;
+    this.instituicaoDestaque = -1;
     this.professorEmail = '';
     this.professorStatus = 'vazio';
+    this.erroCarregarProfessores = false;
     this.linkRepositorio = '';
     this.palavrasChave = '';
-    this.editorData = null;
     this.integrantes = [
       { id: 1, nome: '', linkedin: '' },
       { id: 2, nome: '', linkedin: '' },

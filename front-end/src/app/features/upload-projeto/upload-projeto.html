@@ -218,21 +218,92 @@
 
                 <!-- Instituição Responsável (FATEC) -->
                 <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <label class="block text-sm font-semibold text-cinza-700">
-                      Instituição Responsável (FATEC) <span class="text-amarelo-600">*</span>
-                    </label>
-                    @if (instituicaoSelecionadaObjeto) {
-                      <button type="button" 
-                              (click)="abrirModalTrocaInstituicao()" 
-                              class="text-xs font-bold text-azul-700 hover:text-azul-900 hover:underline flex items-center gap-1 cursor-pointer transition-colors">
-                        <span class="material-symbols-outlined text-sm">swap_horiz</span> Trocar FATEC
-                      </button>
-                    }
-                  </div>
+                  <label class="block text-sm font-semibold text-cinza-700">
+                    Instituição Responsável (FATEC) <span class="text-amarelo-600">*</span>
+                  </label>
 
-                  @if (instituicaoSelecionadaObjeto) {
-                    <!-- Card de FATEC Selecionada (Cantos Retos / Swiss Style) -->
+                  @if (!instituicaoSelecionadaObjeto) {
+                    <!-- Busca com autocomplete -->
+                    <div class="relative">
+                      <input #inputInstituicao
+                             type="text"
+                             name="buscaInstituicao"
+                             [ngModel]="buscaInstituicao"
+                             (ngModelChange)="onInstituicaoBusca($event)"
+                             (focus)="abrirDropdownInstituicao()"
+                             (blur)="ocultarDropdownInstituicaoComDelay()"
+                             (keydown)="onInstituicaoKeydown($event)"
+                             [disabled]="carregandoInstituicoes"
+                             [placeholder]="carregandoInstituicoes ? 'Carregando unidades FATEC...' : 'Busque pelo nome, cidade ou código da unidade'"
+                             autocomplete="off"
+                             role="combobox"
+                             aria-autocomplete="list"
+                             aria-label="Buscar unidade FATEC"
+                             [attr.aria-expanded]="mostrarDropdownInstituicao"
+                             aria-controls="lista-instituicoes"
+                             class="w-full px-4 py-3 pr-11 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm disabled:bg-cinza-50 disabled:text-cinza-400 cursor-pointer">
+                      <span class="absolute right-3 top-3.5 text-cinza-400 pointer-events-none material-symbols-outlined">search</span>
+                    </div>
+
+                    <!-- Painel de Sugestões -->
+                    @if (mostrarDropdownInstituicao && (instituicoesFiltradas.length > 0 || buscaInstituicao.trim())) {
+                      <div class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-solid border-cinza-200 rounded-lg shadow-lg overflow-hidden">
+                        @if (instituicoesFiltradas.length > 0) {
+                          <ul id="lista-instituicoes"
+                              role="listbox"
+                              aria-label="Unidades FATEC encontradas"
+                              class="max-h-72 overflow-y-auto divide-y divide-cinza-50">
+                            @for (inst of instituicoesFiltradas; track inst.id; let i = $index) {
+                              <li role="option"
+                                  [attr.aria-selected]="i === instituicaoDestaque"
+                                  (mousedown)="selecionarInstituicao(inst); $event.preventDefault()"
+                                  (mouseenter)="instituicaoDestaque = i"
+                                  class="px-3 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
+                                  [class.bg-amarelo-50]="i === instituicaoDestaque">
+                                <div class="h-9 w-16 bg-cinza-50 border border-cinza-200 flex items-center justify-center p-1 shrink-0">
+                                  <img [src]="getLogoUrl(inst.codigoUnidade)"
+                                       (error)="$event.target.style.display='none'"
+                                       [alt]="'Logo ' + inst.nome"
+                                       class="max-h-7 max-w-full object-contain">
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                  <p class="font-medium text-cinza-800 text-sm truncate">{{ inst.nome }}</p>
+                                  <p class="text-xs text-cinza-400 truncate">
+                                    Cód. {{ inst.codigoUnidade }}
+                                    @if (inst.cidade) {
+                                      <span>• {{ inst.cidade }}</span>
+                                    }
+                                  </p>
+                                </div>
+                                @if (i === instituicaoDestaque) {
+                                  <span class="material-symbols-outlined text-sm text-amarelo-600 shrink-0">keyboard_return</span>
+                                }
+                              </li>
+                            }
+                          </ul>
+
+                          @if (instituicoesEncontradas > instituicoesFiltradas.length) {
+                            <p class="px-4 py-2 text-xs text-cinza-400 bg-cinza-50 border-t border-solid border-cinza-100">
+                              Exibindo {{ instituicoesFiltradas.length }} de {{ instituicoesEncontradas }} unidades. Refine a busca.
+                            </p>
+                          }
+                        } @else if (buscaInstituicao.trim()) {
+                          <p class="px-4 py-3 text-xs text-cinza-400">
+                            Nenhuma unidade FATEC encontrada para
+                            <strong class="text-cinza-600">"{{ buscaInstituicao }}"</strong>. Tente pelo nome da cidade ou pelo código.
+                          </p>
+                        }
+                      </div>
+                    }
+
+                    @if (erroCarregarInstituicoes) {
+                      <p class="text-xs text-cinza-400 bg-cinza-50 p-2.5 rounded-md flex items-center gap-2 mt-1 border border-solid border-cinza-200">
+                        <span class="material-symbols-outlined text-base">cloud_off</span>
+                        Não foi possível carregar a lista de unidades FATEC. Verifique sua conexão e recarregue a página.
+                      </p>
+                    }
+                  } @else {
+                    <!-- Card da FATEC selecionada (Cantos Retos / Swiss Style) -->
                     <div class="border border-solid border-cinza-300 hover:border-amarelo-500 p-4 bg-white shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div class="flex items-center gap-4">
                         <div class="h-10 w-24 bg-cinza-50 flex items-center justify-center p-1 border border-cinza-200 shrink-0">
@@ -260,26 +331,10 @@
                         </div>
                       </div>
 
-                      <button type="button" 
-                              (click)="abrirModalTrocaInstituicao()" 
+                      <button type="button"
+                              (click)="trocarInstituicao()"
                               class="sm:self-center px-3.5 py-2 bg-cinza-50 hover:bg-amarelo-500 hover:text-cinza-900 text-cinza-700 text-xs font-bold border border-cinza-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs">
                         <span class="material-symbols-outlined text-sm">edit</span> Alterar Unidade
-                      </button>
-                    </div>
-                  } @else {
-                    <!-- Estado quando nenhuma instituição foi selecionada previamente -->
-                    <div class="border-2 border-dashed border-cinza-300 p-6 text-center bg-gray-50/70 space-y-3">
-                      <div class="w-12 h-12 bg-amarelo-50 text-amarelo-600 border border-amarelo-200 flex items-center justify-center mx-auto">
-                        <span class="material-symbols-outlined text-2xl">account_balance</span>
-                      </div>
-                      <div>
-                        <p class="font-bold text-cinza-800 text-sm">Nenhuma unidade FATEC selecionada</p>
-                        <p class="text-xs text-cinza-400 mt-0.5">Selecione onde o projeto acadêmico foi desenvolvido para continuar.</p>
-                      </div>
-                      <button type="button" 
-                              (click)="abrirModalTrocaInstituicao()" 
-                              class="inline-flex items-center gap-2 px-5 py-2.5 bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-xs shadow-xs transition-all cursor-pointer border border-amarelo-600">
-                        <span class="material-symbols-outlined text-base">search</span> Selecionar Unidade FATEC
                       </button>
                     </div>
                   }
@@ -328,6 +383,13 @@
                       Professor não cadastrado: o registro é informativo e o projeto será enviado normalmente para validação.
                     </p>
                   }
+
+                  @if (erroCarregarProfessores) {
+                    <p class="text-xs text-cinza-400 bg-cinza-50 p-2.5 rounded-md flex items-center gap-2 mt-1 border border-solid border-cinza-200">
+                      <span class="material-symbols-outlined text-base">cloud_off</span>
+                      Não foi possível carregar a lista de professores, então o campo está sem sugestão automática. Digite o e-mail manualmente.
+                    </p>
+                  }
                 </div>
 
                 <!-- Link do Repositório -->
@@ -361,13 +423,13 @@
                 </div>
 
                 <!-- Contêiner Nativo do Editor.js -->
-                <div class="border border-solid border-cinza-300 rounded-xl p-6 bg-white min-h-[350px] shadow-sm">
-                  <div id="editorjs-container" class="prose max-w-none text-cinza-900 outline-none"></div>
+                <div class="editor-caixa border border-solid border-cinza-300 rounded-xl p-6 bg-white min-h-[350px] shadow-sm transition-colors">
+                  <div #editorjsContainer id="editorjs-container" class="editor-conteudo"></div>
                 </div>
 
                 <div class="bg-azul-50 border border-solid border-azul-200 rounded-lg p-4 flex items-start gap-3 text-azul-900 text-xs">
                   <span class="material-symbols-outlined text-azul-600 text-lg shrink-0">image</span>
-                  <span><strong>Dica de Mídia:</strong> Você pode inserir imagens complementares, gráficos ou blocos de código clicando no ícone de mais (+) dentro do editor acima.</span>
+                  <span><strong>Dica de Mídia:</strong> Comece digitando acima. Use os botões <strong>B</strong>, <strong>H</strong>, <strong>&quot;</strong> e <strong>&lt;/&gt;</strong> da barra flutuante para formatar, e o ícone de mais (+) para inserir imagens, listas e blocos de código.</span>
                 </div>
               </div>
             }
@@ -487,19 +549,5 @@
       </div>
     }
   </div>
-
-  <!-- MODAL DE SELEÇÃO / TROCA DE INSTITUIÇÃO -->
-  @if (mostrarModalTrocaInstituicao) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-cinza-900/60 backdrop-blur-xs animate-fade-in">
-      <div class="bg-white shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-solid border-cinza-300 animate-scale-up">
-        <app-selecionar-instituicao 
-          [isModal]="true" 
-          [instituicaoAtualId]="instituicaoId"
-          (instituicaoSelecionada)="onInstituicaoTrocada($event)" 
-          (fecharModal)="fecharModalTrocaInstituicao()">
-        </app-selecionar-instituicao>
-      </div>
-    </div>
-  }
 
 </div>

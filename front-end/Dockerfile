@@ -8,15 +8,13 @@ COPY package*.json ./
 RUN npm ci
 
 # Copia o código e compila (produção por padrão)
+#
+# Não há ARG/ENV de configuração: o front-end não lê nada de variável de ambiente.
+# A URL da API é a constante relativa `/api` (src/environments/environment.ts) e o
+# nginx deste compose é quem decide para onde ela aponta. Passar a API por build
+# arg duplicaria a topologia de deploy em dois lugares, e os dois poderiam divergir
+# em silêncio — o build passaria, mas o bundle chamaria o host errado.
 COPY . .
-ARG NG_APP_API_URL=/api
-ARG NG_APP_MSAL_CLIENT_ID=146c36f9-abf3-48b0-a533-5f462e5e4eed
-ARG NG_APP_MSAL_AUTHORITY=https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449
-ARG NG_APP_MSAL_REDIRECT_URI=http://localhost:4200/
-ENV NG_APP_API_URL=$NG_APP_API_URL \
-    NG_APP_MSAL_CLIENT_ID=$NG_APP_MSAL_CLIENT_ID \
-    NG_APP_MSAL_AUTHORITY=$NG_APP_MSAL_AUTHORITY \
-    NG_APP_MSAL_REDIRECT_URI=$NG_APP_MSAL_REDIRECT_URI
 RUN npm run build
 
 # --- Estágio 2: servidor web (estáticos) + proxy para o backend ---

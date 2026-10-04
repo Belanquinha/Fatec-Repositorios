@@ -2,6 +2,7 @@ package com.fatecrepository.security;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,6 +17,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Slf4j
 @Configuration
@@ -25,6 +27,16 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
+
+    /**
+     * Vem de {@code app.cors.allowed-origins} (ver application.yml). Antes a lista
+     * vivia hardcoded aqui, o que obrigava a recompilar o Java para trocar a porta
+     * do front — a mudança mais comum durante o desenvolvimento.
+     *
+     * <p>String separada por vírgula vira List&lt;String&gt; automaticamente.
+     */
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -73,14 +85,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost",
-            "http://localhost:80",
-            "http://localhost:3000",
-            "http://localhost:4200",
-            "http://127.0.0.1:4200",
-            "http://frontend"
-        ));
+        log.info("Origens liberadas no CORS: {}", allowedOrigins);
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

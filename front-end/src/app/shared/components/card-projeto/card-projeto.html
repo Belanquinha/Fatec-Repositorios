@@ -1,23 +1,29 @@
 <article class="card">
     <div class="frame-capa">
-        <img [src]="capaUrl" [alt]="titulo" class="imagem-capa" (error)="onImgError($event)">
-        <span class="badge-status">
-            <span class="material-symbols-outlined icon-status">check_circle</span>
-            Aprovado
-        </span>
+        @if (capaUrl) {
+            <img [src]="capaUrl" [alt]="titulo" class="imagem-capa" (error)="onImgError($event)">
+        } @else {
+            <div class="capa-vazia">
+                <span class="material-symbols-outlined icone-capa-vazia">image_not_supported</span>
+            </div>
+        }
     </div>
 
     <div class="frame-descricao-projeto">
-        <div class="tags-container">
-            @for (tag of tags; track tag) {
-                <span class="tag-chip">{{ tag }}</span>
-            }
-        </div>
+        @if (tags.length > 0) {
+            <div class="tags-container">
+                @for (tag of tags; track tag) {
+                    <span class="tag-chip">{{ tag }}</span>
+                }
+            </div>
+        }
 
-        <h3 class="nome-projeto" [title]="titulo">{{ titulo }}</h3>
+        <h3 class="nome-projeto" [title]="titulo">{{ titulo || 'Projeto sem título' }}</h3>
 
         <div class="frame-descricao">
-            <p class="descricao">{{ descricao }}</p>
+            @if (descricao) {
+                <p class="descricao">{{ descricao }}</p>
+            }
         </div>
 
         <hr>
@@ -25,9 +31,11 @@
         <div class="frame-footer-card">
             <div class="frame-nome-instituicao">
                 <span class="material-symbols-outlined icon-instituicao">school</span>
-                <span class="nome-instituicao">{{ instituicao }}</span>
+                <span class="nome-instituicao">{{ instituicao || 'Instituição não informada' }}</span>
             </div>
-            <span class="ano-projeto">{{ ano }}</span>
+            @if (ano) {
+                <span class="ano-projeto">{{ ano }}</span>
+            }
         </div>
     </div>
 </article>

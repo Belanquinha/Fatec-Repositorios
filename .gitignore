@@ -5,4 +5,9 @@
 GEMINI.md
 BMAD-COMMANDS.md
 .agents/
+
+# Segredos do back-end (POSTGRES_PASSWORD, JWT_SECRET). `.env` na raiz é lido
+# pelo docker compose; nunca versionar. O molde versionado é `.env.example`.
+.env
+!.env.example
  

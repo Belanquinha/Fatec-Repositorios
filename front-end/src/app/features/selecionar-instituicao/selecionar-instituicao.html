@@ -31,7 +31,11 @@
       } @else {
         <div class="flex items-center gap-2 bg-white px-4 py-2 border border-solid border-cinza-300 shadow-xs w-fit">
           <span class="material-symbols-outlined text-amarelo-600 text-lg">school</span>
-          <span class="text-xs font-bold text-cinza-700">86 Unidades no Estado de SP</span>
+          @if (carregando) {
+            <span class="text-xs font-bold text-cinza-700">Carregando unidades...</span>
+          } @else if (!erroCarregamento) {
+            <span class="text-xs font-bold text-cinza-700">{{ instituicoes.length }} {{ instituicoes.length === 1 ? 'unidade' : 'unidades' }} no Estado de SP</span>
+          }
         </div>
       }
     </div>

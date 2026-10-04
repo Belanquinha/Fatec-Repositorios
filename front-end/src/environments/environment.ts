@@ -1,26 +1,59 @@
 /**
- * Uma variável `NG_APP_*` definida como string vazia (ou só espaços) contorna o fallback do
- * `??` e entrega ao MSAL um authority/redirect vazio, que só falha no navegador. Aqui string
- * em branco é tratada como ausente, para que o padrão abaixo sempre valha.
+ * Configuração do build de PRODUÇÃO (usado pelo `ng build` e pela imagem Docker).
  *
- * As chaves precisam continuar literals: o `@ngx-env/builder` só substitui `import.meta.env['CHAVE']`
- * escrito estaticamente.
+ * Nada aqui é lido de variável de ambiente. A distinção entre dev e produção é
+ * apenas `apiUrl`, e ela não é configuração: é consequência de existir ou não um
+ * reverse proxy na frente. Ver `environment.development.ts` para o `ng serve`.
  */
-function definido(valor: string | undefined): string | undefined {
-  return typeof valor === 'string' && valor.trim() !== '' ? valor : undefined;
-}
+
+/** Tenant único da CPS (AD-3). O app é single-tenant, então o GUID é fixo. */
+const MSAL_TENANT_ID = 'eabe64c5-68f5-4a76-8301-9577a679e449';
+
+/** Application (client) ID do app registration no Microsoft Entra ID. */
+const MSAL_CLIENT_ID = '146c36f9-abf3-48b0-a533-5f462e5e4eed';
 
 export const environment = {
   production: true,
 
-  // Azure AD/Entra ID - sobrescritos via .env (NG_APP_*)
-  msalClientId: definido(import.meta.env['NG_APP_MSAL_CLIENT_ID']) ?? '',
-  msalAuthority: definido(import.meta.env['NG_APP_MSAL_AUTHORITY'])
-    ?? 'https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449',
-  msalRedirectUri: definido(import.meta.env['NG_APP_MSAL_REDIRECT_URI'])
-    ?? 'http://localhost:4200/',
+  /**
+   * URL base da API.
+   *
+   * Relativa de propósito: o bundle só precisa saber que a API vive sob `/api`.
+   * Quem decide para onde isso aponta é o `nginx.conf`, que faz
+   * `location /api/` -> `proxy_pass http://backend:4040/` removendo o prefixo.
+   * Com um caminho relativo, o mesmo artefato funciona atrás de qualquer proxy,
+   * host ou prefixo, e o front-end não carrega uma segunda cópia da topologia
+   * de deploy que possa divergir da do nginx.
+   */
+  apiUrl: '/api',
 
-  // URL base da API Spring Boot
-  apiUrl: definido(import.meta.env['NG_APP_API_URL']) ?? 'http://localhost:4040'
+  /**
+   * Identificador público, não segredo: todo SPA web o expõe no bundle. Fica
+   * versionado para que o mesmo app registration seja usado em todos ambientes.
+   */
+  msalClientId: MSAL_CLIENT_ID,
 
+  /** Endpoint de discovery do tenant. Nunca `common`: o app é single-tenant. */
+  msalAuthority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}`,
+
+  /**
+   * Redirect URI do login e do logout.
+   *
+   * O Entra ID exige que esta URI esteja registrada, e divergir dela causa
+   * `AADSTS50011`. Em vez de fixar um host (que quebraria em qualquer ambiente
+   * que não seja exatamente aquele), derivamos de `document.baseURI` — que é o
+   * `<base href>` do index.html, o mesmo valor que o roteador do Angular usa
+   * para resolver rotas. Assim a URI enviada é sempre a página real em que a
+   * pessoa está.
+   */
+  msalRedirectUri: document.baseURI,
+
+  /**
+   * Exibe o login de desenvolvimento (atalhos por papel, sem Microsoft).
+   *
+   * `false` aqui é o que mantém o recurso fora do build que vai para produção: o `ng build` usa este
+   * arquivo, e só o `ng serve` troca por `environment.development.ts`. O botão também depende do
+   * back-end, que só expõe `/auth/dev-login` com o perfil `dev` e `DEV_AUTH_ENABLED=true`.
+   */
+  devAuthEnabled: false,
 };

@@ -30,3 +30,48 @@
     font-size: 1.2rem;
     color: var(--icon-color);
 }
+
+/*
+ * Atalhos de login de desenvolvimento. Estilo deliberadamente discreto e distinto do botão do
+ * Microsoft: eles não são um caminho de login do produto, e não devem parecer um.
+ */
+
+.dev-login {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.dev-login-titulo {
+    width: 100%;
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--cinza-600);
+}
+
+.dev-login-botao {
+    font-size: 1.1rem;
+    color: var(--icon-color);
+    padding: 0.25rem 0.75rem;
+    border: 1px dashed var(--cinza-300);
+    border-radius: var(--border-radius);
+}
+
+.dev-login-botao:hover:not(:disabled) {
+    border-color: var(--icon-color);
+    border-style: solid;
+}
+
+.dev-login-botao:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dev-login-erro {
+    width: 100%;
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--vermelho-500);
+}

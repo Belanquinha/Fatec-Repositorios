@@ -16,7 +16,7 @@
             </p>
 
             <div class="hero-actions">
-                <a routerLink="/selecionar-instituicao" class="btn-primary-hero">
+                <a routerLink="/projeto-forms" class="btn-primary-hero">
                     <span class="material-symbols-outlined">upload_file</span>
                     <span>Publicar Projeto</span>
                 </a>
@@ -86,10 +86,11 @@
                 <!-- Select de Instituição -->
                 <div class="select-instituicao-wrapper">
                     <span class="material-symbols-outlined icon-select">domain</span>
-                    <select 
-                        class="select-instituicao" 
-                        [(ngModel)]="instituicaoSelecionadaId" 
+                    <select
+                        class="select-instituicao"
+                        [(ngModel)]="instituicaoSelecionadaId"
                         (change)="aplicarFiltros()"
+                        [disabled]="erroCarregarInstituicoes"
                     >
                         <option value="">Todas as Unidades (Fatecs)</option>
                         @for (inst of instituicoes; track inst.id) {
@@ -97,23 +98,31 @@
                         }
                     </select>
                 </div>
+                @if (erroCarregarInstituicoes) {
+                    <p class="nota-carregamento">
+                        <span class="material-symbols-outlined icon-aviso">cloud_off</span>
+                        Não foi possível carregar as unidades, então o filtro por FATEC está indisponível.
+                    </p>
+                }
             </div>
 
             <!-- Chips de Categorias Rápidas -->
             <div class="tags-filtro-row">
-                <span class="tags-filtro-label">Áreas & Temas:</span>
-                <div class="tags-chips-list">
-                    @for (tag of tagsDisponiveis; track tag) {
-                        <button 
-                            type="button" 
-                            class="chip-filtro" 
-                            [class.chip-ativo]="tagSelecionada === tag"
-                            (click)="selecionarTag(tag)"
-                        >
-                            {{ tag }}
-                        </button>
-                    }
-                </div>
+                <span class="tags-filtro-label">Áreas &amp; Temas:</span>
+                @if (tagsDisponiveis.length > 1) {
+                    <div class="tags-chips-list">
+                        @for (tag of tagsDisponiveis; track tag) {
+                            <button
+                                type="button"
+                                class="chip-filtro"
+                                [class.chip-ativo]="tagSelecionada === tag"
+                                (click)="selecionarTag(tag)"
+                            >
+                                {{ tag }}
+                            </button>
+                        }
+                    </div>
+                }
 
                 @if (temFiltrosAtivos) {
                     <button type="button" class="btn-limpar-todos" (click)="limparFiltros()">

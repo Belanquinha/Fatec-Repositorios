@@ -1,11 +1,12 @@
 import { Injectable, Inject } from '@angular/core';
 import { MSAL_INSTANCE } from '@azure/msal-angular';
-import { AccountInfo, AuthenticationResult, IPublicClientApplication, RedirectRequest } from '@azure/msal-browser';
+import { AccountInfo, IPublicClientApplication, RedirectRequest } from '@azure/msal-browser';
 import { environment } from '../../../environments/environment';
 import { UsuarioLogado } from './models/usuario-logado';
+import { ContaDev } from './models/conta-dev';
+import { gravarSessao, lerChave, lerTokenValido, limparSessao } from './sessao-navegador';
 
 const GRAPH_SCOPES = ['User.Read', 'openid', 'profile', 'email'];
-const GRAPH_PHOTO_URL = 'https://graph.microsoft.com/v1.0/me/photo/$value';
 
 @Injectable({
   providedIn: 'root',
@@ -75,37 +76,38 @@ export class AuthService {
     }
   }
 
+  /**
+   * A identidade exibida na UI vem exclusivamente do backend: só existe usuário
+   * logado quando há token de acesso guardado. O cache do MSAL indica apenas que
+   * a Microsoft autenticou a pessoa no navegador — se o `/auth/login-microsoft`
+   * falhou (backend fora do ar, token expirado, conta não provisionada), mostrar
+   * um perfil ali seria mentir sobre o estado da sessão.
+   *
+   * A chave existir no `localStorage` não é prova de nada: o JWT tem validade e o
+   * `localStorage` não expira nada. Ler o `exp` é o que separa "sessão viva" de
+   * "chave de um token que venceu ontem" — sem isso a UI anunciaria login e toda
+   * chamada autenticada responderia 401.
+   */
   async obterUsuarioLogado(): Promise<UsuarioLogado | null> {
-    const nomeBackend = localStorage.getItem('usuarioNome');
-    const emailBackend = localStorage.getItem('usuarioEmail');
-    const fotoBackend = localStorage.getItem('usuarioFoto');
-    const roleBackend = localStorage.getItem('usuarioRole');
-
-    if (nomeBackend && emailBackend) {
-      return {
-        nome: nomeBackend,
-        email: emailBackend,
-        foto: fotoBackend || undefined,
-        role: roleBackend || undefined,
-      };
-    }
-
-    const conta = this.conta;
-    if (!conta) {
+    if (!lerTokenValido()) {
       return null;
     }
 
-    const usuario: UsuarioLogado = {
-      nome: conta.name || conta.username || '',
-      email: conta.username || '',
-    };
-
-    const foto = await this.buscarFotoPerfil(conta);
-    if (foto) {
-      usuario.foto = foto;
+    const nome = lerChave('usuarioNome');
+    const email = lerChave('usuarioEmail');
+    if (!nome || !email) {
+      return null;
     }
 
-    return usuario;
+    const foto = lerChave('usuarioFoto');
+    const role = lerChave('usuarioRole');
+
+    return {
+      nome,
+      email,
+      foto: foto || undefined,
+      role: role || undefined,
+    };
   }
 
   async loginMicrosoft(): Promise<void> {
@@ -148,27 +150,60 @@ export class AuthService {
       throw new Error(mensagem);
     }
 
-    if (typeof window !== 'undefined' && dados?.accessToken) {
-      window.localStorage.setItem('accessToken', dados.accessToken);
-      window.localStorage.setItem('tokenType', dados.tokenType ?? 'Bearer');
-      window.localStorage.setItem('expiresInSeconds', String(dados.expiresInSeconds ?? 0));
-      if (dados.nome) window.localStorage.setItem('usuarioNome', dados.nome);
-      if (dados.email) window.localStorage.setItem('usuarioEmail', dados.email);
-      if (dados.fotoUrl) window.localStorage.setItem('usuarioFoto', dados.fotoUrl);
-      if (dados.role) window.localStorage.setItem('usuarioRole', dados.role);
-    }
+    gravarSessao(dados);
 
     return dados as { accessToken: string; tokenType: string; expiresInSeconds: number };
   }
 
+  /**
+   * Login de desenvolvimento: sem Microsoft e sem MFA, para testar cada papel com um clique.
+   *
+   * Não existe no build de produção (`environment.devAuthEnabled` é `false`) e o back-end só expõe
+   * a rota com o perfil `dev` e `DEV_AUTH_ENABLED=true`. Guardar com a mesma chave do login real é
+   * proposital: daqui em diante a sessão é indistinguível de uma sessão de verdade, e nenhuma tela
+   * precisa saber por qual das duas vias ela entrou.
+   */
+  async loginDev(email: string): Promise<void> {
+    const resposta = await fetch(`${environment.apiUrl}/auth/dev-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+
+    const dados = await resposta.json().catch(() => null);
+
+    if (!resposta.ok) {
+      const mensagem = dados?.mensagem ?? dados?.message ?? 'Não foi possível entrar com a conta de desenvolvimento.';
+      throw new Error(mensagem);
+    }
+
+    gravarSessao(dados);
+  }
+
+  /**
+   * Atalhos de login por papel. Lista vazia quando o recurso não está habilitado — tanto porque o
+   * build é de produção quanto porque o back-end está sem o perfil `dev`. Falha de rede também vira
+   * lista vazia, em vez de erro na tela: o botão do Microsoft continua sendo o caminho principal, e
+   * um atalho de desenvolvimento não deve ser capaz de quebrar a página de login.
+   */
+  async contasDev(): Promise<ContaDev[]> {
+    if (!environment.devAuthEnabled) {
+      return [];
+    }
+
+    try {
+      const resposta = await fetch(`${environment.apiUrl}/auth/dev-login/contas`);
+      if (!resposta.ok) {
+        return [];
+      }
+      return (await resposta.json()) as ContaDev[];
+    } catch {
+      return [];
+    }
+  }
+
   async logout(): Promise<void> {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('tokenType');
-    localStorage.removeItem('expiresInSeconds');
-    localStorage.removeItem('usuarioNome');
-    localStorage.removeItem('usuarioEmail');
-    localStorage.removeItem('usuarioFoto');
-    localStorage.removeItem('usuarioRole');
+    this.limparSessaoLocal();
 
     // `logoutRedirect` também exige a instância inicializada.
     await this.quandoPronto();
@@ -176,42 +211,22 @@ export class AuthService {
   }
 
   isAdmin(): boolean {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return false;
+    // Passa pela mesma checagem de validade de `obterUsuarioLogado`: um papel guardado no
+    // `localStorage` ao lado de um token vencido descreveria uma sessão que a API não reconhece.
+    if (!lerTokenValido()) {
+      return false;
+    }
 
-    const role = localStorage.getItem('usuarioRole');
+    const role = lerChave('usuarioRole');
     return role === 'ADMIN';
   }
 
-  private async buscarFotoPerfil(conta: AccountInfo): Promise<string | undefined> {
-    try {
-      const resultado: AuthenticationResult = await this.instance.acquireTokenSilent({
-        scopes: ['User.Read'],
-        account: conta,
-      });
-
-      const resposta = await fetch(GRAPH_PHOTO_URL, {
-        headers: { Authorization: `Bearer ${resultado.accessToken}` },
-      });
-
-      if (!resposta.ok) {
-        return undefined;
-      }
-
-      const blob = await resposta.blob();
-      return await this.blobParaDataUrl(blob);
-    } catch (erro) {
-      console.error('Erro ao buscar a foto de perfil: ', erro);
-      return undefined;
-    }
-  }
-
-  private blobParaDataUrl(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const leitor = new FileReader();
-      leitor.onload = () => resolve(leitor.result as string);
-      leitor.onerror = () => reject(leitor.error);
-      leitor.readAsDataURL(blob);
-    });
+  /**
+   * Descarta a identidade guardada no navegador. Usado quando o login no backend
+   * falha, para que uma sessão de uma tentativa anterior não sobreviva e continue
+   * aparecendo como se estivesse válida.
+   */
+  limparSessaoLocal(): void {
+    limparSessao();
   }
 }

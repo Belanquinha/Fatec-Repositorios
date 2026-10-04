@@ -24,7 +24,7 @@ describe('CatalogoPublico', () => {
           descricaoCurta: 'Descricao teste',
           conteudoEditorJs: '',
           linkRepositorio: '',
-          imagemCapaUrl: 'capa_card.png',
+          imagemCapaUrl: '/uploads/capa-projeto.png',
           palavrasChave: ['Web', 'IA'],
           anoPublicado: 2026,
           estado: 'APROVADO' as const,

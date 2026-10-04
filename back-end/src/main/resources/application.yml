@@ -5,7 +5,10 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/fatecrepository}
     username: ${POSTGRES_USER:postgres}
-    password: ${POSTGRES_PASSWORD:123456}
+    # Sem default de propósito: uma senha vazia ou esquecida faria o banco recusar a
+    # conexão em silêncio, e o sintoma apareceria como "a API está no ar mas todo
+    # endpoint dá 500". Placeholder não resolvido faz o contexto abortar na subida.
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   sql:
     init:
@@ -63,14 +66,49 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
 app:
+  cors:
+    # Origens liberadas no CORS, separadas por vírgula.
+    #
+    # Em produção isto quase não é exercitado: o nginx serve o front e faz proxy
+    # de /api para o back-end, então as duas ficam na mesma origem e o navegador
+    # nem envia preflight. O CORS importa mesmo é no `ng serve`, que roda em
+    # :4200 e fala com a API em :4040.
+    #
+    # Estava hardcoded no SecurityConfig, o que obrigava a recompilar o Java para
+    # trocar a porta do front. `http://frontend` é remanescente de quando se
+    # supunha chamar o service name pelo navegador: o navegador nunca faz isso,
+    # porque quem chama a API é a página servida por esse mesmo serviço.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost,http://localhost:80,http://localhost:3000,http://localhost:4200,http://127.0.0.1:4200,http://frontend}
   security:
     jwt:
-      secret: ${JWT_SECRET:dev-secret-change-this-key-with-at-least-32-chars}
+      # Sem default, e isso é o ponto: o valor padrão anterior
+      # ('dev-secret-change-this-key-with-at-least-32-chars') estava versionado
+      # no repositório. Um deploy que esquecesse de setar JWT_SECRET passaria a
+      # assinar token com uma chave pública, e qualquer pessoa poderia forjar
+      # sessão de admin. Placeholder não resolvido aborta a subida do contexto.
+      secret: ${JWT_SECRET}
       issuer: ${JWT_ISSUER:fatec-repository-api}
       expiration-hours: ${JWT_EXPIRATION_HOURS:24}
     msal:
-      # Tenant único da CPS (AD-3). Qualquer token com outro 'tid' é recusado com 401.
+      # Tenant da CPS (AD-3). O token precisa ter este 'tid' e ser assinado por chave do
+      # Microsoft correspondente ao tenant. Recusado com 401 caso contrário.
       tenant-id: ${MSAL_TENANT_ID:eabe64c5-68f5-4a76-8301-9577a679e449}
+      # Chaves públicas do Microsoft, usadas para verificar a assinatura do access token.
+      # Endpoint de discovery de chaves. Apontar para o tenant da CPS (e não 'common') faz o
+      # conjunto conter só as chaves daquele diretório. O caminho precisa ser
+      # '/discovery/v2.0/keys' — o '/v2.0/keys' sem '/discovery' devolve 404.
+      jwks-uri: ${MSAL_JWKS_URI:https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449/discovery/v2.0/keys}
+    dev-auth:
+      # Login sem Microsoft, para desenvolvimento: /auth/dev-login emite o mesmo JWT a partir de um
+      # e-mail, o que permite testar aluno/professor/admin sem passar por MFA a cada troca de papel.
+      #
+      # São DUIS interruptores, e os dois são desligados por padrão: este e o perfil `dev`
+      # (SPRING_PROFILES_ACTIVE). Precisam os dois para as rotas existirem. Motivo: este endpoint
+      # entrega uma sessão válida para o e-mail que a pessoa digitar, inclusive a conta de admin, e
+      # /auth/** é permitAll — um interruptedor só, esquecido num deploy, seria uma rota aberta.
+      #
+      # Para usar em dev: SPRING_PROFILES_ACTIVE=dev e DEV_AUTH_ENABLED=true.
+      enabled: ${DEV_AUTH_ENABLED:false}
 
 faterepo:
   seed:

@@ -17,3 +17,9 @@
 .animate-fade-in {
   animation: fadeIn 0.25s ease-out forwards;
 }
+
+/* Indica visualmente que o campo está em foco (o editor ocupa a caixa inteira) */
+.editor-caixa:focus-within {
+  border-color: var(--amarelo-500);
+  box-shadow: 0 0 0 3px var(--amarelo-100);
+}

@@ -1,25 +1,45 @@
 /**
- * Uma variável `NG_APP_*` definida como string vazia (ou só espaços) contorna o fallback do
- * `??` e entrega ao MSAL um authority/redirect vazio, que só falha no navegador. Aqui string
- * em branco é tratada como ausente, para que o padrão abaixo sempre valha.
+ * Configuração do build de DESENVOLVimento (usado pelo `ng serve`).
  *
- * As chaves precisam continuar literais: o `@ngx-env/builder` só substitui `import.meta.env['CHAVE']`
- * escrito estaticamente.
+ * Idêntica à de produção, com uma única diferença: `apiUrl`. Em dev não há
+ * nginx na frente, então o Angular fala direto com o Spring Boot na porta 4040
+ * via CORS. Em produção o mesmo caminho relativo `/api` é traduzido pelo nginx.
+ * Essa é a razão de `apiUrl` ser a única diferença entre os dois arquivos — e
+ * também a razão de não ser configurável por variável de ambiente: o valor
+ * correto é determinado pela topologia, não por quem constrói.
  */
-function definido(valor: string | undefined): string | undefined {
-  return typeof valor === 'string' && valor.trim() !== '' ? valor : undefined;
-}
+
+/** Tenant único da CPS (AD-3). O app é single-tenant, então o GUID é fixo. */
+const MSAL_TENANT_ID = 'eabe64c5-68f5-4a76-8301-9577a679e449';
+
+/** Application (client) ID do app registration no Microsoft Entra ID. */
+const MSAL_CLIENT_ID = '146c36f9-abf3-48b0-a533-5f462e5e4eed';
+
+/** `server.port` do back-end (back-end/src/main/resources/application.yml). */
+const API_LOCAL = 'http://localhost:4040';
 
 export const environment = {
   production: false,
 
-  // Azure AD/Entra ID - sobrescritos via .env (NG_APP_*)
-  msalClientId: definido(import.meta.env['NG_APP_MSAL_CLIENT_ID']) ?? '',
-  msalAuthority: definido(import.meta.env['NG_APP_MSAL_AUTHORITY'])
-    ?? 'https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449',
-  msalRedirectUri: definido(import.meta.env['NG_APP_MSAL_REDIRECT_URI'])
-    ?? 'http://localhost:4200/',
+  apiUrl: API_LOCAL,
 
-  // URL base da API Spring Boot
-  apiUrl: definido(import.meta.env['NG_APP_API_URL']) ?? 'http://localhost:4040'
+  msalClientId: MSAL_CLIENT_ID,
+
+  msalAuthority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}`,
+
+  /**
+   * Ver `environment.ts`. Em dev isto resolve para `http://localhost:4200/`,
+   * que é a URI registrada no Entra ID para desenvolvimento.
+   */
+  msalRedirectUri: document.baseURI,
+
+  /**
+   * Habilita os atalhos de login por papel na tela de login. Ver `environment.ts`.
+   *
+   * Ligado no `ng serve` para que aluno, professor e admin sejam testáveis com um clique, sem conta
+   * Microsoft e sem MFA. Não basta sozinho: o back-end precisa estar com `SPRING_PROFILES_ACTIVE=dev`
+   * e `DEV_AUTH_ENABLED=true`, senão a chamada volta 404 e a lista de atalhos simplesmente não
+   * aparece.
+   */
+  devAuthEnabled: true,
 };
