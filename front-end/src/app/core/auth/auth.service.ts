@@ -5,7 +5,19 @@ import { environment } from '../../../environments/environment';
 import { UsuarioLogado } from './models/usuario-logado';
 import { gravarSessao, lerChave, lerTokenValido, limparSessao } from './sessao-navegador';
 
-const GRAPH_SCOPES = ['User.Read', 'openid', 'profile', 'email'];
+/**
+ * Escopo do Microsoft Graph, escrito por extenso de propósito.
+ *
+ * <p>A forma curta `User.Read` é ambígua entre as duas gerações da API: o MSAL pode resolvê-la
+ * para o Azure AD Graph v1 (`00000003-0000-0000-c000-000000000000`), e esse recurso emite token
+ * `ver=1.0` com `iss=https://sts.windows.net/{tid}/`. O back-end valida contra o JWKS de discovery
+ * **v2**, cuja assinatura não é a desse token — daí "Token Microsoft inválido".
+ *
+ * <p>Nomear o recurso Graph v2 na URL elimina a ambiguidade: o token só pode sair com
+ * `aud=00000003-0000-0cc0-000000000000`. Vale notar que `openid`, `profile` e `email` não são
+ * pedidos aqui — o MSAL acrescenta os escopos OIDC sozinho, em qualquer fluxo.
+ */
+const GRAPH_SCOPES = ['https://graph.microsoft.com/User.Read'];
 
 @Injectable({
   providedIn: 'root',
@@ -129,16 +141,40 @@ export class AuthService {
       throw new Error('Nenhuma conta Microsoft encontrada. Faça login novamente.');
     }
 
-    const resultado = await this.instance.acquireTokenSilent({
+    // A authority vai explícita de propósito: sem ela o MSAL reutiliza a authority da conta
+    // em cache — e quem logou antes da correção `/v2.0` carrega conta v1, que emite access
+    // token v1 (iss sts.windows.net) para sempre. Com a authority v2 o MSAL renova pela via
+    // v2 quando o cache expirar.
+    let resultado = await this.instance.acquireTokenSilent({
       scopes: GRAPH_SCOPES,
       account: conta,
+      authority: environment.msalAuthority,
     });
+
+    // Cache obsoleto: o silent acima pode devolver o v1 guardado em localStorage. O back-end
+    // autentica pelo idToken (v2) e usa o access token só como bearer para o Graph — então um
+    // v1 aqui não quebra o login —, mas forçar uma renovação aproxima o navegador do formato
+    // v2 e evita carregar o token legado para sempre.
+    if (decodificarClaims(resultado.accessToken)['ver'] === '1.0') {
+      try {
+        resultado = await this.instance.acquireTokenSilent({
+          scopes: GRAPH_SCOPES,
+          account: conta,
+          authority: environment.msalAuthority,
+          forceRefresh: true,
+        });
+      } catch {
+        // Renovação falhou (rede, sessão expirada): segue com o token em cache. O back-end
+        // decide pelo idToken + Graph, então abortar aqui seria recusar um login válido.
+      }
+    }
 
     const resposta = await fetch(`${environment.apiUrl}/auth/login-microsoft`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         accessToken: resultado.accessToken,
+        idToken: resultado.idToken,
       }),
     });
 
@@ -180,5 +216,29 @@ export class AuthService {
    */
   limparSessaoLocal(): void {
     limparSessao();
+  }
+}
+
+/**
+ * Lê o payload de um JWT sem verificar nada.
+ *
+ * <p>Serve só para o teste de formato abaixo (token v1 em cache pede renovação forçada).
+ * Quem valida token é o back-end, com a chave pública do Microsoft.
+ */
+function decodificarClaims(jwt: string | undefined): Record<string, unknown> {
+  if (!jwt) return {};
+  try {
+    const payload = jwt.split('.')[1];
+    if (!payload) return {};
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join('')
+    );
+    return JSON.parse(json);
+  } catch {
+    return {};
   }
 }

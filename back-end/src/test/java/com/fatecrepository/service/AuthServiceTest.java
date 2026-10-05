@@ -95,7 +95,7 @@ class AuthServiceTest {
     @DisplayName("Deve abortar com 401 quando o verificador recusa o token, sem chamar o Graph nem persistir (AD-3)")
     void deveAbortarQuandoVerificadorRecusaToken() {
         org.mockito.Mockito.doThrow(new UnauthorizedException("Tenant inválido: o token não pertence ao tenant da CPS"))
-                .when(tokenVerifier).verify(any());
+                .when(tokenVerifier).verifyIdToken(any());
         MicrosoftLoginRequest request = loginComTokenDaCps();
 
         assertThrows(UnauthorizedException.class, () -> authService.loginMicrosoft(request));
@@ -217,7 +217,7 @@ class AuthServiceTest {
     }
 
     private MicrosoftLoginRequest loginComToken(String token) {
-        return new MicrosoftLoginRequest(token, null, null, null);
+        return new MicrosoftLoginRequest(token, "id-token-teste", null, null, null);
     }
 
     private String tokenComTenant(String tid) {

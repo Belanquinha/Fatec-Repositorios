@@ -33,8 +33,20 @@ export const environment = {
    */
   msalClientId: MSAL_CLIENT_ID,
 
-  /** Endpoint de discovery do tenant. Nunca `common`: o app é single-tenant. */
-  msalAuthority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}`,
+  /**
+   * Endpoint de discovery do tenant. Nunca `common`: o app é single-tenant.
+   *
+   * O sufixo `/v2.0` é obrigatório aqui, e a ausência dele era a causa do login nunca ter
+   * funcionado. Sem ele o MSAL usa o endpoint v1 e entrega um token do Azure AD Graph v1
+   * (`iss=https://sts.windows.net/{tid}/`, `aud=00000003-...-c000-000000000000`) — um recurso que
+   * a Microsoft já depreciou. O back-end valida o token contra o JWKS de discovery **v2**
+   * (`{tid}/discovery/v2.0/keys`), e o par v1/v2 é exatamente onde a assinatura deixava de bater.
+   *
+   * Com `/v2.0`, o token sai com `aud` do Microsoft Graph (`00000003-0000-0cc0-000000000000`), que
+   * o `MicrosoftTokenVerifier` já aceita. As chamadas ao Graph seguem na API v1.0, que aceita token
+   * v2 — só o formato do token muda, não o código de quem consome.
+   */
+  msalAuthority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}/v2.0`,
 
   /**
    * Redirect URI do login e do logout.

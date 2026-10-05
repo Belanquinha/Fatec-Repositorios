@@ -39,6 +39,7 @@ class MicrosoftTokenVerifierTest {
     private static final String TENANT_EXTERNO = "11111111-2222-3333-4444-555555555555";
     private static final String AUD_AAD_GRAPH_V1 = "00000003-0000-0000-c000-000000000000";
     private static final String AUD_GRAPH_V2 = "00000003-0000-0cc0-000000000000";
+    private static final String AUD_GRAPH_V2_URI = "https://graph.microsoft.com";
     private static final String KID = "chave-de-teste";
 
     private static final String ISS_V1 = "https://sts.windows.net/" + TENANT_CPS + "/";
@@ -79,6 +80,7 @@ class MicrosoftTokenVerifierTest {
                 "https://login.microsoftonline.com/common/discovery/v2.0/keys");
         ReflectionTestUtils.setField(v, "jwkProvider", provider);
         ReflectionTestUtils.setField(v, "tenantId", TENANT_CPS);
+        ReflectionTestUtils.setField(v, "clientId", "146c36f9-abf3-48b0-a533-5f462e5e4eed");
         return v;
     }
 
@@ -110,6 +112,17 @@ class MicrosoftTokenVerifierTest {
         return token(ISS_V2, AUD_GRAPH_V2, TENANT_CPS);
     }
 
+    private String idToken(String audience) {
+        return JWT.create()
+                .withKeyId(KID)
+                .withIssuer(ISS_V2)
+                .withAudience(audience)
+                .withClaim("tid", TENANT_CPS)
+                .withClaim("preferred_username", "aluno@cps.sp.gov.br")
+                .withExpiresAt(new Date(System.currentTimeMillis() + 600_000))
+                .sign(Algorithm.RSA256(chavePublica, chavePrivada));
+    }
+
     @Test
     @DisplayName("Deve aceitar token v1 da CPS: é o formato emitido sem '/v2.0' na authority")
     void deveAceitarTokenV1DaCps() {
@@ -120,6 +133,26 @@ class MicrosoftTokenVerifierTest {
     @DisplayName("Deve aceitar token v2 da CPS: é o formato emitido com '/v2.0' na authority")
     void deveAceitarTokenV2DaCps() {
         assertDoesNotThrow(() -> verificador().verify(tokenV2()));
+    }
+
+    @Test
+    @DisplayName("Deve aceitar o Graph pela URI, que é como o aud sai com escopo na forma extensa")
+    void deveAceitarGraphPorUri() {
+        // Regressão real: com o escopo pedido como
+        // `https://graph.microsoft.com/User.Read`, o Microsoft devolve `aud` na forma de URI. A
+        // lista de audiences aceitáveis só tinha os GUIDs, então um token válido era recusado com
+        // "recurso não autorizado" — mensagem que não tem nada a ver com assinatura e só aparece
+        // depois que o escopo deixa de ser ambíguo.
+        assertDoesNotThrow(() -> verificador().verify(token(ISS_V1, AUD_GRAPH_V2_URI, TENANT_CPS)));
+    }
+
+    @Test
+    @DisplayName("A forma URI do Graph não pode ser confundida com um id token da própria aplicação")
+    void formaUriNaoAbrePortaParaIdToken() {
+        // Aceitar a URI não pode enfraquecer a barreira do `aud`: o id token da app tem
+        // `aud` = client ID e continua precisando ser recusado.
+        assertThrows(UnauthorizedException.class,
+                () -> verificador().verify(token(ISS_V2, "146c36f9-abf3-48b0-a533-5f462e5e4eed", TENANT_CPS)));
     }
 
     @Test
@@ -170,6 +203,20 @@ class MicrosoftTokenVerifierTest {
         String token = token(ISS_V1, "146c36f9-abf3-48b0-a533-5f462e5e4eed", TENANT_CPS);
 
         assertThrows(UnauthorizedException.class, () -> verificador().verify(token));
+    }
+
+    @Test
+    @DisplayName("Deve aceitar idToken v2 com aud igual ao clientId")
+    void deveAceitarIdTokenDoApp() {
+        assertDoesNotThrow(() ->
+                verificador().verifyIdToken(idToken("146c36f9-abf3-48b0-a533-5f462e5e4eed")));
+    }
+
+    @Test
+    @DisplayName("Deve recusar idToken de outro app do mesmo tenant")
+    void deveRecusarIdTokenDeOutroApp() {
+        assertThrows(UnauthorizedException.class, () ->
+                verificador().verifyIdToken(idToken("00000000-0000-0000-0000-000000000000")));
     }
 
     @Test

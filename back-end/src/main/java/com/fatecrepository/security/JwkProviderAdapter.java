@@ -13,6 +13,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -65,6 +66,20 @@ final class JwkProviderAdapter implements JwkProvider {
             throw new JwkException("Nenhuma chave pública correspondente ao kid informado");
         }
         return jwk;
+    }
+
+    /**
+     * Todas as chaves do conjunto, para o verificador poder tentar cada uma.
+     *
+     * <p>Existe para o caso de o {@code kid} do token apontar para uma chave que não assina o
+     * token — o que acontece quando o token vem de um endpoint v1 e o JWKS configurado é o v2, ou
+     * durante uma rotação. Sem isso, a única saída é recusar o login.
+     */
+    List<Jwk> todas() throws JwkException {
+        if (cacheVazioOuExpirado()) {
+            carregar();
+        }
+        return List.copyOf(cache.values());
     }
 
     private boolean cacheVazioOuExpirado() {

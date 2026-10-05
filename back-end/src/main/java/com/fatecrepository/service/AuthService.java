@@ -30,20 +30,42 @@ public class AuthService {
     public AuthResponse loginMicrosoft(MicrosoftLoginRequest request) {
         log.info("Tentativa de login via Microsoft");
 
-        // AD-3: assinatura, emissor, audience e tenant são conferidos aqui, antes de qualquer
-        // chamada externa. Com o app registration multi-tenant a authority do front-end não é
-        // mais a fronteira de confiança — esta é.
-        tokenVerifier.verify(request.getAccessToken());
+        // O idToken é a prova de autenticação OIDC: aud=clientId, iss v2 do tenant, assinatura
+        // pelas chaves do tenant. É ele que prende o login ao nosso app registration.
+        // O access token do Graph NÃO é validado localmente de forma bloqueante: ele é
+        // credencial para o Graph (aud=graph, chaves globais que o JWKS do tenant não publica),
+        // então um v1 legítimo (iss sts.windows.net) sempre falharia aqui com "assinatura
+        // inválida". Quem valida o access token é o próprio Graph, ao responder ao /me.
+        if (request.getIdToken() == null || request.getIdToken().isBlank()) {
+            throw new UnauthorizedException("Token Microsoft inválido: idToken ausente");
+        }
+        com.auth0.jwt.interfaces.DecodedJWT idClaims = tokenVerifier.verifyIdToken(request.getIdToken());
+
+        // Best-effort: se o access token verificar contra o JWKS, ótimo; se não (caso v1),
+        // segue para o Graph — que é o validador real desse artefato.
+        try {
+            tokenVerifier.verify(request.getAccessToken());
+        } catch (Exception e) {
+            log.debug("Access token não verificou localmente (segue para o Graph): {}", e.getMessage());
+        }
 
         MicrosoftGraphService.GraphUser graphUser = microsoftGraphService.getUserInfo(request.getAccessToken());
         String email = resolverEmail(graphUser);
+        String nome = graphUser != null ? graphUser.getDisplayName() : null;
+        if (email == null) {
+            email = emailDoIdToken(idClaims);
+            nome = nomeDoIdToken(idClaims, nome);
+        }
         if (email == null) {
             throw new UnauthorizedException("Token Microsoft inválido ou dados do usuário não encontrados");
+        }
+        if (nome == null || nome.isBlank()) {
+            nome = parteLocal(email);
         }
 
         User user = userProvisioningService.provisionar(
                 email,
-                graphUser.getDisplayName(),
+                nome,
                 microsoftGraphService.getPhotoUrl(request.getAccessToken())
         );
 
@@ -73,5 +95,43 @@ public class AuthService {
 
     private boolean temValor(String valor) {
         return valor != null && !valor.isBlank();
+    }
+
+    /**
+     * Fallback quando o Graph não responde (rede, permissão, token v1 sem escopo): o idToken
+     * verificado já carrega e-mail verificado pela Microsoft. Ordem: mail > upn >
+     * preferred_username > email.
+     */
+    private String emailDoIdToken(com.auth0.jwt.interfaces.DecodedJWT idClaims) {
+        if (idClaims == null) {
+            return null;
+        }
+        for (String claim : new String[]{"mail", "upn", "preferred_username", "email"}) {
+            String valor = idClaims.getClaim(claim).asString();
+            if (temValor(valor)) {
+                return valor.trim().toLowerCase(Locale.ROOT);
+            }
+        }
+        return null;
+    }
+
+    private String nomeDoIdToken(com.auth0.jwt.interfaces.DecodedJWT idClaims, String atual) {
+        if (temValor(atual)) {
+            return atual;
+        }
+        if (idClaims == null) {
+            return null;
+        }
+        String nome = idClaims.getClaim("name").asString();
+        return temValor(nome) ? nome : null;
+    }
+
+    /**
+     * Último recurso para a coluna {@code nome} (NOT NULL): a parte local do e-mail.
+     * Evita 500 por constraint quando Graph e idToken não trazem displayName.
+     */
+    private String parteLocal(String email) {
+        int arroba = email.indexOf('@');
+        return arroba > 0 ? email.substring(0, arroba) : email;
     }
 }

@@ -25,7 +25,7 @@ export const environment = {
 
   msalClientId: MSAL_CLIENT_ID,
 
-  msalAuthority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}`,
+  msalAuthority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}/v2.0`,
 
   /**
    * Ver `environment.ts`. Em dev isto resolve para `http://localhost:4200/`,

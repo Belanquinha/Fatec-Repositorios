@@ -51,8 +51,15 @@ describe('environment', () => {
 
   it('deve usar o tenant da CPS, nunca "common"', () => {
     expect(environment.msalAuthority).toBe(
-      'https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449'
+      'https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449/v2.0'
     );
+  });
+
+  it('deve usar o endpoint v2 do Entra ID', () => {
+    // Sem o sufixo `/v2.0` o MSAL usa o endpoint v1 e devolve um token do Azure AD Graph v1, um
+    // recurso depreciado cuja assinatura não bate contra o JWKS de discovery v2 que o back-end
+    // consulta. Era a causa do login falhar com "Token Microsoft inválido" desde o começo.
+    expect(environment.msalAuthority).toMatch(/\/v2\.0$/);
   });
 
   it('deve ter production como booleano', () => {

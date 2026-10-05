@@ -353,8 +353,26 @@ describe('AuthService', () => {
   });
 
   describe('loginMicrosoft', () => {
-    it('deve aguardar a inicialização antes de chamar loginRedirect', async () => {
-      let liberar!: () => void;
+    it('não deve pedir escopo OIDC junto com o escopo do Graph', async () => {
+      const instancia = criarInstanciaMsal();
+      const authService = criarAuthService(instancia);
+
+      await authService.inicializar();
+      await authService.loginMicrosoft();
+
+      const scopes = instancia.loginRedirect.mock.calls[0][0].scopes;
+
+      // O escopo precisa nomear o recurso Graph **v2** na URL. A forma curta `User.Read` é
+      // ambígua entre as duas gerações da API: resolvida para o Azure AD Graph v1, o token sai
+      // com `ver=1.0` e `iss=sts.windows.net`, cuja assinatura não bate contra o JWKS de
+      // discovery v2 que o back-end consulta — e o login morre com "Token Microsoft inválido".
+      expect(scopes).toEqual(['https://graph.microsoft.com/User.Read']);
+      expect(scopes).not.toContain('openid');
+      expect(scopes).not.toContain('profile');
+      expect(scopes).not.toContain('email');
+    });
+
+    it('deve aguardar a inicialização antes de chamar loginRedirect', async () => {      let liberar!: () => void;
       const instancia = criarInstanciaMsal({
         initialize: vi.fn(() => new Promise<void>((resolve) => (liberar = resolve))),
       });
