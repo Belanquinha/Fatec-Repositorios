@@ -1,13 +1,13 @@
 import {
   Component,
   ElementRef,
-  NgZone,
   OnInit,
   AfterViewInit,
   AfterViewChecked,
   OnDestroy,
   ViewChild,
   inject,
+  signal,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -43,7 +43,6 @@ interface IntegranteLocal {
   styleUrl: './upload-projeto.css',
 })
 export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
-  private zone = inject(NgZone);
   private projetoService = inject(ProjetoService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -55,26 +54,26 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   titulo = '';
   descricaoCurta = '';
   capaArquivo: File | null = null;
-  capaPreview: string | null = null;
+  capaPreview = signal<string | null>(null);
   imagemCapaUrl: string | null = null;
 
   // Seção 2: Instituição & Validação Acadêmica
   @ViewChild('inputInstituicao') private inputInstituicao?: ElementRef<HTMLInputElement>;
   private readonly limiteSugestoes = 50;
   instituicaoId = '';
-  instituicaoSelecionadaObjeto: InstituicaoOption | null = null;
-  instituicoes: InstituicaoOption[] = [];
+  instituicaoSelecionadaObjeto = signal<InstituicaoOption | null>(null);
+  instituicoes = signal<InstituicaoOption[]>([]);
   instituicoesFiltradas: InstituicaoOption[] = [];
   instituicoesEncontradas = 0;
   buscaInstituicao = '';
-  mostrarDropdownInstituicao = false;
+  mostrarDropdownInstituicao = signal(false);
   instituicaoDestaque = -1;
-  carregandoInstituicoes = false;
-  erroCarregarInstituicoes = false;
+  carregandoInstituicoes = signal(false);
+  erroCarregarInstituicoes = signal(false);
 
   professorEmail = '';
   professorStatus: 'cadastrado' | 'novo' | 'vazio' = 'vazio';
-  mostrarDropdownProfessor = false;
+  mostrarDropdownProfessor = signal(false);
   linkRepositorio = '';
   palavrasChave = '';
 
@@ -82,9 +81,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
    * Sugestões vindas de `/professores`. Vazio enquanto o backend não responde —
    * o campo de e-mail continua aceitando digitação livre, só não há autocompletar.
    */
-  professoresBase: ProfessorOption[] = [];
+  professoresBase = signal<ProfessorOption[]>([]);
   professoresFiltrados: ProfessorOption[] = [];
-  erroCarregarProfessores = false;
+  erroCarregarProfessores = signal(false);
 
   // Seção 3: Editor.js
   @ViewChild('editorjsContainer') private editorjsContainer?: ElementRef<HTMLDivElement>;
@@ -100,9 +99,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   ];
 
   // Estado do envio e feedbacks
-  enviando = false;
-  enviadoComSucesso = false;
-  erroMensagem: string | null = null;
+  enviando = signal(false);
+  enviadoComSucesso = signal(false);
+  erroMensagem = signal<string | null>(null);
 
   ngOnInit() {
     this.carregarProfessores();
@@ -136,28 +135,28 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
 
   // --- Carga de dados remotos ---
   private carregarInstituicoes() {
-    this.carregandoInstituicoes = true;
-    this.erroCarregarInstituicoes = false;
+    this.carregandoInstituicoes.set(true);
+    this.erroCarregarInstituicoes.set(false);
     this.projetoService.listarInstituicoes().subscribe({
       next: (dados) => {
-        this.instituicoes = (dados || []).filter((i) => i.ativo);
-        this.carregandoInstituicoes = false;
+        this.instituicoes.set((dados || []).filter((i) => i.ativo));
+        this.carregandoInstituicoes.set(false);
         this.sincronizarInstituicaoSelecionada();
       },
       error: (err) => {
-        this.instituicoes = [];
-        this.carregandoInstituicoes = false;
-        this.erroCarregarInstituicoes = true;
+        this.instituicoes.set([]);
+        this.carregandoInstituicoes.set(false);
+        this.erroCarregarInstituicoes.set(true);
         console.warn('Não foi possível carregar instituições do backend:', err);
       },
     });
   }
 
   sincronizarInstituicaoSelecionada() {
-    if (this.instituicaoId && this.instituicoes.length > 0) {
-      const encontrada = this.instituicoes.find((i) => i.id === this.instituicaoId);
+    if (this.instituicaoId && this.instituicoes().length > 0) {
+      const encontrada = this.instituicoes().find((i) => i.id === this.instituicaoId);
       if (encontrada) {
-        this.instituicaoSelecionadaObjeto = encontrada;
+        this.instituicaoSelecionadaObjeto.set(encontrada);
       }
     }
   }
@@ -169,31 +168,32 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   // --- Autocomplete da Instituição (FATEC) ---
   onInstituicaoBusca(termo: string) {
     this.buscaInstituicao = termo;
-    this.mostrarDropdownInstituicao = true;
+    this.mostrarDropdownInstituicao.set(true);
     this.aplicarFiltroInstituicoes();
   }
 
   abrirDropdownInstituicao() {
-    if (this.carregandoInstituicoes) {
+    if (this.carregandoInstituicoes()) {
       return;
     }
-    this.mostrarDropdownInstituicao = true;
+    this.mostrarDropdownInstituicao.set(true);
     this.aplicarFiltroInstituicoes();
   }
 
   ocultarDropdownInstituicaoComDelay() {
     setTimeout(() => {
-      this.mostrarDropdownInstituicao = false;
+      this.mostrarDropdownInstituicao.set(false);
       this.instituicaoDestaque = -1;
     }, 200);
   }
 
   private aplicarFiltroInstituicoes() {
     const termo = this.normalizarTexto(this.buscaInstituicao);
+    const todas = this.instituicoes();
 
     const encontradas = !termo
-      ? this.instituicoes
-      : this.instituicoes.filter(
+      ? todas
+      : todas.filter(
           (inst) =>
             this.normalizarTexto(inst.nome).includes(termo) ||
             this.normalizarTexto(inst.cidade || '').includes(termo) ||
@@ -208,29 +208,29 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
 
   selecionarInstituicao(inst: InstituicaoOption) {
     this.instituicaoId = inst.id;
-    this.instituicaoSelecionadaObjeto = inst;
+    this.instituicaoSelecionadaObjeto.set(inst);
     this.buscaInstituicao = '';
     this.instituicoesFiltradas = [];
     this.instituicoesEncontradas = 0;
-    this.mostrarDropdownInstituicao = false;
+    this.mostrarDropdownInstituicao.set(false);
     this.instituicaoDestaque = -1;
     this.atualizarQueryParamInstituicao(inst.id);
   }
 
   trocarInstituicao() {
     this.instituicaoId = '';
-    this.instituicaoSelecionadaObjeto = null;
+    this.instituicaoSelecionadaObjeto.set(null);
     this.buscaInstituicao = '';
     this.instituicoesFiltradas = [];
     this.instituicoesEncontradas = 0;
-    this.mostrarDropdownInstituicao = false;
+    this.mostrarDropdownInstituicao.set(false);
     this.instituicaoDestaque = -1;
     this.atualizarQueryParamInstituicao(null);
     setTimeout(() => this.inputInstituicao?.nativeElement.focus());
   }
   onInstituicaoKeydown(event: KeyboardEvent) {
     const total = this.instituicoesFiltradas.length;
-    if (!this.mostrarDropdownInstituicao || total === 0) {
+    if (!this.mostrarDropdownInstituicao() || total === 0) {
       return;
     }
 
@@ -252,7 +252,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         break;
       }
       case 'Escape':
-        this.mostrarDropdownInstituicao = false;
+        this.mostrarDropdownInstituicao.set(false);
         this.instituicaoDestaque = -1;
         break;
     }
@@ -276,14 +276,14 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private carregarProfessores() {
-    this.erroCarregarProfessores = false;
+    this.erroCarregarProfessores.set(false);
     this.projetoService.listarProfessores().subscribe({
       next: (profs) => {
-        this.professoresBase = profs ?? [];
+        this.professoresBase.set(profs ?? []);
       },
       error: (err) => {
-        this.professoresBase = [];
-        this.erroCarregarProfessores = true;
+        this.professoresBase.set([]);
+        this.erroCarregarProfessores.set(true);
         console.warn('Não foi possível carregar a lista de professores:', err);
       },
     });
@@ -375,13 +375,11 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
                     return new Promise((resolve) => {
                       const reader = new FileReader();
                       reader.onload = () => {
-                        this.zone.run(() => {
-                          resolve({
-                            success: 1,
-                            file: {
-                              url: reader.result as string,
-                            },
-                          });
+                        resolve({
+                          success: 1,
+                          file: {
+                            url: reader.result as string,
+                          },
                         });
                       };
                       reader.readAsDataURL(file);
@@ -446,13 +444,13 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     if (input.files && input.files[0]) {
       const arquivo = input.files[0];
       this.capaArquivo = arquivo;
-      this.erroMensagem = null;
+      this.erroMensagem.set(null);
 
       const reader = new FileReader();
       reader.onload = () => {
-        this.zone.run(() => {
-          this.capaPreview = reader.result as string;
-        });
+        // signal.set() agenda o tick no zoneless — o preview aparece na hora,
+        // sem precisar clicar na tela. O antigo `NgZone.run()` era no-op aqui.
+        this.capaPreview.set(reader.result as string);
       };
       reader.readAsDataURL(arquivo);
     }
@@ -460,7 +458,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
 
   removerCapa(event?: Event) {
     if (event) event.stopPropagation();
-    this.capaPreview = null;
+    this.capaPreview.set(null);
     this.capaArquivo = null;
     this.imagemCapaUrl = null;
   }
@@ -468,21 +466,22 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   // --- Autocomplete Professor Responsável ---
   onProfessorEmailInput() {
     const busca = this.professorEmail.trim().toLowerCase();
+    const base = this.professoresBase();
     if (!busca) {
       this.professoresFiltrados = [];
-      this.mostrarDropdownProfessor = false;
+      this.mostrarDropdownProfessor.set(false);
       this.professorStatus = 'vazio';
       return;
     }
 
-    this.professoresFiltrados = this.professoresBase.filter(
+    this.professoresFiltrados = base.filter(
       (p) =>
         p.nome.toLowerCase().includes(busca) ||
         p.email.toLowerCase().includes(busca)
     );
-    this.mostrarDropdownProfessor = this.professoresFiltrados.length > 0;
+    this.mostrarDropdownProfessor.set(this.professoresFiltrados.length > 0);
 
-    const encontrado = this.professoresBase.some(
+    const encontrado = base.some(
       (p) => p.email.toLowerCase() === busca
     );
     this.professorStatus = encontrado ? 'cadastrado' : 'novo';
@@ -491,12 +490,12 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   selecionarProfessor(prof: ProfessorOption) {
     this.professorEmail = prof.email;
     this.professorStatus = 'cadastrado';
-    this.mostrarDropdownProfessor = false;
+    this.mostrarDropdownProfessor.set(false);
   }
 
   ocultarDropdownComDelay() {
     setTimeout(() => {
-      this.mostrarDropdownProfessor = false;
+      this.mostrarDropdownProfessor.set(false);
     }, 200);
   }
 
@@ -547,55 +546,55 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
 
   // --- Submissão Final Integrada ---
   async enviarParaAvaliacao() {
-    this.erroMensagem = null;
+    this.erroMensagem.set(null);
 
     // 1. Validações preliminares
     if (!this.titulo.trim()) {
-      this.erroMensagem = 'Por favor, informe o título do projeto.';
+      this.erroMensagem.set('Por favor, informe o título do projeto.');
       this.irParaSecao(1);
       return;
     }
 
     if (!this.descricaoCurta.trim()) {
-      this.erroMensagem = 'Por favor, informe uma descrição curta para o projeto.';
+      this.erroMensagem.set('Por favor, informe uma descrição curta para o projeto.');
       this.irParaSecao(1);
       return;
     }
 
     if (this.descricaoCurta.trim().length > 144) {
-      this.erroMensagem = 'A descrição curta não pode exceder 144 caracteres.';
+      this.erroMensagem.set('A descrição curta não pode exceder 144 caracteres.');
       this.irParaSecao(1);
       return;
     }
 
-    if (!this.capaArquivo && !this.capaPreview && !this.imagemCapaUrl) {
-      this.erroMensagem = 'Selecione uma imagem de capa para o projeto.';
+    if (!this.capaArquivo && !this.capaPreview() && !this.imagemCapaUrl) {
+      this.erroMensagem.set('Selecione uma imagem de capa para o projeto.');
       this.irParaSecao(1);
       return;
     }
 
     if (!this.instituicaoId) {
-      this.erroMensagem = 'Selecione a unidade FATEC responsável.';
+      this.erroMensagem.set('Selecione a unidade FATEC responsável.');
       this.irParaSecao(2);
       return;
     }
 
     if (!this.professorEmail.trim()) {
-      this.erroMensagem = 'Informe o e-mail do professor responsável pela validação acadêmica.';
+      this.erroMensagem.set('Informe o e-mail do professor responsável pela validação acadêmica.');
       this.irParaSecao(2);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.professorEmail.trim())) {
-      this.erroMensagem = 'Informe um e-mail válido para o professor responsável.';
+      this.erroMensagem.set('Informe um e-mail válido para o professor responsável.');
       this.irParaSecao(2);
       return;
     }
 
     const integrantesValidos = this.integrantes.filter((i) => i.nome.trim().length > 0);
     if (integrantesValidos.length === 0) {
-      this.erroMensagem = 'Informe ao menos um integrante com o nome completo preenchido.';
+      this.erroMensagem.set('Informe ao menos um integrante com o nome completo preenchido.');
       this.irParaSecao(4);
       return;
     }
@@ -603,7 +602,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     // 2. Salvar conteúdo do Editor.js (aguarda qualquer teardown pendente)
     await this.encadearEditor(() => this.salvarConteudoEditor());
 
-    this.enviando = true;
+    this.enviando.set(true);
 
     try {
       // 3. Upload da capa se arquivo físico estiver pendente
@@ -615,8 +614,8 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         } catch (uploadErr: any) {
           console.error('Falha no upload da capa:', uploadErr);
           // Se falhar upload de imagem no backend por estar offline ou não autorizado, prossegue se tiver preview
-          if (!capaFinalUrl && this.capaPreview) {
-            capaFinalUrl = this.capaPreview;
+          if (!capaFinalUrl && this.capaPreview()) {
+            capaFinalUrl = this.capaPreview();
           }
         }
       }
@@ -650,17 +649,21 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       const projetoCriado = await firstValueFrom(this.projetoService.criarProjeto(payload));
       console.log('Projeto submetido com sucesso:', projetoCriado);
 
-      this.enviando = false;
-      this.enviadoComSucesso = true;
+      this.enviando.set(false);
+      this.enviadoComSucesso.set(true);
     } catch (err: any) {
       console.error('Erro ao submeter projeto para avaliação:', err);
-      this.enviando = false;
+      this.enviando.set(false);
       const msgErro =
         err?.error?.mensagem ||
         err?.error?.message ||
         'Não foi possível enviar o projeto para avaliação. Verifique sua conexão e tente novamente.';
-      this.erroMensagem = msgErro;
+      this.erroMensagem.set(msgErro);
     }
+  }
+
+  limparErro(): void {
+    this.erroMensagem.set(null);
   }
 
   resetarFormulario() {
@@ -669,25 +672,25 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       await this.sairDaSecaoDoEditor();
       this.editorData = null;
     });
-    this.enviadoComSucesso = false;
-    this.enviando = false;
-    this.erroMensagem = null;
+    this.enviadoComSucesso.set(false);
+    this.enviando.set(false);
+    this.erroMensagem.set(null);
     this.secaoAtual = 1;
     this.titulo = '';
     this.descricaoCurta = '';
     this.capaArquivo = null;
-    this.capaPreview = null;
+    this.capaPreview.set(null);
     this.imagemCapaUrl = null;
     this.instituicaoId = '';
-    this.instituicaoSelecionadaObjeto = null;
+    this.instituicaoSelecionadaObjeto.set(null);
     this.buscaInstituicao = '';
     this.instituicoesFiltradas = [];
     this.instituicoesEncontradas = 0;
-    this.mostrarDropdownInstituicao = false;
+    this.mostrarDropdownInstituicao.set(false);
     this.instituicaoDestaque = -1;
     this.professorEmail = '';
     this.professorStatus = 'vazio';
-    this.erroCarregarProfessores = false;
+    this.erroCarregarProfessores.set(false);
     this.linkRepositorio = '';
     this.palavrasChave = '';
     this.integrantes = [

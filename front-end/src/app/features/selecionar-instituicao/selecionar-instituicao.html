@@ -31,10 +31,10 @@
       } @else {
         <div class="flex items-center gap-2 bg-white px-4 py-2 border border-solid border-cinza-300 shadow-xs w-fit">
           <span class="material-symbols-outlined text-amarelo-600 text-lg">school</span>
-          @if (carregando) {
+          @if (carregando()) {
             <span class="text-xs font-bold text-cinza-700">Carregando unidades...</span>
-          } @else if (!erroCarregamento) {
-            <span class="text-xs font-bold text-cinza-700">{{ instituicoes.length }} {{ instituicoes.length === 1 ? 'unidade' : 'unidades' }} no Estado de SP</span>
+          } @else if (!erroCarregamento()) {
+            <span class="text-xs font-bold text-cinza-700">{{ instituicoes().length }} {{ instituicoes().length === 1 ? 'unidade' : 'unidades' }} no Estado de SP</span>
           }
         </div>
       }
@@ -65,12 +65,12 @@
       </div>
 
       <!-- Filtros de Região Administrativa (Chips com Cantos Retos) -->
-      @if (regioesDisponiveis.length > 1) {
+      @if (regioesDisponiveis().length > 1) {
         <div class="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
           <span class="text-xs font-bold text-cinza-400 uppercase tracking-wider mr-2 shrink-0">
             Região:
           </span>
-          @for (regiao of regioesDisponiveis; track regiao) {
+          @for (regiao of regioesDisponiveis(); track regiao) {
             <button type="button"
                     (click)="selecionarRegiao(regiao)"
                     [class.bg-cinza-900]="regiaoSelecionada === regiao"
@@ -84,7 +84,7 @@
               {{ regiao }}
               @if (regiaoSelecionada === regiao) {
                 <span class="text-[10px] bg-amarelo-500 text-cinza-900 font-bold px-1.5 py-0.2">
-                  {{ instituicoesFiltradas.length }}
+                  {{ instituicoesFiltradas().length }}
                 </span>
               }
             </button>
@@ -95,11 +95,11 @@
     </div>
 
     <!-- MENSAGEM DE ERRO (se houver) -->
-    @if (erroCarregamento) {
+    @if (erroCarregamento()) {
       <div class="p-4 bg-red-50 border border-red-300 text-red-800 text-sm flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-lg">error</span>
-          <span>{{ erroCarregamento }}</span>
+          <span>{{ erroCarregamento() }}</span>
         </div>
         <button type="button" (click)="carregarInstituicoes()" class="font-bold underline cursor-pointer">
           Tentar novamente
@@ -119,7 +119,7 @@
       </div>
 
       <!-- Estado: Carregando -->
-      @if (carregando) {
+      @if (carregando()) {
         <div class="divide-y divide-cinza-200 animate-pulse">
           @for (i of [1, 2, 3, 4, 5, 6]; track i) {
             <div class="px-6 py-4 flex items-center justify-between gap-4">
@@ -136,7 +136,7 @@
       }
 
       <!-- Estado: Lista Vazia -->
-      @if (!carregando && instituicoesFiltradas.length === 0) {
+      @if (!carregando() && instituicoesFiltradas().length === 0) {
         <div class="p-12 text-center space-y-3">
           <span class="material-symbols-outlined text-5xl text-cinza-300">search_off</span>
           <p class="font-semibold text-cinza-800 text-base">Nenhuma instituição encontrada</p>
@@ -152,9 +152,9 @@
       }
 
       <!-- Linhas de Instituições (Google Drive Style) -->
-      @if (!carregando && instituicoesFiltradas.length > 0) {
+      @if (!carregando() && instituicoesFiltradas().length > 0) {
         <div class="divide-y divide-cinza-200 overflow-y-auto max-h-[60vh] sm:max-h-[65vh]">
-          @for (inst of instituicoesFiltradas; track inst.id) {
+          @for (inst of instituicoesFiltradas(); track inst.id) {
             
             @let partes = separarNomeEPatrono(inst.nome);
             @let isAtual = instituicaoAtualId === inst.id;
@@ -235,7 +235,7 @@
 
       <!-- Rodapé Informativo da Tabela -->
       <div class="px-6 py-3 bg-cinza-50 border-t border-cinza-300 flex flex-col sm:flex-row items-center justify-between text-xs text-cinza-400 gap-2">
-        <span>Exibindo <strong>{{ instituicoesFiltradas.length }}</strong> de <strong>{{ instituicoes.length }}</strong> FATECs</span>
+        <span>Exibindo <strong>{{ instituicoesFiltradas().length }}</strong> de <strong>{{ instituicoes().length }}</strong> FATECs</span>
         <span class="flex items-center gap-1">
           <span class="material-symbols-outlined text-xs text-verde-600">verified</span>
           Catálogo Oficial Centro Paula Souza

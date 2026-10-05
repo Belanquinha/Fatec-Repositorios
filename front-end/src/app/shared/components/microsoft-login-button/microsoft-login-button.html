@@ -1,10 +1,11 @@
-@if (usuarioLogado && usuario) {
+@if (usuarioLogado() && usuario()) {
+  @let u = usuario()!;
   <div class="perfil-container">
-    @if (usuario.foto) {
-      <img [src]="usuario.foto" alt="Foto de perfil" class="foto-perfil" />
+    @if (u.foto) {
+      <img [src]="u.foto" alt="Foto de perfil" class="foto-perfil" />
     }
-    <p>Olá, <strong>{{ usuario.nome }}</strong>!</p>
-    <p class="email">{{ usuario.email }}</p>
+    <p>Olá, <strong>{{ u.nome }}</strong>!</p>
+    <p class="email">{{ u.email }}</p>
     <button (click)="logout()">Sair</button>
   </div>
 } @else {
@@ -13,7 +14,7 @@
     <button
       (click)="login()"
       class="button"
-      [disabled]="inicializando"
+      [disabled]="inicializando()"
     >
       Login com Microsoft
     </button>

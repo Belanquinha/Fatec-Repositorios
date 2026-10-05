@@ -44,13 +44,13 @@
     </header>
 
     <!-- Banner Contextual do Usuário Autenticado -->
-    @if (usuarioLogado) {
+    @if (usuarioLogado()) {
         <section class="banner-auth">
             <div class="banner-auth-content">
                 <div class="banner-auth-info">
                     <span class="material-symbols-outlined icon-auth">verified_user</span>
                     <div>
-                        <p class="banner-auth-title">Bem-vindo(a) de volta, {{ primeiroNome }}!</p>
+                        <p class="banner-auth-title">Bem-vindo(a) de volta, {{ primeiroNome() }}!</p>
                         <p class="banner-auth-desc">Submeta novas produções acadêmicas para validação do orientador.</p>
                     </div>
                 </div>
@@ -90,15 +90,15 @@
                         class="select-instituicao"
                         [(ngModel)]="instituicaoSelecionadaId"
                         (change)="aplicarFiltros()"
-                        [disabled]="erroCarregarInstituicoes"
+                        [disabled]="erroCarregarInstituicoes()"
                     >
                         <option value="">Todas as Unidades (Fatecs)</option>
-                        @for (inst of instituicoes; track inst.id) {
+                        @for (inst of instituicoes(); track inst.id) {
                             <option [value]="inst.nome">{{ inst.nome }} ({{ inst.cidade || 'SP' }})</option>
                         }
                     </select>
                 </div>
-                @if (erroCarregarInstituicoes) {
+                @if (erroCarregarInstituicoes()) {
                     <p class="nota-carregamento">
                         <span class="material-symbols-outlined icon-aviso">cloud_off</span>
                         Não foi possível carregar as unidades, então o filtro por FATEC está indisponível.
@@ -109,9 +109,9 @@
             <!-- Chips de Categorias Rápidas -->
             <div class="tags-filtro-row">
                 <span class="tags-filtro-label">Áreas &amp; Temas:</span>
-                @if (tagsDisponiveis.length > 1) {
+                @if (tagsDisponiveis().length > 1) {
                     <div class="tags-chips-list">
-                        @for (tag of tagsDisponiveis; track tag) {
+                        @for (tag of tagsDisponiveis(); track tag) {
                             <button
                                 type="button"
                                 class="chip-filtro"
@@ -134,9 +134,9 @@
 
             <!-- Contador de Resultados -->
             <div class="resultados-meta" aria-live="polite">
-                @if (!carregando) {
+                @if (!carregando()) {
                     <span class="meta-texto">
-                        Exibindo <strong>{{ projetosFiltrados.length }}</strong> {{ projetosFiltrados.length === 1 ? 'projeto encontrado' : 'projetos encontrados' }}
+                        Exibindo <strong>{{ projetosFiltrados().length }}</strong> {{ projetosFiltrados().length === 1 ? 'projeto encontrado' : 'projetos encontrados' }}
                         @if (temFiltrosAtivos) {
                             <span class="meta-filtro-aviso">(com filtros aplicados)</span>
                         }
@@ -148,7 +148,7 @@
         <!-- Grade de Projetos / Estados de Interface -->
         <div class="grade-projetos-container">
             <!-- Loading Skeletons -->
-            @if (carregando) {
+            @if (carregando()) {
                 <div class="grid-projetos">
                     @for (i of [1,2,3,4,5,6]; track i) {
                         <div class="skeleton-card">
@@ -166,12 +166,12 @@
             }
 
             <!-- Estado de Erro -->
-            @else if (erroCarregamento) {
+            @else if (erroCarregamento()) {
                 <div class="painel-alerta-erro">
                     <span class="material-symbols-outlined icon-erro">error</span>
                     <div class="painel-alerta-content">
                         <h3>Não foi possível carregar os projetos</h3>
-                        <p>{{ erroCarregamento }}</p>
+                        <p>{{ erroCarregamento() }}</p>
                     </div>
                     <button class="btn-tentar-novamente" (click)="carregarDados()">
                         <span class="material-symbols-outlined">refresh</span>
@@ -181,7 +181,7 @@
             }
 
             <!-- Estado Vazio (Sem resultados) -->
-            @else if (projetosFiltrados.length === 0) {
+            @else if (projetosFiltrados().length === 0) {
                 <div class="estado-vazio">
                     <div class="icon-vazio-wrapper">
                         <span class="material-symbols-outlined icon-vazio">search_off</span>
@@ -202,8 +202,10 @@
             <!-- Grade de Projetos com Sucesso -->
             @else {
                 <div class="grid-projetos">
-                    @for (proj of projetosFiltrados; track proj.id) {
-                        <app-card-projeto [projeto]="proj"></app-card-projeto>
+                    @for (proj of projetosFiltrados(); track proj.id) {
+                        <a [routerLink]="['/ver-projeto', proj.id]" class="card-link" [attr.aria-label]="'Ver detalhes de ' + proj.titulo">
+                            <app-card-projeto [projeto]="proj"></app-card-projeto>
+                        </a>
                     }
                 </div>
             }

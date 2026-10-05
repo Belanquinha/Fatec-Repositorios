@@ -21,7 +21,7 @@
     </div>
 
     <!-- Tela de Sucesso (Exibida pós-envio) -->
-    @if (enviadoComSucesso) {
+    @if (enviadoComSucesso()) {
       <div class="bg-white border border-solid border-verde-200 rounded-xl p-8 shadow-lg text-center max-w-2xl mx-auto my-12 animate-fade-in">
         <div class="w-16 h-16 bg-verde-50 text-verde-500 rounded-full flex items-center justify-center mx-auto mb-4">
           <span class="material-symbols-outlined text-4xl">mark_email_read</span>
@@ -126,13 +126,13 @@
           <form (ngSubmit)="enviarParaAvaliacao()" class="space-y-6">
 
             <!-- Banner de Alerta / Erro (Cor Laranja #D97706, Regra Semântica Sem Vermelho CPS) -->
-            @if (erroMensagem) {
+            @if (erroMensagem()) {
               <div class="bg-amber-50 border border-amber-500 text-amber-950 p-4 rounded-lg flex items-center justify-between gap-3 text-sm animate-fade-in shadow-sm">
                 <div class="flex items-center gap-2">
                   <span class="material-symbols-outlined text-amber-600 shrink-0">warning</span>
-                  <span class="font-medium">{{ erroMensagem }}</span>
+                  <span class="font-medium">{{ erroMensagem() }}</span>
                 </div>
-                <button type="button" (click)="erroMensagem = null" class="text-amber-800 hover:text-amber-950 p-1 cursor-pointer">
+                <button type="button" (click)="limparErro()" class="text-amber-800 hover:text-amber-950 p-1 cursor-pointer">
                   <span class="material-symbols-outlined text-sm">close</span>
                 </button>
               </div>
@@ -167,9 +167,9 @@
                            class="hidden" 
                            id="capaInput">
                     
-                    @if (capaPreview) {
+                    @if (capaPreview()) {
                       <div class="relative w-full max-h-80 rounded-lg overflow-hidden flex items-center justify-center bg-cinza-900">
-                        <img [src]="capaPreview" class="max-h-80 object-contain w-full">
+                        <img [src]="capaPreview()" class="max-h-80 object-contain w-full">
                         <button type="button" 
                                 (click)="removerCapa($event)"
                                 class="absolute top-3 right-3 bg-cinza-900/80 hover:bg-red-600 text-white p-2 rounded-full transition-colors flex items-center justify-center">
@@ -222,7 +222,7 @@
                     Instituição Responsável (FATEC) <span class="text-amarelo-600">*</span>
                   </label>
 
-                  @if (!instituicaoSelecionadaObjeto) {
+                  @if (!instituicaoSelecionadaObjeto()) {
                     <!-- Busca com autocomplete -->
                     <div class="relative">
                       <input #inputInstituicao
@@ -232,21 +232,21 @@
                              (ngModelChange)="onInstituicaoBusca($event)"
                              (focus)="abrirDropdownInstituicao()"
                              (blur)="ocultarDropdownInstituicaoComDelay()"
-                             (keydown)="onInstituicaoKeydown($event)"
-                             [disabled]="carregandoInstituicoes"
-                             [placeholder]="carregandoInstituicoes ? 'Carregando unidades FATEC...' : 'Busque pelo nome, cidade ou código da unidade'"
+                              (keydown)="onInstituicaoKeydown($event)"
+                              [disabled]="carregandoInstituicoes()"
+                              [placeholder]="carregandoInstituicoes() ? 'Carregando unidades FATEC...' : 'Busque pelo nome, cidade ou código da unidade'"
                              autocomplete="off"
                              role="combobox"
                              aria-autocomplete="list"
                              aria-label="Buscar unidade FATEC"
-                             [attr.aria-expanded]="mostrarDropdownInstituicao"
-                             aria-controls="lista-instituicoes"
-                             class="w-full px-4 py-3 pr-11 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm disabled:bg-cinza-50 disabled:text-cinza-400 cursor-pointer">
+                              [attr.aria-expanded]="mostrarDropdownInstituicao()"
+                              aria-controls="lista-instituicoes"
+                              class="w-full px-4 py-3 pr-11 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm disabled:bg-cinza-50 disabled:text-cinza-400 cursor-pointer">
                       <span class="absolute right-3 top-3.5 text-cinza-400 pointer-events-none material-symbols-outlined">search</span>
                     </div>
 
                     <!-- Painel de Sugestões -->
-                    @if (mostrarDropdownInstituicao && (instituicoesFiltradas.length > 0 || buscaInstituicao.trim())) {
+                    @if (mostrarDropdownInstituicao() && (instituicoesFiltradas.length > 0 || buscaInstituicao.trim())) {
                       <div class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-solid border-cinza-200 rounded-lg shadow-lg overflow-hidden">
                         @if (instituicoesFiltradas.length > 0) {
                           <ul id="lista-instituicoes"
@@ -296,7 +296,7 @@
                       </div>
                     }
 
-                    @if (erroCarregarInstituicoes) {
+                    @if (erroCarregarInstituicoes()) {
                       <p class="text-xs text-cinza-400 bg-cinza-50 p-2.5 rounded-md flex items-center gap-2 mt-1 border border-solid border-cinza-200">
                         <span class="material-symbols-outlined text-base">cloud_off</span>
                         Não foi possível carregar a lista de unidades FATEC. Verifique sua conexão e recarregue a página.
@@ -304,28 +304,29 @@
                     }
                   } @else {
                     <!-- Card da FATEC selecionada (Cantos Retos / Swiss Style) -->
+                    @let instSel = instituicaoSelecionadaObjeto()!;
                     <div class="border border-solid border-cinza-300 hover:border-amarelo-500 p-4 bg-white shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div class="flex items-center gap-4">
                         <div class="h-10 w-24 bg-cinza-50 flex items-center justify-center p-1 border border-cinza-200 shrink-0">
-                          <img [src]="getLogoUrl(instituicaoSelecionadaObjeto.codigoUnidade)"
+                          <img [src]="getLogoUrl(instSel.codigoUnidade)"
                                (error)="$event.target.style.display='none'"
-                               [alt]="'Logo ' + instituicaoSelecionadaObjeto.nome"
+                               [alt]="'Logo ' + instSel.nome"
                                class="max-h-8 max-w-full object-contain">
                         </div>
                         <div class="min-w-0">
                           <div class="flex items-center gap-2">
                             <h3 class="font-bold text-cinza-900 text-sm sm:text-base truncate">
-                              {{ instituicaoSelecionadaObjeto.nome }}
+                              {{ instSel.nome }}
                             </h3>
                             <span class="px-2 py-0.5 text-[11px] font-mono font-bold bg-cinza-100 border border-cinza-200 text-cinza-700 shrink-0">
-                              Cód. {{ instituicaoSelecionadaObjeto.codigoUnidade }}
+                              Cód. {{ instSel.codigoUnidade }}
                             </span>
                           </div>
                           <p class="text-xs text-cinza-400 mt-0.5 flex items-center gap-1">
                             <span class="material-symbols-outlined text-xs text-amarelo-600">location_on</span>
-                            <span>{{ instituicaoSelecionadaObjeto.cidade }} - {{ instituicaoSelecionadaObjeto.estado || 'SP' }}</span>
-                            @if (instituicaoSelecionadaObjeto.regiaoAdministrativa) {
-                              <span>• {{ instituicaoSelecionadaObjeto.regiaoAdministrativa }}</span>
+                            <span>{{ instSel.cidade }} - {{ instSel.estado || 'SP' }}</span>
+                            @if (instSel.regiaoAdministrativa) {
+                              <span>• {{ instSel.regiaoAdministrativa }}</span>
                             }
                           </p>
                         </div>
@@ -365,7 +366,7 @@
                   </div>
 
                   <!-- Dropdown de Sugestões -->
-                  @if (mostrarDropdownProfessor && professoresFiltrados.length > 0) {
+                  @if (mostrarDropdownProfessor() && professoresFiltrados.length > 0) {
                     <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-solid border-cinza-200 rounded-lg shadow-lg max-h-48 overflow-y-auto divide-y divide-cinza-50">
                       @for (prof of professoresFiltrados; track prof.email) {
                         <li (mousedown)="selecionarProfessor(prof)"
@@ -384,7 +385,7 @@
                     </p>
                   }
 
-                  @if (erroCarregarProfessores) {
+                  @if (erroCarregarProfessores()) {
                     <p class="text-xs text-cinza-400 bg-cinza-50 p-2.5 rounded-md flex items-center gap-2 mt-1 border border-solid border-cinza-200">
                       <span class="material-symbols-outlined text-base">cloud_off</span>
                       Não foi possível carregar a lista de professores, então o campo está sem sugestão automática. Digite o e-mail manualmente.
@@ -528,10 +529,10 @@
 
                 @if (secaoAtual === totalSecoes) {
                   <button type="submit" 
-                          [disabled]="enviando"
-                          [class.opacity-60]="enviando"
+                          [disabled]="enviando()"
+                          [class.opacity-60]="enviando()"
                           class="w-full sm:w-auto bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-sm px-7 py-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
-                    @if (enviando) {
+                    @if (enviando()) {
                       <span class="inline-block w-4 h-4 border-2 border-cinza-900 border-t-transparent rounded-full animate-spin"></span>
                       <span>Submetendo projeto...</span>
                     } @else {

@@ -87,8 +87,7 @@ describe('MicrosoftLoginButton', () => {
     liberar();
     await renderizar();
 
-    // A aplicação é zoneless: só o markForCheck() do .finally() faz o estado chegar à tela.
-    expect(fixture.componentInstance.inicializando).toBe(false);
+    expect(fixture.componentInstance.inicializando()).toBe(false);
     expect(botaoLogin().disabled).toBe(false);
   });
 
@@ -121,7 +120,7 @@ describe('MicrosoftLoginButton', () => {
       await renderizar();
 
       expect(authServiceDouble.limparSessaoLocal).toHaveBeenCalledTimes(1);
-      expect(fixture.componentInstance.usuarioLogado).toBe(false);
+      expect(fixture.componentInstance.usuarioLogado()).toBe(false);
       expect(erroSpy).toHaveBeenCalled();
     });
 

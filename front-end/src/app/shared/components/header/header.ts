@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, HostListener, ElementRef, ViewChild, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, HostListener, ElementRef, ViewChild, OnInit, OnDestroy, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MicrosoftLoginButton } from '../microsoft-login-button/microsoft-login-button';
@@ -14,14 +14,19 @@ import { Subscription } from 'rxjs';
   styleUrl: './header.css',
 })
 export class Header implements OnInit, OnDestroy {
-  private readonly cdr = inject(ChangeDetectorRef);
-
   estadoDoMenuAberto = false;
   isHovered = false;
-  logado = false;
-  isAdmin = false;
-  usuario: UsuarioLogado | null = null;
+  logado = signal(false);
+  isAdmin = signal(false);
+  usuario = signal<UsuarioLogado | null>(null);
   private routerSubscription!: Subscription;
+
+  primeiroNome = computed(() => {
+    const nome = this.usuario()?.nome;
+    if (!nome) return '';
+    const primeiro = nome.split(' ')[0];
+    return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
+  });
 
   @ViewChild('menuNav') menuNav!: ElementRef<HTMLElement>;
 
@@ -46,9 +51,6 @@ export class Header implements OnInit, OnDestroy {
    * O header é montado antes do `MicrosoftLoginButton` disparar `ngOnInit`, então consultar a
    * conta aqui exigiria acesso ao cache do MSAL antes de `initialize()`. Aguardar `quandoPronto()`
    * garante que a UI reflita o estado real da sessão.
-   *
-   * A aplicação é zoneless: sem `markForCheck()` a atribuição feita após o `await` nunca chega
-   * à tela, e o header ficaria travado em "deslogado".
    */
   private async iniciarSessao(): Promise<void> {
     try {
@@ -58,13 +60,12 @@ export class Header implements OnInit, OnDestroy {
       return;
     }
     await this.carregarUsuario();
-    this.cdr.markForCheck();
   }
 
   private async carregarUsuario(): Promise<void> {
-    this.usuario = await this.authService.obterUsuarioLogado();
-    this.logado = this.usuario !== null;
-    this.isAdmin = this.authService.isAdmin();
+    this.usuario.set(await this.authService.obterUsuarioLogado());
+    this.logado.set(this.usuario() !== null);
+    this.isAdmin.set(this.authService.isAdmin());
   }
 
   mudarMenu(): void {
@@ -81,12 +82,6 @@ export class Header implements OnInit, OnDestroy {
     this.authService.logout().catch((erro) => {
       console.error('Erro ao encerrar a sessão: ', erro);
     });
-  }
-
-  get primeiroNome(): string {
-    if (!this.usuario?.nome) return '';
-    const nome = this.usuario.nome.split(' ')[0];
-    return nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
   }
 
   fecharMenu(): void {

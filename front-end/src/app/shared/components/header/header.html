@@ -5,19 +5,19 @@
     </a>
 
     <div class="frame-links">
-        @if (!logado) {
+        @if (!logado()) {
             <a (click)="loginMicrosoft()" class="frame login-label">
                 <span class="material-symbols-outlined icon-header">school</span>
                 <span class="texto-login">Login institucional</span>
             </a>
         } @else {
-            @if (usuario?.foto) {
-                <img class="profile-photo" [src]="usuario!.foto" alt="Foto de perfil">
+            @if (usuario()?.foto) {
+                <img class="profile-photo" [src]="usuario()!.foto" alt="Foto de perfil">
             } @else {
                 <span class="material-symbols-outlined profile-icon">account_circle</span>
             }
             <button class="profile-btn" (click)="mudarMenu()">
-                <span class="profile-name">{{ primeiroNome }}</span>
+                <span class="profile-name">{{ primeiroNome() }}</span>
             </button>
         }
         <span class="material-symbols-outlined icon-header icon-menu" 
@@ -51,7 +51,7 @@
     </section>
     <hr>
 
-    <section [hidden]="logado == true">
+    <section [hidden]="logado() == true">
         <h2>Login</h2>
         <ul>
             <li>
@@ -60,20 +60,20 @@
         </ul>
     </section>
 
-    <section [hidden]="logado == false">
+    <section [hidden]="logado() == false">
         <h2>Perfil</h2>
         <ul>
             <li>
                 <a class="frame">
-                    @if (usuario?.foto) {
-                        <img class="imagem-perfil" [src]="usuario!.foto" alt="Foto de perfil">
+                    @if (usuario()?.foto) {
+                        <img class="imagem-perfil" [src]="usuario()!.foto" alt="Foto de perfil">
                     } @else {
                         <span class="material-symbols-outlined">account_circle</span>
                     }
-                    <span class="texto-link">{{ primeiroNome }}</span>
+                    <span class="texto-link">{{ primeiroNome() }}</span>
                 </a>
             </li>
-            @if (isAdmin) {
+            @if (isAdmin()) {
                 <li>
                     <a routerLink="/projeto-forms" class="frame" (click)="fecharMenu()">
                         <span class="material-symbols-outlined">admin_panel_settings</span>

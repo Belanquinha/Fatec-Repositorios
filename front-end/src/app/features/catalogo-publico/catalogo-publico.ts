@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -19,9 +19,9 @@ export class CatalogoPublico implements OnInit {
   private projetoService = inject(ProjetoService);
   private authService = inject(AuthService);
 
-  todosProjetos: ProjetoResponseModel[] = [];
-  projetosFiltrados: ProjetoResponseModel[] = [];
-  instituicoes: InstituicaoOption[] = [];
+  todosProjetos = signal<ProjetoResponseModel[]>([]);
+  projetosFiltrados = signal<ProjetoResponseModel[]>([]);
+  instituicoes = signal<InstituicaoOption[]>([]);
 
   termoBusca: string = '';
   instituicaoSelecionadaId: string = '';
@@ -32,12 +32,19 @@ export class CatalogoPublico implements OnInit {
    * fixa: qualquer tag que exista nos dados fica filtrável e nada é oferecido
    * que não exista no acervo.
    */
-  tagsDisponiveis: string[] = ['Todas'];
+  tagsDisponiveis = signal<string[]>(['Todas']);
 
-  carregando: boolean = true;
-  erroCarregamento: string | null = null;
-  erroCarregarInstituicoes = false;
-  usuarioLogado: UsuarioLogado | null = null;
+  carregando = signal<boolean>(true);
+  erroCarregamento = signal<string | null>(null);
+  erroCarregarInstituicoes = signal(false);
+  usuarioLogado = signal<UsuarioLogado | null>(null);
+
+  primeiroNome = computed(() => {
+    const nome = this.usuarioLogado()?.nome;
+    if (!nome) return '';
+    const primeiro = nome.split(' ')[0];
+    return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
+  });
 
   ngOnInit(): void {
     this.carregarDados();
@@ -45,58 +52,60 @@ export class CatalogoPublico implements OnInit {
   }
 
   async verificarUsuarioLogado(): Promise<void> {
-    this.usuarioLogado = await this.authService.obterUsuarioLogado();
+    this.usuarioLogado.set(await this.authService.obterUsuarioLogado());
   }
 
   carregarDados(): void {
-    this.carregando = true;
-    this.erroCarregamento = null;
+    this.carregando.set(true);
+    this.erroCarregamento.set(null);
 
     this.projetoService.listarInstituicoes().subscribe({
       next: (insts) => {
-        this.instituicoes = insts.filter((i) => i.ativo);
-        this.erroCarregarInstituicoes = false;
+        this.instituicoes.set(insts.filter((i) => i.ativo));
+        this.erroCarregarInstituicoes.set(false);
       },
       error: (err) => {
         // O filtro por instituição é acessório: um erro aqui não deve derrubar
         // o catálogo, mas também não pode ser escondido atrás de dados falsos.
-        this.instituicoes = [];
-        this.erroCarregarInstituicoes = true;
+        this.instituicoes.set([]);
+        this.erroCarregarInstituicoes.set(true);
         console.error('Erro ao carregar instituições:', err);
       }
     });
 
     this.projetoService.listarProjetosPublicos().subscribe({
       next: (projetos) => {
-        this.todosProjetos = projetos;
+        this.todosProjetos.set(projetos);
         this.atualizarTagsDisponiveis();
         this.aplicarFiltros();
-        this.carregando = false;
+        this.carregando.set(false);
       },
       error: (err) => {
         console.error('Erro ao carregar projetos:', err);
-        this.erroCarregamento =
-          'Não foi possível carregar o catálogo de projetos no momento. Verifique sua conexão e tente novamente.';
-        this.carregando = false;
+        this.erroCarregamento.set(
+          'Não foi possível carregar o catálogo de projetos no momento. Verifique sua conexão e tente novamente.');
+        this.carregando.set(false);
       }
     });
   }
 
   private atualizarTagsDisponiveis(): void {
     const tags = new Set<string>();
-    this.todosProjetos.forEach((proj) => proj.palavrasChave?.forEach((t) => tags.add(t)));
-    this.tagsDisponiveis = ['Todas', ...Array.from(tags).sort((a, b) => a.localeCompare(b, 'pt-BR'))];
+    this.todosProjetos().forEach((proj) => proj.palavrasChave?.forEach((t) => tags.add(t)));
+    const lista = ['Todas', ...Array.from(tags).sort((a, b) => a.localeCompare(b, 'pt-BR'))];
+    this.tagsDisponiveis.set(lista);
 
     // A tag selecionada pode não existir mais após recarregar
-    if (!this.tagsDisponiveis.includes(this.tagSelecionada)) {
+    if (!lista.includes(this.tagSelecionada)) {
       this.tagSelecionada = 'Todas';
     }
   }
 
   aplicarFiltros(): void {
     const termo = this.termoBusca.trim().toLowerCase();
+    const todos = this.todosProjetos();
 
-    this.projetosFiltrados = this.todosProjetos.filter((proj) => {
+    this.projetosFiltrados.set(todos.filter((proj) => {
       const bateTermo =
         !termo ||
         proj.titulo.toLowerCase().includes(termo) ||
@@ -117,7 +126,7 @@ export class CatalogoPublico implements OnInit {
           ));
 
       return bateTermo && bateInstituicao && bateTag;
-    });
+    }));
   }
 
   selecionarTag(tag: string): void {
@@ -138,11 +147,5 @@ export class CatalogoPublico implements OnInit {
       this.instituicaoSelecionadaId !== '' ||
       this.tagSelecionada !== 'Todas'
     );
-  }
-
-  get primeiroNome(): string {
-    if (!this.usuarioLogado?.nome) return '';
-    const nome = this.usuarioLogado.nome.split(' ')[0];
-    return nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
   }
 }

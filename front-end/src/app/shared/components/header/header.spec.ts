@@ -86,7 +86,7 @@ describe('Header', () => {
 
     expect(authServiceDouble.quandoPronto).toHaveBeenCalledTimes(1);
     expect(authServiceDouble.obterUsuarioLogado).not.toHaveBeenCalled();
-    expect(component.logado).toBe(false);
+    expect(component.logado()).toBe(false);
 
     liberar();
     await renderizar();
@@ -103,15 +103,15 @@ describe('Header', () => {
 
     criarHeader();
 
-    expect(component.logado).toBe(false);
-    expect(component.usuario).toBeNull();
+    expect(component.logado()).toBe(false);
+    expect(component.usuario()).toBeNull();
 
     liberar();
     await renderizar();
 
-    expect(component.logado).toBe(true);
-    expect(component.usuario?.email).toBe('aluno@aluno.cps.sp.gov.br');
-    expect(component.primeiroNome).toBe('Aluno');
+    expect(component.logado()).toBe(true);
+    expect(component.usuario()?.email).toBe('aluno@aluno.cps.sp.gov.br');
+    expect(component.primeiroNome()).toBe('Aluno');
   });
 
   it('deve trocar o link de login pelo perfil na tela após a inicialização', async () => {
@@ -141,8 +141,8 @@ describe('Header', () => {
     criarHeader();
     await renderizar();
 
-    expect(component.logado).toBe(false);
-    expect(component.usuario).toBeNull();
+    expect(component.logado()).toBe(false);
+    expect(component.usuario()).toBeNull();
     expect(erroSpy).toHaveBeenCalled();
   });
 });

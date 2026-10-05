@@ -1,0 +1,261 @@
+<div class="ver-projeto-container">
+  <!-- Breadcrumb / Voltar -->
+  <nav class="breadcrumb" aria-label="Navegação">
+    <a routerLink="/catalogo-publico" class="link-voltar">
+      <span class="material-symbols-outlined">arrow_back</span>
+      <span>Voltar ao catálogo</span>
+    </a>
+  </nav>
+
+  <!-- Estado: Loading -->
+  @if (carregando()) {
+    <div class="skeleton-detalhe" aria-busy="true" aria-label="Carregando projeto">
+      <div class="skeleton-capa"></div>
+      <div class="skeleton-corpo">
+        <div class="skeleton-line skeleton-titulo"></div>
+        <div class="skeleton-line skeleton-sub"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line skeleton-curta"></div>
+        <div class="skeleton-line skeleton-meta"></div>
+      </div>
+    </div>
+  } @else if (projetoNaoEncontrado()) {
+    <!-- Estado: Não encontrado -->
+    <div class="estado-vazio">
+      <div class="icon-vazio-wrapper">
+        <span class="material-symbols-outlined icon-vazio">search_off</span>
+      </div>
+      <h2 class="vazio-titulo">Projeto não encontrado</h2>
+      <p class="vazio-mensagem">
+        O projeto que você tentou abrir não existe ou foi removido do catálogo.
+      </p>
+      <a routerLink="/catalogo-publico" class="btn-primario">
+        <span class="material-symbols-outlined">grid_view</span>
+        <span>Explorar acervo</span>
+      </a>
+    </div>
+  } @else if (erroCarregamento()) {
+    <!-- Estado: Erro (laranja neutro #D97706 — vermelho CPS proibido) -->
+    <div class="painel-alerta-erro" role="alert">
+      <span class="material-symbols-outlined icon-erro">error</span>
+      <div class="painel-alerta-content">
+        <h3>Não foi possível carregar o projeto</h3>
+        <p>{{ erroCarregamento() }}</p>
+      </div>
+      <button type="button" class="btn-tentar-novamente" (click)="tentarNovamente()">
+        <span class="material-symbols-outlined">refresh</span>
+        <span>Tentar novamente</span>
+      </button>
+    </div>
+  } @else if (projeto()) {
+    <!-- Estado: Sucesso -->
+    @let p = projeto()!;
+    <article class="detalhe-grid">
+      <!-- Coluna principal -->
+      <div class="coluna-principal">
+        @if (capaUrl()) {
+          <div class="frame-capa">
+            <img [src]="capaUrl()" [alt]="p.titulo" class="imagem-capa" (error)="onCapaError()" />
+          </div>
+        }
+
+        <div class="bloco-titulo">
+          @if (p.estado) {
+            <span
+              class="badge-estado"
+              [class.badge-aprovado]="p.estado === 'APROVADO'"
+              [class.badge-aguardando]="p.estado === 'AGUARDANDO_APROVACAO'"
+              [class.badge-rejeitado]="p.estado === 'REJEITADO'"
+            >
+              @if (p.estado === 'APROVADO') {
+                <span class="material-symbols-outlined badge-icone">verified</span>
+                <span>Aprovado</span>
+              } @else if (p.estado === 'REJEITADO') {
+                <span class="material-symbols-outlined badge-icone">cancel</span>
+                <span>Rejeitado</span>
+              } @else {
+                <span class="material-symbols-outlined badge-icone">hourglass_top</span>
+                <span>Aguardando aprovação</span>
+              }
+            </span>
+          }
+          <h1 class="titulo">{{ p.titulo || 'Projeto sem título' }}</h1>
+          @if (p.descricaoCurta) {
+            <p class="descricao-curta">{{ p.descricaoCurta }}</p>
+          }
+          <div class="meta-linha">
+            @if (p.instituicaoNome) {
+              <span class="meta-item">
+                <span class="material-symbols-outlined meta-icone">school</span>
+                <span>{{ p.instituicaoNome }}</span>
+              </span>
+            }
+            @if (p.anoPublicado) {
+              <span class="meta-item">
+                <span class="material-symbols-outlined meta-icone">calendar_month</span>
+                <span>{{ p.anoPublicado }}</span>
+              </span>
+            }
+            @if (p.autorNome) {
+              <span class="meta-item">
+                <span class="material-symbols-outlined meta-icone">person</span>
+                <span>{{ p.autorNome }}</span>
+              </span>
+            }
+          </div>
+          @if (tags().length > 0) {
+            <div class="tags-container">
+              @for (tag of tags(); track tag) {
+                <span class="tag-chip">{{ tag }}</span>
+              }
+            </div>
+          }
+        </div>
+
+        @if (mostraMotivoRejeicao()) {
+          <div class="painel-rejeicao" role="note">
+            <span class="material-symbols-outlined icon-rejeicao">info</span>
+            <div>
+              <strong>Motivo da rejeição</strong>
+              <p>{{ motivoRejeicao() }}</p>
+            </div>
+          </div>
+        }
+
+        <!-- Conteúdo rico do Editor.js -->
+        <section class="bloco-conteudo" aria-label="Conteúdo do projeto">
+          <h2 class="secao-titulo">Sobre o projeto</h2>
+          @if (blocos().length > 0) {
+            <div class="editorjs-render">
+              @for (bloco of blocos(); track $index) {
+                @if (bloco.type === 'header') {
+                  @if (bloco.data?.level === 2) {
+                    <h2 class="ej-h2" [innerHTML]="bloco.data?.text"></h2>
+                  } @else if (bloco.data?.level === 4) {
+                    <h4 class="ej-h4" [innerHTML]="bloco.data?.text"></h4>
+                  } @else {
+                    <h3 class="ej-h3" [innerHTML]="bloco.data?.text"></h3>
+                  }
+                } @else if (bloco.type === 'paragraph') {
+                  <p class="ej-paragraph" [innerHTML]="bloco.data?.text"></p>
+                } @else if (bloco.type === 'list') {
+                  @if (listaOrdenada(bloco)) {
+                    <ol class="ej-list">
+                      @for (item of itensLista(bloco); track $index) {
+                        <li [innerHTML]="item"></li>
+                      }
+                    </ol>
+                  } @else {
+                    <ul class="ej-list">
+                      @for (item of itensLista(bloco); track $index) {
+                        <li [innerHTML]="item"></li>
+                      }
+                    </ul>
+                  }
+                } @else if (bloco.type === 'code') {
+                  <pre class="ej-code"><code>{{ bloco.data?.code }}</code></pre>
+                } @else if (bloco.type === 'quote') {
+                  <blockquote class="ej-quote">
+                    <p [innerHTML]="bloco.data?.text"></p>
+                    @if (bloco.data?.caption) {
+                      <cite [innerHTML]="bloco.data?.caption"></cite>
+                    }
+                  </blockquote>
+                } @else if (bloco.type === 'image') {
+                  @if (urlImagemBloco(bloco)) {
+                    <figure class="ej-image">
+                      <img [src]="urlImagemBloco(bloco)" [alt]="legendaImagemBloco(bloco) || 'Imagem do projeto'" loading="lazy" />
+                      @if (legendaImagemBloco(bloco)) {
+                        <figcaption [innerHTML]="legendaImagemBloco(bloco)"></figcaption>
+                      }
+                    </figure>
+                  }
+                } @else if (bloco.type === 'delimiter') {
+                  <hr class="ej-delimiter" />
+                } @else if (bloco.data?.text) {
+                  <p class="ej-paragraph" [innerHTML]="bloco.data?.text"></p>
+                }
+              }
+            </div>
+          } @else if (conteudoTextoPuro()) {
+            <p class="ej-paragraph">{{ conteudoTextoPuro() }}</p>
+          } @else {
+            <p class="conteudo-vazio">Este projeto ainda não possui conteúdo detalhado.</p>
+          }
+        </section>
+      </div>
+
+      <!-- Coluna lateral -->
+      <aside class="coluna-lateral">
+        <div class="card-lateral">
+          <h2 class="secao-titulo">Detalhes</h2>
+          <dl class="lista-detalhes">
+            @if (p.instituicaoNome) {
+              <div class="detalhe-item">
+                <dt>Instituição</dt>
+                <dd>{{ p.instituicaoNome }}</dd>
+              </div>
+            }
+            @if (p.anoPublicado) {
+              <div class="detalhe-item">
+                <dt>Ano</dt>
+                <dd>{{ p.anoPublicado }}</dd>
+              </div>
+            }
+            @if (p.autorNome) {
+              <div class="detalhe-item">
+                <dt>Autor</dt>
+                <dd>{{ p.autorNome }}</dd>
+              </div>
+            }
+            @if (p.emailProfessorResponsavel) {
+              <div class="detalhe-item">
+                <dt>Professor responsável</dt>
+                <dd class="quebra-email">{{ p.emailProfessorResponsavel }}</dd>
+              </div>
+            }
+            @if (p.criadoEm) {
+              <div class="detalhe-item">
+                <dt>Publicado em</dt>
+                <dd>{{ dataFormatada(p.criadoEm) }}</dd>
+              </div>
+            }
+          </dl>
+          @if (temRepositorio()) {
+            <a [href]="p.linkRepositorio" target="_blank" rel="noopener" class="link-repositorio">
+              <span class="material-symbols-outlined">code</span>
+              <span>Ver repositório</span>
+              <span class="material-symbols-outlined icone-externo">open_in_new</span>
+            </a>
+          }
+        </div>
+
+        <div class="card-lateral">
+          <h2 class="secao-titulo">Integrantes ({{ p.integrantes.length || 0 }})</h2>
+          @if ((p.integrantes.length || 0) > 0) {
+            <ul class="lista-integrantes">
+              @for (membro of p.integrantes; track membro.id || membro.nome) {
+                <li class="integrante-item">
+                  <span class="integrante-avatar" aria-hidden="true">
+                    {{ (membro.nome || '?').charAt(0).toUpperCase() }}
+                  </span>
+                  <div class="integrante-info">
+                    <strong>{{ membro.nome }}</strong>
+                    @if (membro.linkLinkedin) {
+                      <a [href]="membro.linkLinkedin" target="_blank" rel="noopener" class="link-linkedin">
+                        <span class="material-symbols-outlined icone-linkedin">business_center</span>
+                        <span>LinkedIn</span>
+                      </a>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="conteudo-vazio">Nenhum integrante informado.</p>
+          }
+        </div>
+      </aside>
+    </article>
+  }
+</div>

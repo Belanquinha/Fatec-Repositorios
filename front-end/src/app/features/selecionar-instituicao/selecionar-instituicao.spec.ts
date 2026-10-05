@@ -52,28 +52,28 @@ describe('SelecionarInstituicao', () => {
   });
 
   it('deve carregar e listar as instituições', () => {
-    expect(component.instituicoes.length).toBe(2);
-    expect(component.instituicoesFiltradas.length).toBe(2);
+    expect(component.instituicoes().length).toBe(2);
+    expect(component.instituicoesFiltradas().length).toBe(2);
   });
 
   it('deve filtrar instituições por termo de busca', () => {
     component.termoBusca = 'Americana';
     component.aplicarFiltros();
-    expect(component.instituicoesFiltradas.length).toBe(1);
-    expect(component.instituicoesFiltradas[0].codigoUnidade).toBe('004');
+    expect(component.instituicoesFiltradas().length).toBe(1);
+    expect(component.instituicoesFiltradas()[0].codigoUnidade).toBe('004');
   });
 
   it('deve filtrar instituições por código', () => {
     component.termoBusca = '291';
     component.aplicarFiltros();
-    expect(component.instituicoesFiltradas.length).toBe(1);
-    expect(component.instituicoesFiltradas[0].nome).toBe('Fatec Adamantina');
+    expect(component.instituicoesFiltradas().length).toBe(1);
+    expect(component.instituicoesFiltradas()[0].nome).toBe('Fatec Adamantina');
   });
 
   it('deve filtrar instituições por região administrativa', () => {
     component.selecionarRegiao('Campinas');
-    expect(component.instituicoesFiltradas.length).toBe(1);
-    expect(component.instituicoesFiltradas[0].nome).toContain('Americana');
+    expect(component.instituicoesFiltradas().length).toBe(1);
+    expect(component.instituicoesFiltradas()[0].nome).toContain('Americana');
   });
 
   it('deve separar o nome e o patrono corretamente', () => {

@@ -690,3 +690,17 @@
 .btn-primary-vazio:hover {
     background-color: var(--amarelo-600);
 }
+
+/* Link que envolve o card — clique abre o detalhe (ver-projeto/:id) */
+.card-link {
+    display: block;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 0 !important;
+}
+
+.card-link:focus-visible {
+    outline: 3px solid var(--amarelo-500);
+    outline-offset: 2px;
+}

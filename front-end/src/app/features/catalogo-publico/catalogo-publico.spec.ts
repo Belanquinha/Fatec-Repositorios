@@ -65,28 +65,28 @@ describe('CatalogoPublico', () => {
   });
 
   it('should load projects on init', () => {
-    expect(component.todosProjetos.length).toBe(1);
-    expect(component.projetosFiltrados.length).toBe(1);
-    expect(component.carregando).toBe(false);
+    expect(component.todosProjetos().length).toBe(1);
+    expect(component.projetosFiltrados().length).toBe(1);
+    expect(component.carregando()).toBe(false);
   });
 
   it('should filter projects by search term', () => {
     component.termoBusca = 'Teste';
     component.aplicarFiltros();
-    expect(component.projetosFiltrados.length).toBe(1);
+    expect(component.projetosFiltrados().length).toBe(1);
 
     component.termoBusca = 'Inexistente';
     component.aplicarFiltros();
-    expect(component.projetosFiltrados.length).toBe(0);
+    expect(component.projetosFiltrados().length).toBe(0);
   });
 
   it('should reset filters when limparFiltros is called', () => {
     component.termoBusca = 'Inexistente';
     component.aplicarFiltros();
-    expect(component.projetosFiltrados.length).toBe(0);
+    expect(component.projetosFiltrados().length).toBe(0);
 
     component.limparFiltros();
     expect(component.termoBusca).toBe('');
-    expect(component.projetosFiltrados.length).toBe(1);
+    expect(component.projetosFiltrados().length).toBe(1);
   });
 });

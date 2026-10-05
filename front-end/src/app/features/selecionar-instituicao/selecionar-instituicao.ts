@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -21,14 +21,14 @@ export class SelecionarInstituicao implements OnInit {
   @Output() instituicaoSelecionada = new EventEmitter<InstituicaoOption>();
   @Output() fecharModal = new EventEmitter<void>();
 
-  instituicoes: InstituicaoOption[] = [];
-  instituicoesFiltradas: InstituicaoOption[] = [];
-  regioesDisponiveis: string[] = [];
+  instituicoes = signal<InstituicaoOption[]>([]);
+  instituicoesFiltradas = signal<InstituicaoOption[]>([]);
+  regioesDisponiveis = signal<string[]>([]);
 
   termoBusca = '';
   regiaoSelecionada = 'Todas';
-  carregando = true;
-  erroCarregamento: string | null = null;
+  carregando = signal(true);
+  erroCarregamento = signal<string | null>(null);
 
   // Rastreia falhas no carregamento de logos para exibir fallback gracioso
   logosComErro: Set<string> = new Set();
@@ -38,38 +38,38 @@ export class SelecionarInstituicao implements OnInit {
   }
 
   carregarInstituicoes() {
-    this.carregando = true;
-    this.erroCarregamento = null;
+    this.carregando.set(true);
+    this.erroCarregamento.set(null);
 
     this.projetoService.listarInstituicoes().subscribe({
       next: (dados) => {
-        this.instituicoes = (dados || []).filter((i) => i.ativo);
+        this.instituicoes.set((dados || []).filter((i) => i.ativo));
         this.extrairRegioes();
         this.aplicarFiltros();
-        this.carregando = false;
+        this.carregando.set(false);
       },
       error: (err) => {
         console.error('Erro ao carregar instituições:', err);
-        this.erroCarregamento = 'Não foi possível carregar a lista de instituições. Verifique sua conexão.';
-        this.carregando = false;
+        this.erroCarregamento.set('Não foi possível carregar a lista de instituições. Verifique sua conexão.');
+        this.carregando.set(false);
       },
     });
   }
 
   private extrairRegioes() {
     const regioesSet = new Set<string>();
-    this.instituicoes.forEach((inst) => {
+    this.instituicoes().forEach((inst) => {
       if (inst.regiaoAdministrativa && inst.regiaoAdministrativa.trim()) {
         regioesSet.add(inst.regiaoAdministrativa.trim());
       }
     });
-    this.regioesDisponiveis = ['Todas', ...Array.from(regioesSet).sort()];
+    this.regioesDisponiveis.set(['Todas', ...Array.from(regioesSet).sort()]);
   }
 
   aplicarFiltros() {
     const termoNormalizado = this.normalizarTexto(this.termoBusca);
 
-    this.instituicoesFiltradas = this.instituicoes.filter((inst) => {
+    this.instituicoesFiltradas.set(this.instituicoes().filter((inst) => {
       // Filtro de região
       if (this.regiaoSelecionada !== 'Todas' && inst.regiaoAdministrativa !== this.regiaoSelecionada) {
         return false;
@@ -89,7 +89,7 @@ export class SelecionarInstituicao implements OnInit {
         codigoNorm.includes(termoNormalizado) ||
         enderecoNorm.includes(termoNormalizado)
       );
-    });
+    }));
   }
 
   selecionarRegiao(regiao: string) {
