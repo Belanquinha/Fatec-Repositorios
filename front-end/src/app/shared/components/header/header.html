@@ -64,7 +64,7 @@
         <h2>Perfil</h2>
         <ul>
             <li>
-                <a class="frame">
+                <a routerLink="/perfil" class="frame" (click)="fecharMenu()">
                     @if (usuario()?.foto) {
                         <img class="imagem-perfil" [src]="usuario()!.foto" alt="Foto de perfil">
                     } @else {

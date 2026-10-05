@@ -3,6 +3,8 @@ import { CatalogoPublico } from './features/catalogo-publico/catalogo-publico';
 import { UploadProjeto } from './features/upload-projeto/upload-projeto';
 import { SelecionarInstituicao } from './features/selecionar-instituicao/selecionar-instituicao';
 import { VerProjeto } from './features/ver-projeto/ver-projeto';
+import { Perfil } from './features/perfil/perfil';
+import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
     { path: '', component: CatalogoPublico, pathMatch: 'full' },
@@ -10,5 +12,6 @@ export const routes: Routes = [
     { path: 'ver-projeto/:id', component: VerProjeto },
     { path: 'ver-projeto', redirectTo: 'catalogo-publico', pathMatch: 'full' },
     { path: 'projeto-forms', component: UploadProjeto },
+    { path: 'perfil', component: Perfil, canActivate: [authGuard] },
     { path: '**', redirectTo: '' },
 ];

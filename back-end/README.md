@@ -55,3 +55,32 @@ TEST_DB_PASSWORD="$POSTGRES_PASSWORD" ./mvnw test
 `AutorizacaoPorPapelE2ETest` cobre a matriz papel × método, `AutenticacaoSessaoE2ETest` cobre a
 sessão, e `PoliticaDeAcessoE2ETest` garante que uma rota nova, esquecida em `SecurityConfig`,
 exija sessão em vez de nascer pública.
+
+## Sessão local sem Microsoft (contas de teste semeadas)
+
+O banco de desenvolvimento sempre contém duas contas de teste (semeadas em `data.sql` e
+`init/01-create-admin.sql`, como o admin e o catálogo):
+
+| Conta | E-mail | Papel |
+| :--- | :--- | :--- |
+| Aluno Teste | `aluno.teste@aluno.cps.sp.gov.br` | `ALUNO` |
+| Professor Teste | `professor.teste@cps.sp.gov.br` | `PROFESSOR` |
+
+O projeto de exemplo (`seeds/projetos.json`) pertence ao Aluno Teste, e o Professor Teste é o
+orientador responsável por ele — assim o aluno já tem 1 projeto em "Meus Projetos".
+
+Para navegar como uma dessas contas sem passar pelo MSAL (útil para testar fluxos de professor,
+para os quais pode não haver conta real), gere uma sessão local:
+
+```bash
+# stack no ar, na raiz do repositório
+docker compose up -d --build
+python3 scripts/gerar-sessao.py aluno      # ou: professor
+```
+
+O script minta um JWT com as mesmas claims do `JwtTokenProvider` (assinado com o `JWT_SECRET`
+do `.env`, válido por `JWT_EXPIRATION_HOURS`) e imprime um snippet para colar no console do
+navegador (DevTools). A autenticação do back-end resolve a identidade pelo e-mail do token e
+carrega papel e id do banco, então a sessão equivale a um login real — sem rota nova, sem
+variável de ambiente e sem flag de build. Só existem os alvos `aluno` e `professor`: o script
+não emite token de admin nem de e-mail arbitrário.

@@ -72,7 +72,7 @@ class ProjetoSeedLoaderTest {
         assertThat(goldenMaker).isNotNull();
         assertThat(goldenMaker.getDescricaoCurta().length()).isLessThanOrEqualTo(144);
         assertThat(goldenMaker.getAnoPublicado()).isEqualTo(2025);
-        assertThat(goldenMaker.getAutorEmail()).isEqualTo("gabriel@aluno.cps.sp.gov.br");
+        assertThat(goldenMaker.getAutorEmail()).isEqualTo("aluno.teste@aluno.cps.sp.gov.br");
         assertThat(goldenMaker.getCodigoUnidadeInstituicao()).isEqualTo("003");
         assertThat(goldenMaker.getIntegrantes()).hasSize(5);
         assertThat(goldenMaker.getIntegrantes())
@@ -95,10 +95,10 @@ class ProjetoSeedLoaderTest {
 
         User autor = new User();
         autor.setId(UUID.randomUUID());
-        autor.setEmail("gabriel@aluno.cps.sp.gov.br");
-        autor.setNome("Gabriel");
+        autor.setEmail("aluno.teste@aluno.cps.sp.gov.br");
+        autor.setNome("Aluno Teste");
         autor.setRole(UserRole.ALUNO);
-        when(userRepository.findByEmail("gabriel@aluno.cps.sp.gov.br")).thenReturn(Optional.of(autor));
+        when(userRepository.findByEmail("aluno.teste@aluno.cps.sp.gov.br")).thenReturn(Optional.of(autor));
 
         int inseridos = loader.carregar(stream, "upsert");
 

@@ -1,0 +1,68 @@
+<div class="perfil-container">
+  @if (carregando()) {
+    <section class="perfil-card" aria-busy="true" aria-label="Carregando perfil">
+      <div class="skeleton-linha skeleton-avatar"></div>
+      <div class="skeleton-linha skeleton-nome"></div>
+      <div class="skeleton-linha skeleton-email"></div>
+    </section>
+  } @else if (usuario()) {
+    @let u = usuario()!;
+    <!-- Bloco de identidade: dados somente leitura vindos da sessão (MSAL via back-end) -->
+    <section class="perfil-card">
+      <div class="identidade">
+        @if (u.foto) {
+          <img [src]="u.foto" alt="Foto de perfil" class="avatar" />
+        } @else {
+          <span class="avatar avatar-inicial" aria-hidden="true">{{ inicial() }}</span>
+        }
+        <div class="identidade-texto">
+          <h1 class="perfil-nome">{{ u.nome }}</h1>
+          <p class="perfil-email">{{ u.email }}</p>
+          <span class="badge-papel" [class.badge-aluno]="isAluno()" [class.badge-professor]="isProfessor()">
+            {{ rotuloPapel() }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    @if (erroContexto()) {
+      <p class="alerta-contexto" role="alert">
+        <span class="material-symbols-outlined">info</span>
+        <span>{{ erroContexto() }}</span>
+      </p>
+    }
+
+    <!-- Contexto do papel: aluno acompanha os próprios projetos -->
+    @if (isAluno()) {
+      <section class="perfil-card">
+        <h2 class="secao-titulo">Meus projetos</h2>
+        @if (totalProjetos() !== null) {
+          <p class="contador">
+            Você publicou <strong>{{ totalProjetos() }}</strong>
+            {{ totalProjetos() === 1 ? 'projeto' : 'projetos' }}.
+          </p>
+        }
+        <a routerLink="/projeto-forms" class="btn-primario">
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>Novo Projeto</span>
+        </a>
+      </section>
+    }
+
+    <!-- Contexto do papel: professor e suas instituições (DESIGN 4.6) -->
+    @if (isProfessor()) {
+      <section class="perfil-card">
+        <h2 class="secao-titulo">Minhas instituições</h2>
+        <div class="estado-vazio">
+          <span class="material-symbols-outlined icon-vazio">domain</span>
+          <p class="vazio-mensagem">Você ainda não vinculou instituições.</p>
+          <p class="vazio-nota">Você pode alterar a qualquer momento (0 a 4).</p>
+          <!-- TODO(DESIGN 4.4.1): quando as rotas `area-professor` (seleção) e
+               `area-professor/fila` existirem, este CTA navega para a seleção e
+               um link secundário para a Fila de Aprovação. Sem essas rotas, um
+               botão aqui cairia no redirect `**` do roteador. -->
+        </div>
+      </section>
+    }
+  }
+</div>

@@ -16,10 +16,10 @@
     ],
     "anoPublicado": 2025,
     "estado": "APROVADO",
-    "emailProfessorResponsavel": "orientador.tcc@cps.sp.gov.br",
+    "emailProfessorResponsavel": "professor.teste@cps.sp.gov.br",
     "codigoUnidadeInstituicao": "003",
-    "autorEmail": "gabriel.oliveira58@aluno.cps.sp.gov.br",
-    "autorNome": "Gabriel P Oliveira",
+    "autorEmail": "aluno.teste@aluno.cps.sp.gov.br",
+    "autorNome": "Aluno Teste da Silva Santos",
     "integrantes": [
       {
         "nome": "Adryelle",
@@ -35,10 +35,6 @@
       },
       {
         "nome": "Shania",
-        "linkLinkedin": "https://uk.linkedin.com/in/adrll-banks-2163821b6"
-      },
-      {
-        "nome": "Thiago",
         "linkLinkedin": "https://uk.linkedin.com/in/adrll-banks-2163821b6"
       }
     ]
