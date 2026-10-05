@@ -144,6 +144,38 @@ class AutenticacaoSessaoE2ETest extends ApiE2ETestSupport {
     }
 
     @Nested
+    @DisplayName("Não existe autenticação alternativa ao Microsoft")
+    class SemLoginAlternativo {
+
+        /**
+         * Houve um {@code POST /auth/dev-login} que emitia sessão válida para qualquer e-mail
+         * digitado, inclusive a conta de admin. Ele foi removido, e este teste existe para que
+         * reintroduzi-lo quebre o build em vez de passar despercebido: a proteção dependia de
+         * configuração de ambiente, não de código, e /auth/** é público.
+         */
+        @Test
+        @DisplayName("POST /auth/dev-login responde 404 — não emite sessão sem Microsoft")
+        void loginDevNaoExiste() {
+            ResponseEntity<String> response = post("/auth/dev-login",
+                Map.of("email", "admin@cps.sp.gov.br"), null);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(404);
+            assertThat(response.getBody()).doesNotContain("accessToken");
+        }
+
+        @Test
+        @DisplayName("GET /auth/dev-login/contas responde 401 — não é rota pública")
+        void listagemDeContasDevNaoExiste() {
+            // 401, e não 404 de propósito: só POST /auth/** é público (o login Microsoft), então
+            // um GET sob /auth cai no anyRequest() e o filtro nega antes de o DispatcherServlet
+            // descobrir que a rota não existe. A resposta também não revela a existência da rota.
+            ResponseEntity<String> response = get("/auth/dev-login/contas");
+
+            assertNaoAutorizado(response);
+        }
+    }
+
+    @Nested
     @DisplayName("Story 1.2 — classificação de papel reflectida na sessão")
     class ClassificacaoDePapelNaSessao {
 

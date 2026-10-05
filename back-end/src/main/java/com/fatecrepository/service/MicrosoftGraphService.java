@@ -66,6 +66,9 @@ public class MicrosoftGraphService {
         }
     }
 
+    /**
+     * Foto do Graph, reduzida a avatar pelo {@link RedimensionadorDeAvatar} antes de virar data-URL.
+     */
     public String getPhotoUrl(String accessToken) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -77,8 +80,7 @@ public class MicrosoftGraphService {
             HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
             if (response.statusCode() == 200 && response.body().length > 0) {
-                String base64 = java.util.Base64.getEncoder().encodeToString(response.body());
-                return "data:image/jpeg;base64," + base64;
+                return RedimensionadorDeAvatar.paraDataUrl(response.body());
             }
         } catch (Exception e) {
             log.debug("Foto de perfil não encontrada no Microsoft Graph");

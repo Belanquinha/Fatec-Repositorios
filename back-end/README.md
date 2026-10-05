@@ -29,46 +29,29 @@ Microsoft quanto pelo login de desenvolvimento. Duas cópias divergentes fariam 
 - demais membros do tenant → `ALUNO` (fallback)
 - admin: papel `ADMIN` persiste no banco quando o e-mail é semeado em `data.sql`
 
-## Login de desenvolvimento (somente local)
+## Testar os três papéis (ALUNO / PROFESSOR / ADMIN)
 
-Para testar aluno, professor e admin sem conta Microsoft e sem MFA, existe `POST /auth/dev-login`: ele
-recebe um e-mail e devolve o mesmo JWT do login real, sem passar por verificação de assinatura nem
-pelo Graph.
+Não existe rota de login sem Microsoft. `POST /auth/login-microsoft` é o único caminho de entrada:
+ele valida o access token do Graph contra o JWKS do tenant da CPS, deriva o papel do domínio do
+e-mail e emite o JWT da sessão.
 
-**A porta que isso abre:** qualquer um que alcance o endpoint recebe uma sessão válida para o e-mail
-que informar, inclusive a conta de admin. São dois interruptores, ambos desligados por padrão:
+Houve um `POST /auth/dev-login` que emitia sessão válida para qualquer e-mail digitado, inclusive a
+conta de admin. Ele foi **removido de propósito**, e o motivo não é o endpoint em si: a proteção
+dependia inteiramente de configuração de ambiente (`SPRING_PROFILES_ACTIVE=dev` mais
+`DEV_AUTH_ENABLED=true`), e nenhuma linha de código impedia que alguém ligasse os dois e publicasse
+o resultado. Um bypass de autenticação cuja segurança é um valor de `.env` não é uma proteção.
+
+Para exercitar os três papéis, use a suíte E2E, que emite tokens reais pelo `JwtTokenProvider` do
+próprio projeto, sem nenhuma rota aberta:
 
 ```bash
-SPRING_PROFILES_ACTIVE=dev    # perfil Spring
-DEV_AUTH_ENABLED=true         # app.security.dev-auth.enabled
+# o banco de teste precisa existir uma vez
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" fatec-postgres \
+  psql -U postgres -c "CREATE DATABASE fatecrepository_test"
+
+TEST_DB_PASSWORD="$POSTGRES_PASSWORD" ./mvnw test
 ```
 
-Com os dois, `GET /auth/dev-login/contas` devolve os atalhos e `POST /auth/dev-login` emite o token.
-Com um só, as rotas respondem 404 — o bean do controller nem é criado. Ligando os dois, a aplicação
-imprime um banner de aviso na subida.
-
-O atalho de admin só leva ao painel administrativo se o e-mail do atalho
-(`admin@cps.sp.gov.br` em `DevAuthService`) bater com o e-mail do `init/01-create-admin.sql`. Se você
-trocou o e-mail do admin no seed, troque também no atalho — divergindo, a conta é criada como
-`PROFESSOR` pela regra de domínio e o botão não faz o que promete.
-
-> O `docker-compose.yml` não repassa `SPRING_PROFILES_ACTIVE` nem `DEV_AUTH_ENABLED` ao container.
-> Com elas apenas no `.env`, o compose ignora. Para usar no stack containerizado, descomente as duas
-> linhas no `environment:` do serviço `backend` — e comente de volta ao terminar. **O front-end
-> precisa ser o `ng serve`**, porque o `Dockerfile` dele faz build de produção, onde os atalhos não
-> existem; ver `front-end/README.md`.
-
-### O que este recurso não garante
-
-O token emitido aqui é um JWT normal, com o papel real no banco. Mas o back-end ainda não impõe
-nada a partir desse papel: a única checagem de papel por endpoint é `hasRole("ADMIN")` nas rotas de
-escrita de `/instituicoes` (`SecurityConfig.java`). Aprovação de projeto por professor continua sem
-imposição pela API — é uma pendência de epic 1, story 1-4. Ou seja: use os atalhos para testar **o que
-a interface mostra** para cada papel, e não para testar que a API restringe um papel.
-
-### Removendo
-
-Apague `DevAuthController`, `DevAuthService`, `DevLoginRequest`, `DevAuthAccountResponse` e
-`DevAuthStartupWarning`; remova o bloco `dev-auth:` do `application.yml` e as duas linhas do
-`docker-compose.yml`. Nada mais no back-end depende disso — `UserProvisioningService` é usado
-também pelo login Microsoft e deve ficar.
+`AutorizacaoPorPapelE2ETest` cobre a matriz papel × método, `AutenticacaoSessaoE2ETest` cobre a
+sessão, e `PoliticaDeAcessoE2ETest` garante que uma rota nova, esquecida em `SecurityConfig`,
+exija sessão em vez de nascer pública.

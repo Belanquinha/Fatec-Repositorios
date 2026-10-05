@@ -52,6 +52,17 @@ public class ProjetoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @GetMapping("/publicos")
+    @Operation(summary = "Listar projetos públicos aprovados", description = "Retorna todos os projetos aprovados para a vitrine pública")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de projetos públicos retornada")
+    })
+    public ResponseEntity<List<ProjetoResponse>> listarPublicos() {
+        log.info("GET /projetos/publicos");
+        List<ProjetoResponse> response = projetoService.listarPublicos();
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Obter projeto por ID", description = "Retorna os detalhes de um projeto específico")
     @ApiResponses(value = {

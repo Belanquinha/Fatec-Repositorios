@@ -13,32 +13,9 @@
     <button
       (click)="login()"
       class="button"
-      [disabled]="inicializando || entrandoComoDev"
+      [disabled]="inicializando"
     >
       Login com Microsoft
     </button>
   </div>
-
-  <!--
-    Atalhos de desenvolvimento. `@if` sobre o comprimento da lista é a trava: em produção
-    `contasDev` chega vazio, porque `environment.devAuthEnabled` é `false` e o back-end nem expõe a
-    rota. Nada aqui depende de o botão do Microsoft estar presente.
-  -->
-  @if (contasDev.length > 0) {
-    <div class="dev-login">
-      <p class="dev-login-titulo">Entrar sem Microsoft</p>
-      @for (conta of contasDev; track conta.email) {
-        <button
-          class="dev-login-botao"
-          (click)="entrarComo(conta)"
-          [disabled]="entrandoComoDev"
-        >
-          {{ conta.rotulo }}
-        </button>
-      }
-      @if (erroDev) {
-        <p class="dev-login-erro">{{ erroDev }}</p>
-      }
-    </div>
-  }
 }

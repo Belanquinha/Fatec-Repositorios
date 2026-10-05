@@ -63,16 +63,13 @@ describe('environment', () => {
     // Lendo o arquivo, não importando: o objeto importado acima é o de desenvolvimento, e uma
     // asserção sobre ele passaria mesmo com a flag ligada em produção — que é exatamente o
     // cenário que precisa ser coberto.
-    //
-    // Com a flag em `true` no arquivo de produção, os atalhos "Entrar como aluno/professor/admin"
-    // entram no bundle que vai para o ar. O back-end também fecha a rota, mas o botão não
-    // deveria nem aparecer para quem não pode usá-lo.
-    expect(lerEnvironmentDeProducao()).toMatch(/devAuthEnabled:\s*false/);
+    expect(lerEnvironmentDeProducao()).not.toMatch(/devAuthEnabled/);
   });
 
-  it('deve habilitar o login de desenvolvimento no build de desenvolvimento', () => {
-    // Simétrico do anterior: o `ng serve` é onde a flag precisa estar ligada, ou o recurso
-    // existiria só no back-end.
-    expect(environment.devAuthEnabled).toBe(true);
+  it('nao deve expor nenhuma flag de login de desenvolvimento', () => {
+    // O atalho "Entrar sem Microsoft" foi removido do produto: o back-end não expõe a rota e o
+    // front não deve ter o que ligar. A flag é build-time, então a ausência é o que garante que
+    // o bundle de produção não carregue o caminho.
+    expect(environment).not.toHaveProperty('devAuthEnabled');
   });
 });

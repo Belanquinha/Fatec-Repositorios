@@ -44,16 +44,13 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-fatec-repository-api}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
       MSAL_TENANT_ID: ${MSAL_TENANT_ID:-eabe64c5-68f5-4a76-8301-9577a679e449}
-# Login de desenvolvimento (/auth/dev-login): são DOIS interruptores e os dois
-      # estão desligados. Ligue apenas na sua máquina, e remova ao terminar.
-      # Ligado, qualquer um que alcance a porta entra como o e-mail que informar,
-      # inclusive o admin — leia back-end/README.md antes.
-      #
-      # ⚠ ATIVO TEMPORARIAMENTE PARA TESTE LOCAL — comente de volta ao terminar.
-      SPRING_PROFILES_ACTIVE: dev
-      DEV_AUTH_ENABLED: "true"
+      # Diretório físico das capas (FileStorageService + seed). Precisa apontar
+      # para dentro do volume uploads_data montado abaixo.
+      APP_UPLOAD_DIR: /app/uploads
     ports:
       - "4040:4040"
+    volumes:
+      - uploads_data:/app/uploads
     networks:
       - fatec
 
@@ -73,6 +70,7 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   fatec:

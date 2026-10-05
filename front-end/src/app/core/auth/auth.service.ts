@@ -3,7 +3,6 @@ import { MSAL_INSTANCE } from '@azure/msal-angular';
 import { AccountInfo, IPublicClientApplication, RedirectRequest } from '@azure/msal-browser';
 import { environment } from '../../../environments/environment';
 import { UsuarioLogado } from './models/usuario-logado';
-import { ContaDev } from './models/conta-dev';
 import { gravarSessao, lerChave, lerTokenValido, limparSessao } from './sessao-navegador';
 
 const GRAPH_SCOPES = ['User.Read', 'openid', 'profile', 'email'];
@@ -153,53 +152,6 @@ export class AuthService {
     gravarSessao(dados);
 
     return dados as { accessToken: string; tokenType: string; expiresInSeconds: number };
-  }
-
-  /**
-   * Login de desenvolvimento: sem Microsoft e sem MFA, para testar cada papel com um clique.
-   *
-   * Não existe no build de produção (`environment.devAuthEnabled` é `false`) e o back-end só expõe
-   * a rota com o perfil `dev` e `DEV_AUTH_ENABLED=true`. Guardar com a mesma chave do login real é
-   * proposital: daqui em diante a sessão é indistinguível de uma sessão de verdade, e nenhuma tela
-   * precisa saber por qual das duas vias ela entrou.
-   */
-  async loginDev(email: string): Promise<void> {
-    const resposta = await fetch(`${environment.apiUrl}/auth/dev-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-
-    const dados = await resposta.json().catch(() => null);
-
-    if (!resposta.ok) {
-      const mensagem = dados?.mensagem ?? dados?.message ?? 'Não foi possível entrar com a conta de desenvolvimento.';
-      throw new Error(mensagem);
-    }
-
-    gravarSessao(dados);
-  }
-
-  /**
-   * Atalhos de login por papel. Lista vazia quando o recurso não está habilitado — tanto porque o
-   * build é de produção quanto porque o back-end está sem o perfil `dev`. Falha de rede também vira
-   * lista vazia, em vez de erro na tela: o botão do Microsoft continua sendo o caminho principal, e
-   * um atalho de desenvolvimento não deve ser capaz de quebrar a página de login.
-   */
-  async contasDev(): Promise<ContaDev[]> {
-    if (!environment.devAuthEnabled) {
-      return [];
-    }
-
-    try {
-      const resposta = await fetch(`${environment.apiUrl}/auth/dev-login/contas`);
-      if (!resposta.ok) {
-        return [];
-      }
-      return (await resposta.json()) as ContaDev[];
-    } catch {
-      return [];
-    }
   }
 
   async logout(): Promise<void> {

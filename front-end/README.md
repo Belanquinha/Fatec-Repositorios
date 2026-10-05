@@ -122,52 +122,19 @@ Atenção à porta do banco: o `application.yml` assume `5432`, mas o compose ex
 Postgres do host na **5433**. Apontando para o banco do compose, use
 `DB_URL=jdbc:postgresql://localhost:5433/fatecrepository`.
 
-### Login de desenvolvimento (atalhos por papel)
+### Papéis de teste
 
-No `ng serve` a tela de login oferece atalhos para entrar como aluno, professor ou admin sem passar
-pela Microsoft. Trocar de papel para testar a fila de aprovação ou o CRUD de instituições custa um
-clique, em vez de um ciclo de login com MFA.
+A tela de login oferece **um** caminho: o botão do Microsoft. Não existe atalho por papel, e não
+existe flag de ambiente que ligue um.
 
-Dois lados precisam estar ligados:
+Houve um atalho "Entrar sem Microsoft" (aluno / professor / admin com um clique), removido junto com
+o `POST /auth/dev-login` que o servia. O motivo está em `back-end/README.md`: o back-end emitia
+sessão válida para qualquer e-mail, e a única proteção era um par de interruptores de ambiente —
+inclusive com os dois **ligados** no `docker-compose.yml` versionado.
 
-| Onde | O quê |
-| --- | --- |
-| `src/environments/environment.development.ts` | `devAuthEnabled: true` (já vem assim) |
-| back-end | `SPRING_PROFILES_ACTIVE=dev` **e** `DEV_AUTH_ENABLED=true` |
+Para os testes de papel, use a suíte (`npm test` no front; `./mvnw test` no back-end), que monta
+sessões de ALUNO, PROFESSOR e ADMIN sem nenhuma rota aberta.
 
-Com o back-end sem o perfil `dev`, a chamada do front responde 404 e a lista de atalhos simplesmente
-não aparece — o botão do Microsoft continua funcionando. Ver `back-end/README.md` para o aviso sobre
-essa porta.
-
-> **O front-end precisa ser o `ng serve`, não o container.** O `Dockerfile` roda `npm run build`,
-> que é o build de **produção** — `devAuthEnabled: false` fica embutido no bundle e os atalhos não
-> aparecem, mesmo com o back-end habilitado. Com `docker compose up` completo, pare o serviço
-> `frontend` e suba com `npm start`.
-
-Depois de entrar por um atalho a página recarrega. Não é cosmético: o header e os guardas de rota
-leem a sessão uma única vez, na inicialização, e sem recarregar a tela continuaria mostrando as
-permissões da conta anterior.
-
-### Removendo o login de desenvolvimento
-
-Nada aqui é load-bearing: sem os atalhos, o login Microsoft funciona exatamente como antes. Para
-remover por completo:
-
-1. Apague `src/app/core/auth/models/conta-dev.ts`.
-2. Em `auth.service.ts`, remova `loginDev`, `contasDev` e o import de `ContaDev`.
-3. Em `microsoft-login-button.html`, remova o bloco `@if (contasDev.length > 0)`; em
-   `microsoft-login-button.ts`, remova `contasDev`, `entrandoComoDev`, `erroDev`, `carregarContasDev`,
-   `entrarComo`, `recarregar` e a chamada a `carregarContasDev()` no `ngOnInit`.
-4. Remova o bloco `.dev-login*` do `microsoft-login-button.css`.
-5. Remova `devAuthEnabled` dos dois `environment*.ts` e o teste correspondente em `environment.spec.ts`.
-
-No back-end: apague `DevAuthController`, `DevAuthService`, `DevLoginRequest`, `DevAuthAccountResponse`
-e `DevAuthStartupWarning`; remova o bloco `dev-auth:` do `application.yml` e as duas linhas do
-`docker-compose.yml`.
-
-**O que deve permanecer** se você tirar só o login dev, porque não é parte dele: o
-`cacheLocation: 'localStorage'` no `microsoft-login-msal.ts`, o `sessao-navegador.ts` com a checagem
-de validade, a limpeza de sessão em 401 no interceptor, e o `UserProvisioningService` no back-end.
 
 ### Sessão e validade do token
 

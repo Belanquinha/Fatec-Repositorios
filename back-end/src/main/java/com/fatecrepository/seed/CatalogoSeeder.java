@@ -16,15 +16,17 @@ import java.io.InputStream;
 public class CatalogoSeeder implements CommandLineRunner {
 
     private static final String CATALOGO_INSTITUICOES = "instituicoes.csv";
+    private static final String SEED_PROJETOS = "projetos.json";
 
     private final SeedProperties seedProperties;
     private final InstituicaoCsvParser instituicaoCsvParser;
     private final InstituicaoSeedLoader instituicaoSeedLoader;
+    private final ProjetoSeedLoader projetoSeedLoader;
     private final ResourceLoader resourceLoader;
 
     @Override
     public void run(String... args) {
-        log.info("[seed] inicializando catálogo de instituições (faterepo.seed.mode={})", seedProperties.getMode());
+        log.info("[seed] inicializando catálogo e dados iniciais (faterepo.seed.mode={})", seedProperties.getMode());
 
         if (seedProperties.getFiles() == null || seedProperties.getFiles().isEmpty()) {
             log.warn("[seed] nenhum arquivo configurado em faterepo.seed.files");
@@ -34,9 +36,21 @@ public class CatalogoSeeder implements CommandLineRunner {
         for (String arquivo : seedProperties.getFiles()) {
             if (arquivo.endsWith(CATALOGO_INSTITUICOES)) {
                 carregarInstituicoes(arquivo);
+            } else if (arquivo.endsWith(SEED_PROJETOS)) {
+                carregarProjetos(arquivo);
             } else {
                 log.warn("[seed] arquivo de seed não suportado, ignorado: {}", arquivo);
             }
+        }
+    }
+
+    private void carregarProjetos(String resourcePath) {
+        Resource resource = resourceLoader.getResource("classpath:" + resourcePath);
+        try (InputStream input = resource.getInputStream()) {
+            int inseridos = projetoSeedLoader.carregar(input, seedProperties.getMode());
+            log.info("[seed] {} => carga concluída ({} projetos novos inseridos)", resourcePath, inseridos);
+        } catch (IOException ex) {
+            log.error("[seed] falha ao ler o recurso {}: {}", resourcePath, ex.getMessage());
         }
     }
 

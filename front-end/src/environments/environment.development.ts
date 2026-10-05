@@ -32,14 +32,4 @@ export const environment = {
    * que é a URI registrada no Entra ID para desenvolvimento.
    */
   msalRedirectUri: document.baseURI,
-
-  /**
-   * Habilita os atalhos de login por papel na tela de login. Ver `environment.ts`.
-   *
-   * Ligado no `ng serve` para que aluno, professor e admin sejam testáveis com um clique, sem conta
-   * Microsoft e sem MFA. Não basta sozinho: o back-end precisa estar com `SPRING_PROFILES_ACTIVE=dev`
-   * e `DEV_AUTH_ENABLED=true`, senão a chamada volta 404 e a lista de atalhos simplesmente não
-   * aparece.
-   */
-  devAuthEnabled: true,
 };

@@ -61,7 +61,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/projetos/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs").permitAll()
                 .requestMatchers("/error").permitAll()
-                .anyRequest().permitAll()
+                // Fail-closed: o que não for explicitamente listado exige sessão. Com
+                // permitAll() aqui, qualquer controller novo — até uma linha esquecida numa
+                // revisão — nascia público. As rotas públicas do produto (catálogo, documentação,
+                // upload servido, Swagger) estão todas listadas acima; o resto é de usuário
+                // logado por padrão, que é o que o produto de fato permite.
+                .anyRequest().authenticated()
             )
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {

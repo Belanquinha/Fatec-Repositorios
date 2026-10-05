@@ -1,0 +1,47 @@
+[
+  {
+    "titulo": "Golden Maker",
+    "descricaoCurta": "Plataforma web para criadores independentes publicarem jogos digitais, conquistarem visibilidade e fortalecerem a comunidade gamer.",
+    "conteudoEditorJs": "{\"time\":1728120000000,\"blocks\":[{\"type\":\"header\",\"data\":{\"text\":\"Sobre o Golden Maker\",\"level\":2}},{\"type\":\"paragraph\",\"data\":{\"text\":\"O Golden Maker oferece um espaço livre e criativo para desenvolvedores e produtores independentes mostrarem seu talento, conquistarem visibilidade, trocarem experiências e colaborarem com outros criadores.\"}},{\"type\":\"header\",\"data\":{\"text\":\"Missão e Propósito\",\"level\":3}},{\"type\":\"paragraph\",\"data\":{\"text\":\"Nosso objetivo é incentivar a originalidade, fortalecer a presença dos produtores independentes no mercado e valorizar o impacto cultural de suas obras.\"}},{\"type\":\"header\",\"data\":{\"text\":\"Tecnologias Utilizadas\",\"level\":3}},{\"type\":\"list\",\"data\":{\"style\":\"unordered\",\"items\":[\"Node.js & Express\",\"SQLite3 com persistência estruturada\",\"Multer para uploads de mídias\",\"Bcrypt para segurança\",\"Frontend com JavaScript, HTML5 e CSS3 moderno\"]}},{\"type\":\"header\",\"data\":{\"text\":\"Equipe Arcane Boot (TCC 2025 - 3AMS)\",\"level\":3}},{\"type\":\"paragraph\",\"data\":{\"text\":\"Projeto concebido e desenvolvido pela equipe: Adryelle (Líder, Análise e Front-end), Gabriel (Banco de Dados e Back-end), Luiz (Análise de Banco de Dados e Back-end), Shania (Designer e Análise de Sistema) e Thiago (Análise de Teste e Back-end).\"}}],\"version\":\"2.28.0\"}",
+    "linkRepositorio": "https://github.com/Fatec-Repositorios/Golden-Maker",
+    "imagemCapaUrl": "/uploads/golden-maker-capa.png",
+    "imagemSeedClasspath": "seeds/golden-maker-capa.png",
+    "palavrasChave": [
+      "Jogos Indie",
+      "Game Dev",
+      "Node.js",
+      "Express",
+      "SQLite",
+      "TCC",
+      "Fatec"
+    ],
+    "anoPublicado": 2025,
+    "estado": "APROVADO",
+    "emailProfessorResponsavel": "orientador.tcc@cps.sp.gov.br",
+    "codigoUnidadeInstituicao": "003",
+    "autorEmail": "gabriel@aluno.cps.sp.gov.br",
+    "autorNome": "Gabriel",
+    "integrantes": [
+      {
+        "nome": "Adryelle",
+        "linkLinkedin": "https://www.linkedin.com"
+      },
+      {
+        "nome": "Gabriel",
+        "linkLinkedin": "https://www.linkedin.com"
+      },
+      {
+        "nome": "Luiz",
+        "linkLinkedin": "https://www.linkedin.com"
+      },
+      {
+        "nome": "Shania",
+        "linkLinkedin": "https://www.linkedin.com"
+      },
+      {
+        "nome": "Thiago",
+        "linkLinkedin": "https://www.linkedin.com"
+      }
+    ]
+  }
+]

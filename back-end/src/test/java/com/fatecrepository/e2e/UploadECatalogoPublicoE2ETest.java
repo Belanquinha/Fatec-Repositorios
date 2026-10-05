@@ -153,22 +153,48 @@ class UploadECatalogoPublicoE2ETest extends ApiE2ETestSupport {
     }
 
     @Nested
-    @DisplayName("Lacuna de contrato — endpoint público de projetos")
-    class LacunaDeContrato {
+    @DisplayName("Catálogo público de projetos")
+    class CatalogoPublicoProjetos {
 
         @Test
-        @DisplayName("GET /projetos/publicos (consumido pelo catálogo público) não está implementado")
-        void listarPublicosNaoImplementado() {
-            // O front-end (ProjetoService.listarProjetosPublicos) chama esta rota.
-            // Hoje ela cai no catch-all anyRequest().permitAll() e explode em 500,
-            // obrigando o front-end a cair no PROJETOS_MOCK — ou seja, a vitrine
-            // pública nunca mostra dados reais. Este teste documenta a lacuna e
-            // deve ser inverted/ removido quando o endpoint for criado.
+        @DisplayName("GET /projetos/publicos responde 200 sem autenticação e lista projetos aprovados")
+        void listarPublicosRespondeComSucesso() {
             ResponseEntity<String> response = get("/projetos/publicos");
 
-            assertThat(response.getStatusCode().value())
-                .as("LACUNA CONHECIDA: /projetos/publicos deveria devolver 200 com a lista de projetos aprovados")
-                .isEqualTo(500);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).startsWith("[");
+        }
+
+        @Test
+        @DisplayName("Apenas projetos no estado APROVADO aparecem na vitrine pública")
+        void apenasProjetosAprovadosAparecem() {
+            var inst = criarInstituicao("099", "Fatec Pública Teste");
+            var autor = criarUsuario("Aluno Autor", "autor.publico@aluno.cps.sp.gov.br", UserRole.ALUNO);
+
+            com.fatecrepository.model.Projeto aprovado = new com.fatecrepository.model.Projeto();
+            aprovado.setTitulo("Projeto Aprovado Vitrine");
+            aprovado.setDescricaoCurta("Descrição do aprovado");
+            aprovado.setAnoPublicado(2025);
+            aprovado.setEstado(com.fatecrepository.model.ProjetoEstado.APROVADO);
+            aprovado.setEmailProfessorResponsavel("prof@cps.sp.gov.br");
+            aprovado.setInstituicao(inst);
+            aprovado.setAutor(autor);
+            projetoRepository.save(aprovado);
+
+            com.fatecrepository.model.Projeto pendente = new com.fatecrepository.model.Projeto();
+            pendente.setTitulo("Projeto Pendente Oculto");
+            pendente.setDescricaoCurta("Descrição do pendente");
+            pendente.setAnoPublicado(2025);
+            pendente.setEstado(com.fatecrepository.model.ProjetoEstado.AGUARDANDO_APROVACAO);
+            pendente.setEmailProfessorResponsavel("prof@cps.sp.gov.br");
+            pendente.setInstituicao(inst);
+            pendente.setAutor(autor);
+            projetoRepository.save(pendente);
+
+            ResponseEntity<String> response = get("/projetos/publicos");
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).contains("Projeto Aprovado Vitrine");
+            assertThat(response.getBody()).doesNotContain("Projeto Pendente Oculto");
         }
     }
 }

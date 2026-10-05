@@ -1,4 +1,4 @@
-﻿server:
+server:
   port: 4040
 
 spring:
@@ -28,7 +28,12 @@ spring:
     use-new-id-generator-mappings: true
 
   mvc:
-    log-request-details: true
+    # Fica desligado de propósito. Com spring.security em DEBUG, esta flag escreve o header
+    # Authorization por request no log — e o header Authorization carrega o access token da
+    # Microsoft e o JWT da sessão. Um access token do Microsoft em disco vale um login válido
+    # para quem o ler. O MicrosoftTokenVerifier já loga só metadados do token (aud/iss/tid/kid);
+    # esta flag desfazia esse cuidado em toda requisição.
+    log-request-details: false
     throw-exception-if-no-handler-found: true
 
   web:
@@ -66,6 +71,12 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
 app:
+  upload:
+    # Diretório físico das capas servidas em /uploads/** (WebMvcConfig +
+    # FileStorageService + ProjetoSeedLoader usam a mesma chave). O default
+    # relativo resolve para ./uploads a partir do WORKDIR; no compose o
+    # APP_UPLOAD_DIR aponta para o volume uploads_data (/app/uploads).
+    dir: ${APP_UPLOAD_DIR:uploads}
   cors:
     # Origens liberadas no CORS, separadas por vírgula.
     #
@@ -98,21 +109,15 @@ app:
       # conjunto conter só as chaves daquele diretório. O caminho precisa ser
       # '/discovery/v2.0/keys' — o '/v2.0/keys' sem '/discovery' devolve 404.
       jwks-uri: ${MSAL_JWKS_URI:https://login.microsoftonline.com/eabe64c5-68f5-4a76-8301-9577a679e449/discovery/v2.0/keys}
-    dev-auth:
-      # Login sem Microsoft, para desenvolvimento: /auth/dev-login emite o mesmo JWT a partir de um
-      # e-mail, o que permite testar aluno/professor/admin sem passar por MFA a cada troca de papel.
-      #
-      # São DUIS interruptores, e os dois são desligados por padrão: este e o perfil `dev`
-      # (SPRING_PROFILES_ACTIVE). Precisam os dois para as rotas existirem. Motivo: este endpoint
-      # entrega uma sessão válida para o e-mail que a pessoa digitar, inclusive a conta de admin, e
-      # /auth/** é permitAll — um interruptedor só, esquecido num deploy, seria uma rota aberta.
-      #
-      # Para usar em dev: SPRING_PROFILES_ACTIVE=dev e DEV_AUTH_ENABLED=true.
-      enabled: ${DEV_AUTH_ENABLED:false}
+  # Não existe login sem Microsoft. Houve um /auth/dev-login que emitia sessão válida para
+  # qualquer e-mail digitado, inclusive a conta de admin, e ele foi removido de propósito:
+  # /auth/** é permitAll, então a proteção dependia inteiramente de configuração de ambiente —
+  # isto é, de nenhum código. Testar os três papéis continua coberto pelos testes E2E, que
+  # emitem tokens reais via JwtTokenProvider (ApiE2ETestSupport#tokenPara), sem rota aberta.
 
 faterepo:
   seed:
     mode: ${FATEREPO_SEED_MODE:upsert}   # upsert (padrão) | replace
     files:                                # ordem declarada = ordem de carga (FK-safe)
       - seeds/instituicoes.csv
-      # - seeds/projetos.csv   # futuro
+      - seeds/projetos.json

@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { environment } from '../../../../environments/environment';
 import { ProjetoResponseModel } from '../../../core/models/projeto.model';
 
 @Component({
@@ -19,7 +20,14 @@ export class CardProjeto {
    */
 
   get capaUrl(): string {
-    return this.projeto?.imagemCapaUrl ?? '';
+    const raw = this.projeto?.imagemCapaUrl ?? '';
+    if (!raw) return '';
+    // Absolutas (http...) e previews locais (data:/blob:) passam direto.
+    if (/^(https?:\/\/|data:|blob:)/i.test(raw)) return raw;
+    // "/uploads/x" é caminho do back-end: em prod resolve via nginx
+    // (/api/uploads -> backend) e em dev via backend direto (:4040).
+    if (raw.startsWith('/uploads/')) return `${environment.apiUrl}${raw}`;
+    return raw;
   }
 
   get titulo(): string {

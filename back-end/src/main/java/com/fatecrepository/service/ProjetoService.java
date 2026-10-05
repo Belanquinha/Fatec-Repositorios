@@ -95,4 +95,13 @@ public class ProjetoService {
             .map(responseMapper::toProjetoResponse)
             .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<ProjetoResponse> listarPublicos() {
+        log.info("Buscando projetos públicos com estado APROVADO");
+        List<Projeto> projetos = projetoRepository.findByEstadoOrderByCriadoEmDesc(ProjetoEstado.APROVADO);
+        return projetos.stream()
+            .map(responseMapper::toProjetoResponse)
+            .toList();
+    }
 }

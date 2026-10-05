@@ -47,13 +47,4 @@ export const environment = {
    * pessoa está.
    */
   msalRedirectUri: document.baseURI,
-
-  /**
-   * Exibe o login de desenvolvimento (atalhos por papel, sem Microsoft).
-   *
-   * `false` aqui é o que mantém o recurso fora do build que vai para produção: o `ng build` usa este
-   * arquivo, e só o `ng serve` troca por `environment.development.ts`. O botão também depende do
-   * back-end, que só expõe `/auth/dev-login` com o perfil `dev` e `DEV_AUTH_ENABLED=true`.
-   */
-  devAuthEnabled: false,
 };

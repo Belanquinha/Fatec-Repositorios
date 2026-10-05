@@ -18,10 +18,6 @@ describe('App', () => {
             loginMicrosoft: () => Promise.resolve(),
             logout: () => {},
             isAdmin: () => false,
-            // O botão de login chama estes ao montar; o duplo precisa cobri-los ou o `ngOnInit`
-            // estoura antes de qualquer asserção rodar.
-            contasDev: () => Promise.resolve([]),
-            loginDev: () => Promise.resolve(),
             limparSessaoLocal: () => {},
           },
         },

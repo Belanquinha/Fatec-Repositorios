@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CardProjeto } from './card-projeto';
+import { environment } from '../../../../environments/environment';
 import { ProjetoResponseModel } from '../../../core/models/projeto.model';
 
 describe('CardProjeto', () => {
@@ -57,7 +58,7 @@ describe('CardProjeto', () => {
     });
 
     it('deve exibir os dados reais do projeto', () => {
-      expect(component.capaUrl).toBe('/uploads/capa.png');
+      expect(component.capaUrl).toBe(`${environment.apiUrl}/uploads/capa.png`);
       expect(component.titulo).toBe('Plataforma de Repositório');
       expect(component.instituicao).toBe('Fatec Americana');
       expect(component.ano).toBe(2026);

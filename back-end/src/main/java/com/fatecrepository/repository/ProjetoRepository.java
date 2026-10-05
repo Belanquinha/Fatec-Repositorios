@@ -11,4 +11,6 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
     List<Projeto> findByAutorIdOrderByCriadoEmDesc(UUID autorId);
     List<Projeto> findByEstadoOrderByCriadoEmDesc(ProjetoEstado estado);
     List<Projeto> findByInstituicaoIdAndEstadoOrderByCriadoEmDesc(UUID instituicaoId, ProjetoEstado estado);
+    boolean existsByTitulo(String titulo);
+    java.util.Optional<Projeto> findByTitulo(String titulo);
 }
