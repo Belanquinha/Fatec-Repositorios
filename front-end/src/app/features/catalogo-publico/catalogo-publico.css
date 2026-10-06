@@ -86,17 +86,33 @@
 
 .hero-actions {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 0.5rem;
+    align-items: stretch;
+    gap: 0.75rem;
     width: 100%;
+}
+
+.hero-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .hero-side {
+        width: auto;
+        min-width: 24rem;
+        max-width: 28rem;
+        flex-shrink: 0;
+    }
 }
 
 .btn-primary-hero {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex: 1;
+    white-space: nowrap;
     gap: 0.5rem;
     background-color: var(--amarelo-500);
     color: var(--cinza-600);
@@ -122,6 +138,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex: 1;
+    white-space: nowrap;
     gap: 0.5rem;
     background-color: transparent;
     color: var(--cinza-500);
@@ -151,18 +169,18 @@
 @media (min-width: 1024px) {
     .hero-stats {
         display: flex;
-        flex-direction: column;
-        width: auto;
-        min-width: 14rem;
-        gap: 1.25rem;
+        flex-direction: row;
+        width: 100%;
+        gap: 0.75rem;
     }
 }
 
 .stat-card {
     display: flex;
     flex-direction: column;
+    flex: 1;
     gap: 0.25rem;
-    padding: 1.25rem;
+    padding: 1rem 1.25rem;
     background-color: var(--branco-500);
     border: 1px solid var(--cinza-100);
     border-top: 3px solid var(--amarelo-500);

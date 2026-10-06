@@ -69,10 +69,9 @@ O banco de desenvolvimento sempre contém duas contas de teste (semeadas em `dat
 O projeto de exemplo (`seeds/projetos.json`) pertence ao Aluno Teste, e o Professor Teste é o
 orientador responsável por ele — assim o aluno já tem 1 projeto em "Meus Projetos".
 
-Para navegar como uma dessas contas sem passar pelo MSAL (útil para testar fluxos de professor,
-para os quais pode não haver conta real), gere uma sessão local:
+Para navegar como uma dessas contas sem passar pelo MSAL (útil para testes), gere uma sessão local:
 
-```bash
+``` 
 # stack no ar, na raiz do repositório
 docker compose up -d --build
 python3 scripts/gerar-sessao.py aluno      # ou: professor
