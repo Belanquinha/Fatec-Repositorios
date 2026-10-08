@@ -113,6 +113,29 @@
   background: var(--amarelo-600);
 }
 
+.btn-primario:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-secundario {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--cinza-500);
+  border: 1px solid #6a6a6c;
+  border-radius: 0;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+}
+
+.btn-secundario:hover {
+  background: var(--branco-600);
+}
+
 .alerta-contexto {
   display: flex;
   align-items: center;
@@ -148,6 +171,330 @@
   color: var(--cinza-300);
   font-size: 0.875rem;
   margin: 0;
+}
+
+/* --- Aba "Instituições (0–4)" · Frame B mode=multi ---
+   Tokens do mock: campo/chip/popup borda #6A6A6C; foco e teto em
+   accent-ink #8A6802; recusa/erro em painel neutro #F0F0F0 com
+   borda #202124. Vermelho CPS proibido em qualquer estado. */
+
+.vinculo-subtitulo {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--cinza-500);
+  margin: 0 0 1rem;
+}
+
+.vinculo-campo {
+  margin-top: 0.25rem;
+}
+
+.vinculo-rotulo {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-500);
+  margin-bottom: 0.5rem;
+}
+
+.combo {
+  position: relative;
+}
+
+.combo-campo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  background: var(--branco-50);
+  border: 1px solid #6a6a6c;
+  border-radius: 0;
+  padding: 0 0.75rem;
+}
+
+.combo-campo:focus-within {
+  border-color: #8a6802;
+  box-shadow: 0 0 0 2px #8a6802;
+}
+
+.combo-teto {
+  border: 2px solid #202124;
+}
+
+.combo-icone {
+  color: var(--cinza-300);
+  font-size: 20px;
+}
+
+.combo-campo input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 1rem;
+  color: var(--cinza-500);
+  padding: 0.7rem 0;
+}
+
+.combo-contador {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #8a6802;
+  white-space: nowrap;
+}
+
+.combo-popup {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  z-index: 30;
+  background: var(--branco-50);
+  border: 1px solid #6a6a6c;
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(13, 14, 15, 0.1);
+  max-height: 320px;
+  overflow: auto;
+}
+
+.combo-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--branco-600);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-300);
+  margin: 0;
+}
+
+.combo-status span:last-child {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.combo-opcao {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--branco-600);
+  cursor: pointer;
+  list-style: none;
+}
+
+.combo-opcao-ativa {
+  background: #fcf6e6;
+  box-shadow: inset 2px 0 0 #8a6802;
+}
+
+.combo-logo {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.combo-logo-fb {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--branco-600);
+  border: 1px solid #6a6a6c;
+  color: var(--cinza-300);
+}
+
+.combo-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.combo-titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cinza-500);
+}
+
+.combo-meta {
+  font-size: 0.875rem;
+  color: var(--cinza-300);
+}
+
+.combo-check {
+  color: #8a6802;
+  font-size: 20px;
+}
+
+.combo-mais {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--cinza-300);
+  background: var(--branco-600);
+  margin: 0;
+}
+
+.combo-vazio {
+  padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.combo-vazio p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--cinza-500);
+}
+
+.vinculo-ajuda {
+  font-size: 0.875rem;
+  color: var(--cinza-300);
+  margin: 0.5rem 0 0;
+}
+
+.vinculo-recusa {
+  background: #f0f0f0;
+  border-left: 2px solid #202124;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--cinza-500);
+  margin: 0.5rem 0 0;
+  max-width: 56ch;
+}
+
+.vinculo-recusa strong {
+  display: block;
+  color: #202124;
+}
+
+.painel-neutro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f0f0f0;
+  border: 1px solid #202124;
+  border-radius: 0;
+  color: #202124;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
+.painel-sucesso {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--branco-50);
+  border: 1px solid var(--verde-500);
+  border-radius: 0;
+  color: var(--cinza-500);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
+.chip-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 32px;
+  padding: 0 4px 0 10px;
+  background: var(--branco-50);
+  border: 1px solid #6a6a6c;
+  border-radius: 0;
+  font-size: 0.875rem;
+  color: var(--cinza-500);
+}
+
+.chip-nome {
+  overflow-wrap: break-word;
+}
+
+.chip-remover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--cinza-300);
+  cursor: pointer;
+}
+
+.chip-remover:hover {
+  color: var(--cinza-500);
+}
+
+.vinculo-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--branco-600);
+}
+
+.vinculo-contador {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-300);
+}
+
+.vinculo-contador strong {
+  color: var(--cinza-500);
+}
+
+.vinculo-contador-teto {
+  color: #8a6802;
+}
+
+.vinculo-contador-teto strong {
+  color: #8a6802;
+}
+
+.vinculo-acoes {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.vinculo-pendente {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-300);
 }
 
 .skeleton-linha {

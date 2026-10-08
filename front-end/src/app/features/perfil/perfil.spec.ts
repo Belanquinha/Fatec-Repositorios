@@ -16,6 +16,18 @@ describe('Perfil', () => {
     role: 'ALUNO',
   };
 
+  const professor = {
+    nome: 'Professor Teste',
+    email: 'professor.teste@cps.sp.gov.br',
+    role: 'PROFESSOR',
+  };
+
+  const fatecA = { id: 'a', codigoUnidade: '291', nome: 'Fatec Ipiranga', cidade: 'São Paulo', ativo: true };
+  const fatecB = { id: 'b', codigoUnidade: '296', nome: 'Fatec São Paulo', cidade: 'São Paulo', ativo: true };
+  const fatecC = { id: 'c', codigoUnidade: '251', nome: 'Fatec Mauá', cidade: 'Mauá', ativo: true };
+  const fatecD = { id: 'd', codigoUnidade: '269', nome: 'Fatec Santos', cidade: 'Santos', ativo: true };
+  const fatecE = { id: 'e', codigoUnidade: '290', nome: 'Fatec Barueri', cidade: 'Barueri', ativo: true };
+
   async function configurar(authMock: unknown, projetosMock: unknown) {
     await TestBed.configureTestingModule({
       imports: [Perfil],
@@ -30,6 +42,15 @@ describe('Perfil', () => {
     component = fixture.componentInstance;
     await fixture.whenStable();
     fixture.detectChanges();
+  }
+
+  function projetosProfessor(vinculos: unknown[] = [], catalogo: unknown[] = [fatecA, fatecB]) {
+    return {
+      obterMeusProjetos: vi.fn(),
+      listarInstituicoes: vi.fn().mockReturnValue(of(catalogo)),
+      obterMeusVinculos: vi.fn().mockReturnValue(of(vinculos)),
+      salvarMeusVinculos: vi.fn().mockReturnValue(of(vinculos)),
+    };
   }
 
   afterEach(() => {
@@ -72,22 +93,95 @@ describe('Perfil', () => {
     expect(component.erroContexto()).toContain('Não foi possível carregar');
   });
 
-  it('professor vê o estado vazio de vínculos sem chamar /projetos/meus', async () => {
-    const obterMeusProjetos = vi.fn();
-    await configurar(
-      {
-        obterUsuarioLogado: vi.fn().mockResolvedValue({
-          nome: 'Professor Teste',
-          email: 'professor.teste@cps.sp.gov.br',
-          role: 'PROFESSOR',
-        }),
-      },
-      { obterMeusProjetos }
-    );
+  it('professor zerado vê onboarding inline sem chamar /projetos/meus', async () => {
+    const mock = projetosProfessor([], [fatecA, fatecB]);
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
 
     expect(component.isProfessor()).toBe(true);
     expect(component.rotuloPapel()).toBe('Professor');
-    expect(obterMeusProjetos).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent as string).toContain('Você ainda não vinculou instituições.');
+    expect(mock.obterMeusProjetos).not.toHaveBeenCalled();
+    expect(mock.obterMeusVinculos).toHaveBeenCalled();
+    expect(component.selecao()).toEqual([]);
+    expect(fixture.nativeElement.textContent as string).toContain(
+      'Sem instituições vinculadas ainda'
+    );
+    expect(fixture.nativeElement.textContent as string).toContain('0 de 4');
+  });
+
+  it('tipo-para-revelar: sem consulta não sugere nada', async () => {
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
+      projetosProfessor([], [fatecA, fatecB])
+    );
+
+    component.onBuscaVinculo('');
+    expect(component.sugestoesVinculo).toEqual([]);
+    expect(component.mostrarDropdownVinculo()).toBe(false);
+  });
+
+  it('adiciona chip por clique e marca alterações não salvas', async () => {
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
+      projetosProfessor([], [fatecA, fatecB])
+    );
+
+    component.adicionarVinculo(fatecA as never);
+    fixture.detectChanges();
+
+    expect(component.selecao().map((s) => s.id)).toEqual(['a']);
+    expect(component.temAlteracoes()).toBe(true);
+    expect(component.contadorVinculos()).toBe('1 de 4 unidades');
+    expect(fixture.nativeElement.textContent as string).toContain('alterações não salvas');
+  });
+
+  it('recusa a 5ª instituição inline (teto 4, sem chamar o servidor)', async () => {
+    const mock = projetosProfessor([fatecA, fatecB, fatecC, fatecD] as never[], [
+      fatecA, fatecB, fatecC, fatecD, fatecE,
+    ]);
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+    fixture.detectChanges();
+
+    expect(component.selecao()).toHaveLength(4);
+    component.adicionarVinculo(fatecE as never);
+    fixture.detectChanges();
+
+    expect(component.selecao()).toHaveLength(4);
+    expect(component.tetoRecusado()).toBe(true);
+    expect(mock.salvarMeusVinculos).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent as string).toContain(
+      'Máximo de 4 instituições por professor.'
+    );
+  });
+
+  it('salvar persiste via PUT e mostra feedback', async () => {
+    const mock = projetosProfessor([], [fatecA, fatecB]);
+    mock.salvarMeusVinculos.mockReturnValue(of([fatecA]));
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+
+    component.adicionarVinculo(fatecA as never);
+    component.salvarVinculos();
+    fixture.detectChanges();
+
+    expect(mock.salvarMeusVinculos).toHaveBeenCalledWith(['a']);
+    expect(component.vinculos().map((v) => v.id)).toEqual(['a']);
+    expect(component.temAlteracoes()).toBe(false);
+    expect(component.sucessoVinculos()).toContain('1 de 4 unidades');
+  });
+
+  it('falha no catálogo mostra painel neutro com retry', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
+      {
+        obterMeusProjetos: vi.fn(),
+        listarInstituicoes: vi.fn().mockReturnValue(throwError(() => new Error('fora do ar'))),
+        obterMeusVinculos: vi.fn().mockReturnValue(of([])),
+        salvarMeusVinculos: vi.fn(),
+      }
+    );
+    fixture.detectChanges();
+
+    expect(component.erroVinculos()).toContain('Não foi possível carregar');
+    expect(fixture.nativeElement.textContent as string).toContain('Tentar novamente');
   });
 });

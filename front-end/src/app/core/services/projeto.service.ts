@@ -65,4 +65,20 @@ export class ProjetoService {
   obterMeusProjetos(): Observable<ProjetoResponseModel[]> {
     return this.http.get<ProjetoResponseModel[]>(`${this.apiUrl}/projetos/meus`);
   }
+
+  /**
+   * Vínculos do professor (Frame B · aba "Instituições (0–4)" do /perfil).
+   * GET retorna 0–4 instituições ordenadas por nome; PUT substitui o conjunto
+   * completo (idempotente, [] limpa). Erros 400/404/409 vêm no envelope
+   * {"codigo","mensagem"} e são exibidos pelo chamador em painel neutro.
+   */
+  obterMeusVinculos(): Observable<InstituicaoOption[]> {
+    return this.http.get<InstituicaoOption[]>(`${this.apiUrl}/professores/me/instituicoes`);
+  }
+
+  salvarMeusVinculos(instituicaoIds: string[]): Observable<InstituicaoOption[]> {
+    return this.http.put<InstituicaoOption[]>(`${this.apiUrl}/professores/me/instituicoes`, {
+      instituicaoIds,
+    });
+  }
 }

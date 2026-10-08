@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { CatalogoPublico } from './features/catalogo-publico/catalogo-publico';
 import { UploadProjeto } from './features/upload-projeto/upload-projeto';
-import { SelecionarInstituicao } from './features/selecionar-instituicao/selecionar-instituicao';
 import { VerProjeto } from './features/ver-projeto/ver-projeto';
 import { Perfil } from './features/perfil/perfil';
 import { authGuard } from './core/auth/auth.guard';

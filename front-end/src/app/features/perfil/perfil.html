@@ -1,5 +1,5 @@
 <div class="perfil-container">
-  @if (carregando()) {
+  @if (carregando() && !isProfessor()) {
     <section class="perfil-card" aria-busy="true" aria-label="Carregando perfil">
       <div class="skeleton-linha skeleton-avatar"></div>
       <div class="skeleton-linha skeleton-nome"></div>
@@ -49,19 +49,184 @@
       </section>
     }
 
-    <!-- Contexto do papel: professor e suas instituições (DESIGN 4.6) -->
+    <!-- Contexto do papel: professor e suas instituições (Frame B · mode=multi) -->
     @if (isProfessor()) {
-      <section class="perfil-card">
-        <h2 class="secao-titulo">Minhas instituições</h2>
-        <div class="estado-vazio">
-          <span class="material-symbols-outlined icon-vazio">domain</span>
-          <p class="vazio-mensagem">Você ainda não vinculou instituições.</p>
+      <section class="perfil-card" aria-labelledby="vinculos-titulo">
+        <h2 class="secao-titulo" id="vinculos-titulo">Minhas instituições</h2>
+        <h3 class="vinculo-subtitulo">Vincule as unidades onde você atua</h3>
+
+        @if (carregandoVinculos()) {
+          <div aria-busy="true" aria-label="Carregando instituições">
+            <div class="skeleton-linha skeleton-nome"></div>
+            <div class="skeleton-linha skeleton-email"></div>
+          </div>
+        } @else if (erroVinculos()) {
+          <div class="painel-neutro" role="alert">
+            <span class="material-symbols-outlined">info</span>
+            <span>{{ erroVinculos() }}</span>
+          </div>
+          <button type="button" class="btn-secundario" (click)="tentarNovamenteVinculos()">
+            <span class="material-symbols-outlined">refresh</span>
+            <span>Tentar novamente</span>
+          </button>
+        } @else {
+          @if (erroSalvarVinculos()) {
+            <div class="painel-neutro" role="alert">
+              <span class="material-symbols-outlined">info</span>
+              <span>{{ erroSalvarVinculos() }}</span>
+            </div>
+          }
+          @if (sucessoVinculos()) {
+            <p class="painel-sucesso" role="status">
+              <span class="material-symbols-outlined">check_circle</span>
+              <span>{{ sucessoVinculos() }}</span>
+            </p>
+          }
+
+          @if (selecao().length === 0) {
+            <p class="vazio-mensagem">Sem instituições vinculadas ainda — escolha até 4 unidades.</p>
+          }
+
+          <!-- Campo institution-autocomplete mode=multi -->
+          <div class="vinculo-campo">
+            <label class="vinculo-rotulo" for="vinculo-busca">Adicionar instituição</label>
+            <div class="combo">
+              <div class="combo-campo" [class.combo-teto]="noTeto()">
+                <span class="material-symbols-outlined combo-icone" aria-hidden="true">search</span>
+                <input
+                  id="vinculo-busca"
+                  type="text"
+                  name="vinculoBusca"
+                  [(ngModel)]="buscaVinculo"
+                  (ngModelChange)="onBuscaVinculo($event)"
+                  (focus)="abrirDropdownVinculo()"
+                  (blur)="ocultarDropdownVinculoComDelay()"
+                  (keydown)="onVinculoKeydown($event)"
+                  placeholder="Busque por nome, cidade, código ou região"
+                  autocomplete="off"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-controls="vinculo-lista"
+                  [attr.aria-expanded]="mostrarDropdownVinculo()"
+                  aria-describedby="vinculo-ajuda vinculo-contagem"
+                />
+                <span class="combo-contador" id="vinculo-contagem">{{ selecao().length }} de 4</span>
+              </div>
+
+              @if (mostrarDropdownVinculo() && buscaVinculo.trim()) {
+                <div class="combo-popup">
+                  <p class="combo-status">
+                    <span>Catálogo oficial CPS</span>
+                    <span aria-live="polite">{{ totalEncontradas }} unidades para “{{ buscaVinculo.trim() }}”</span>
+                  </p>
+                  @if (sugestoesVinculo.length > 0) {
+                    <ul id="vinculo-lista" role="listbox" aria-label="Instituições do catálogo">
+                      @for (inst of sugestoesVinculo; track inst.id; let i = $index) {
+                        <li
+                          role="option"
+                          [id]="'vinculo-opt-' + i"
+                          [attr.aria-selected]="i === destaqueVinculo"
+                          (mousedown)="adicionarVinculo(inst); $event.preventDefault()"
+                          (mouseenter)="destaqueVinculo = i"
+                          class="combo-opcao"
+                          [class.combo-opcao-ativa]="i === destaqueVinculo"
+                        >
+                          @if (temLogoValida(inst.codigoUnidade)) {
+                            <img
+                              [src]="getLogoUrl(inst.codigoUnidade)"
+                              (error)="onLogoError(inst.codigoUnidade)"
+                              [alt]=""
+                              class="combo-logo"
+                            />
+                          } @else {
+                            <span class="combo-logo-fb" aria-hidden="true">
+                              <span class="material-symbols-outlined">school</span>
+                            </span>
+                          }
+                          <span class="combo-texto">
+                            <span class="combo-titulo">{{ inst.nome }}</span>
+                            <span class="combo-meta">Cód. {{ inst.codigoUnidade }} · {{ inst.cidade }}</span>
+                          </span>
+                          @if (i === destaqueVinculo) {
+                            <span class="material-symbols-outlined combo-check" aria-hidden="true">keyboard_return</span>
+                          }
+                        </li>
+                      }
+                    </ul>
+                    @if (totalEncontradas > sugestoesVinculo.length) {
+                      <p class="combo-mais">
+                        … e mais {{ totalEncontradas - sugestoesVinculo.length }} unidades. Refine a busca.
+                      </p>
+                    }
+                  } @else {
+                    <div class="combo-vazio">
+                      <p><strong>Nada encontrado por nome, cidade, código ou região.</strong></p>
+                      <button type="button" class="btn-secundario" (click)="limparBuscaVinculo()">
+                        Limpar busca
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <p class="vinculo-ajuda" id="vinculo-ajuda">
+              Buscamos no catálogo oficial do Centro Paula Souza. Nada aparece antes de digitar.
+            </p>
+            @if (tetoRecusado()) {
+              <p class="vinculo-recusa" role="alert" aria-live="polite">
+                <strong>Máximo de 4 instituições por professor.</strong>
+                Para trocar uma unidade, remova um vínculo da lista.
+              </p>
+            }
+          </div>
+
+          <!-- Fileira de chips -->
+          @if (selecao().length > 0) {
+            <ul class="chip-lista" aria-label="Instituições selecionadas">
+              @for (chip of selecao(); track chip.id) {
+                <li class="chip">
+                  <span class="chip-nome">{{ chip.nome }}</span>
+                  <button
+                    type="button"
+                    class="chip-remover"
+                    (click)="removerVinculo(chip.id)"
+                    [attr.aria-label]="'Remover ' + chip.nome"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <div class="vinculo-rodape">
+            <span class="vinculo-contador" [class.vinculo-contador-teto]="noTeto()">
+              <strong>{{ selecao().length }}</strong> de 4 unidades
+            </span>
+            <span class="vinculo-acoes">
+              @if (temAlteracoes()) {
+                <span class="vinculo-pendente">alterações não salvas</span>
+                <button type="button" class="btn-secundario" (click)="cancelarEdicaoVinculos()">
+                  Cancelar
+                </button>
+              }
+              <button
+                type="button"
+                class="btn-primario"
+                [disabled]="!temAlteracoes() || salvandoVinculos()"
+                (click)="salvarVinculos()"
+              >
+                @if (salvandoVinculos()) {
+                  <span>Salvando…</span>
+                } @else {
+                  <span class="material-symbols-outlined">save</span>
+                  <span>Salvar vínculos</span>
+                }
+              </button>
+            </span>
+          </div>
           <p class="vazio-nota">Você pode alterar a qualquer momento (0 a 4).</p>
-          <!-- TODO(DESIGN 4.4.1): quando as rotas `area-professor` (seleção) e
-               `area-professor/fila` existirem, este CTA navega para a seleção e
-               um link secundário para a Fila de Aprovação. Sem essas rotas, um
-               botão aqui cairia no redirect `**` do roteador. -->
-        </div>
+        }
       </section>
     }
   }
