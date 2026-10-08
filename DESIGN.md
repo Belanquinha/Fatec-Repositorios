@@ -172,6 +172,9 @@ Ação executada pelo sistema imediatamente após o retorno bem-sucedido do flux
 ### 4.4 Professor
 
 #### 4.4.1 Seleção de Instituições / Onboarding (`area-professor`)
+
+> ⚠️ **DEPRECADO em 2026-09-29 (DECISÃO 5-REV) — não implementar a partir daqui.** A rota `area-professor` / `/selecionar-instituicao` **foi removida do produto**; a seleção 0–4 do professor vive exclusivamente na **aba "Instituições (0–4)" do `/perfil`** via `institution-autocomplete mode=multi`. Fonte vigente: `_bmad-output/planning-artifacts/DESIGN.md` + `EXPERIENCE.md` (status final 2026-09-29), consolidação em `UX-SELECAO-INSTITUICOES-PROFESSOR.md`, composição em `mockups/institution-autocomplete.html` Frame B. O texto abaixo é preservado como histórico; o comportamento especificado (contador, chips, Save, recusa inline da 5ª + 400/409) vale **na aba**, não nesta rota.
+
 - **Propósito**: associar de 0 a 4 instituições do catálogo oficial (FR-5/FR-6). É a **landing do 1º acesso** do professor sem vínculos (4.1.1) e a tela de edição acessível a qualquer momento pelo Perfil.
 - **Elementos**: grid de seleção do catálogo (cards/toggles, busca por nome); contador "X de 4"; tentativa de 5ª selecionada é recusada com toast laranja + estado não-selecionado + **reforço no servidor** (400/409); botões "Salvar vínculos" (primário amarelo) e "Agora não" (secundário, visível **apenas em modo onboarding**).
 - **Copy de onboarding** (1º login sem instituições): "Vincule as instituições onde você atua — pode ser feito depois." + nota "Você pode selecionar entre 0 e 4 instituições."
@@ -231,8 +234,8 @@ Ação executada pelo sistema imediatamente após o retorno bem-sucedido do flux
 | `ver-projeto` | Ver Projeto | Visitante | Especificada acima |
 | `meus-projetos` | Meus Projetos | Aluno | Especificada acima |
 | `projeto-forms` | Upload de Projeto (Story 3.1) | Aluno | Especificada acima |
-| `area-professor` | Seleção de Instituições / Onboarding | Professor | Especificada acima |
-| `area-professor/fila` | Fila de Aprovação | Professor | Especificada acima |
+| `area-professor` | Seleção de Instituições / Onboarding | Professor | ~~Especificada acima~~ **REMOVIDA (2026-09-29) — ver aba "Instituições (0–4)" do `/perfil` nos spines (`_bmad-output/planning-artifacts/DESIGN.md` + `EXPERIENCE.md`)** |
+| `area-professor/fila` | Fila de Aprovação | Professor | ~~Especificada acima~~ **REMOVIDA como rota (2026-09-23) — ver aba "Pendentes" do `/perfil` nos spines** |
 | `perfil` | Perfil (aluno e professor) | Autenticado | Especificada acima |
 | `admin-main` | Admin Main | Admin | Especificada acima |
 | `admin-cadastro-instituicao` | Cadastro de Instituição | Admin | Especificada acima |

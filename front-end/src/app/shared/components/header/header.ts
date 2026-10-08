@@ -45,6 +45,9 @@ export class Header implements OnInit, OnDestroy {
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
     }
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
   }
 
   /**
@@ -70,6 +73,7 @@ export class Header implements OnInit, OnDestroy {
 
   mudarMenu(): void {
     this.estadoDoMenuAberto = !this.estadoDoMenuAberto;
+    this.aplicarTravaDeRolagem();
   }
 
   loginMicrosoft(): void {
@@ -85,7 +89,19 @@ export class Header implements OnInit, OnDestroy {
   }
 
   fecharMenu(): void {
+    if (!this.estadoDoMenuAberto) return;
     this.estadoDoMenuAberto = false;
+    this.aplicarTravaDeRolagem();
+  }
+
+  private aplicarTravaDeRolagem(): void {
+    if (typeof document === 'undefined') return;
+    document.body.style.overflow = this.estadoDoMenuAberto ? 'hidden' : '';
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.fecharMenu();
   }
 
   @HostListener('document:click', ['$event'])
@@ -93,10 +109,11 @@ export class Header implements OnInit, OnDestroy {
     if (!this.estadoDoMenuAberto) return;
 
     const target = event.target as HTMLElement;
+    if (target.closest('[data-menu-toggle]')) return;
     if (target.closest('.icon-menu')) return;
     if (target.closest('.profile-btn')) return;
     if (this.menuNav?.nativeElement.contains(target)) return;
 
-    this.estadoDoMenuAberto = false;
+    this.fecharMenu();
   }
 }

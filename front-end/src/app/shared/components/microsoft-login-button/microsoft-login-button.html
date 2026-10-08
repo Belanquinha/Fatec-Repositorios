@@ -1,22 +1,29 @@
 @if (usuarioLogado() && usuario()) {
   @let u = usuario()!;
-  <div class="perfil-container">
+  <div class="flex items-center gap-3 px-3 py-2.5">
     @if (u.foto) {
-      <img [src]="u.foto" alt="Foto de perfil" class="foto-perfil" />
+      <img [src]="u.foto" alt="Foto de perfil" class="h-10 w-10 shrink-0 rounded-full border border-branco-600 object-cover" />
+    } @else {
+      <span class="material-symbols-outlined shrink-0 text-[32px] leading-none text-cinza-300">account_circle</span>
     }
-    <p>Olá, <strong>{{ u.nome }}</strong>!</p>
-    <p class="email">{{ u.email }}</p>
-    <button (click)="logout()">Sair</button>
+    <div class="min-w-0 flex-1">
+      <p class="truncate text-sm font-semibold text-cinza-500">Olá, {{ u.nome }}!</p>
+      <p class="truncate text-xs text-cinza-300">{{ u.email }}</p>
+      <button
+        type="button"
+        (click)="logout()"
+        class="mt-1 text-xs font-medium text-cinza-400 underline-offset-2 transition-colors hover:text-cinza-600 hover:underline">
+        Sair
+      </button>
+    </div>
   </div>
 } @else {
-  <div class="frame-button">
-    <span class="material-symbols-outlined icon">school</span>
-    <button
-      (click)="login()"
-      class="button"
-      [disabled]="inicializando()"
-    >
-      Login com Microsoft
-    </button>
-  </div>
+  <button
+    type="button"
+    (click)="login()"
+    [disabled]="inicializando()"
+    class="flex w-full items-center justify-center gap-2 bg-amarelo-500 px-4 py-2.5 text-sm font-semibold text-cinza-900 transition-colors hover:bg-amarelo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cinza-500 disabled:cursor-not-allowed disabled:opacity-50">
+    <span class="material-symbols-outlined text-[20px] leading-none">school</span>
+    <span>Login com Microsoft</span>
+  </button>
 }

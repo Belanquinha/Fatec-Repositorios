@@ -1,131 +1,158 @@
-<header>
-    <a routerLink="/" class="frame-logo">
-        <img src="Logo.svg" alt="Logo da Empresa" class="logo">
-        <h2 class="titulo-logo">LuePad</h2>
-    </a>
+<header class="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-branco-600 bg-branco-500/90 px-4 backdrop-blur-md sm:px-6">
+  <div class="flex min-w-0 items-center gap-2 sm:gap-3">
+    <button
+      type="button"
+      data-menu-toggle
+      (click)="mudarMenu()"
+      [attr.aria-expanded]="estadoDoMenuAberto"
+      aria-controls="menu-lateral"
+      aria-label="Abrir menu de navegação"
+      class="flex h-10 w-10 items-center justify-center text-cinza-500 transition-colors hover:bg-branco-400 hover:text-cinza-600 focus-visible:outline-2 focus-visible:outline-amarelo-500">
+      <span class="material-symbols-outlined text-[24px] leading-none">{{
+        estadoDoMenuAberto ? 'menu_open' : 'menu'
+      }}</span>
+    </button>
 
-    <div class="frame-links">
-        @if (!logado()) {
-            <a (click)="loginMicrosoft()" class="frame login-label">
-                <span class="material-symbols-outlined icon-header">school</span>
-                <span class="texto-login">Login institucional</span>
-            </a>
+    <a routerLink="/" (click)="fecharMenu()" class="flex min-w-0 items-center gap-2.5" aria-label="Fatec Repositório — início">
+      <img src="Logo.svg" alt="Logo Fatec Repositório" class="h-8 w-8 shrink-0" />
+      <span class="truncate text-base font-bold  text-cinza-400">Fatec TCC's</span>
+    </a>
+  </div>
+
+  <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+    @if (!logado()) {
+      <button
+        type="button"
+        (click)="loginMicrosoft()"
+        class="flex items-center gap-2 bg-amarelo-500 px-3 py-2 text-sm font-semibold text-cinza-900 transition-colors hover:bg-amarelo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cinza-500 sm:px-4">
+        <span class="material-symbols-outlined text-[20px] leading-none">school</span>
+        <span class="hidden sm:inline">Login institucional</span>
+        <span class="sm:hidden">Entrar</span>
+      </button>
+    } @else {
+      <div class="flex items-center gap-2">
+        @if (usuario()?.foto) {
+          <img class="h-8 w-8 rounded-full border border-branco-600 object-cover" [src]="usuario()!.foto" alt="Foto de perfil" />
         } @else {
-            @if (usuario()?.foto) {
-                <img class="profile-photo" [src]="usuario()!.foto" alt="Foto de perfil">
-            } @else {
-                <span class="material-symbols-outlined profile-icon">account_circle</span>
-            }
-            <button class="profile-btn" (click)="mudarMenu()">
-                <span class="profile-name">{{ primeiroNome() }}</span>
-            </button>
+          <span class="material-symbols-outlined text-[28px] leading-none text-cinza-400">account_circle</span>
         }
-        <span class="material-symbols-outlined icon-header icon-menu" 
-            (click)="mudarMenu()"
-            (mouseenter)="isHovered = true"
-            (mouseleave)="isHovered = false">
-            {{ estadoDoMenuAberto || isHovered ? 'menu_open' : 'menu' }}
-        </span>
-    </div>
+        <span class="hidden max-w-[120px] truncate text-sm font-medium text-cinza-500 md:inline">{{ primeiroNome() }}</span>
+      </div>
+    }
+  </div>
 </header>
 
-<!-- daqui pra frente e coisa do menu  -->
+@if (estadoDoMenuAberto) {
+  <div
+    class="fixed inset-0 z-50 bg-cinza-900/40 backdrop-blur-[2px] animate-[fadeIn_0.2s_ease]"
+    (click)="fecharMenu()"
+    aria-hidden="true"></div>
+}
 
-<nav #menuNav [class.menu-aberto]="estadoDoMenuAberto">
-    <section>
-        <h2>Navegação</h2>
-        <ul>
-            <li>
-                <a routerLink="/" class="frame" (click)="fecharMenu()">
-                    <span class="material-symbols-outlined">home</span>
-                    <span class="texto-link">Inicio</span>
-                </a>
-            </li>
-            <li>
-                <a routerLink="/projeto-forms" class="frame" (click)="fecharMenu()">
-                    <span class="material-symbols-outlined">upload</span>
-                    <span class="texto-link">Upload</span>
-                </a>
-            </li>
-        </ul>
-    </section>
-    <hr>
+<nav
+  #menuNav
+  id="menu-lateral"
+  [class.menu-aberto]="estadoDoMenuAberto"
+  [attr.aria-hidden]="!estadoDoMenuAberto"
+  class="fixed bottom-0 left-0 top-0 z-[60] flex w-[85vw] max-w-[320px] flex-col bg-branco-50 shadow-xl">
+  <div class="flex h-16 shrink-0 items-center gap-2 border-b border-branco-600 px-4">
+    <button
+      type="button"
+      data-menu-toggle
+      (click)="fecharMenu()"
+      aria-label="Fechar menu"
+      class="flex h-10 w-10 shrink-0 items-center justify-center text-cinza-500 transition-colors hover:bg-branco-400 hover:text-cinza-600">
+      <span class="material-symbols-outlined text-[24px] leading-none">menu_open</span>
+    </button>
+    <a routerLink="/" (click)="fecharMenu()" aria-label="Fatec Repositório — início" class="flex min-w-0 items-center gap-2">
+      <img src="Logo.svg" alt="Logo Fatec Repositório" class="h-7 w-7 shrink-0" />
+      <span class="truncate text-sm font-bold text-cinza-500">Fatec Repositório</span>
+    </a>
+  </div>
 
-    <section [hidden]="logado() == true">
-        <h2>Login</h2>
-        <ul>
-            <li>
-                <app-microsoft-login-button></app-microsoft-login-button>
-            </li>
-        </ul>
+  <div class="flex-1 overflow-y-auto px-2 py-3">
+    <section aria-label="Navegação principal">
+      <h2 class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-cinza-300">Navegação</h2>
+      <ul class="flex flex-col gap-0.5">
+        <li>
+          <a routerLink="/" (click)="fecharMenu()" routerLinkActive="drawer-ativo" [routerLinkActiveOptions]="{ exact: true }"
+            class="group flex items-center gap-3 border-l-4 border-transparent px-3 py-2.5 text-sm text-cinza-500 transition-colors hover:bg-branco-400">
+            <span class="material-symbols-outlined text-[20px] leading-none text-cinza-400 group-hover:text-cinza-500">home</span>
+            <span>Início</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/projeto-forms" (click)="fecharMenu()" routerLinkActive="drawer-ativo"
+            class="group flex items-center gap-3 border-l-4 border-transparent px-3 py-2.5 text-sm text-cinza-500 transition-colors hover:bg-branco-400">
+            <span class="material-symbols-outlined text-[20px] leading-none text-cinza-400 group-hover:text-cinza-500">upload</span>
+            <span>Upload de projeto</span>
+          </a>
+        </li>
+      </ul>
     </section>
 
-    <section [hidden]="logado() == false">
-        <h2>Perfil</h2>
-        <ul>
-            <li>
-                <a routerLink="/perfil" class="frame" (click)="fecharMenu()">
-                    @if (usuario()?.foto) {
-                        <img class="imagem-perfil" [src]="usuario()!.foto" alt="Foto de perfil">
-                    } @else {
-                        <span class="material-symbols-outlined">account_circle</span>
-                    }
-                    <span class="texto-link">{{ primeiroNome() }}</span>
-                </a>
-            </li>
-            @if (isAdmin()) {
-                <li>
-                    <a routerLink="/projeto-forms" class="frame" (click)="fecharMenu()">
-                        <span class="material-symbols-outlined">admin_panel_settings</span>
-                        <span class="texto-link">Admin</span>
-                    </a>
-                </li>
-            }
-            <li>
-                <a class="frame" (click)="logout()" style="cursor: pointer;">
-                    <span class="material-symbols-outlined">logout</span>
-                    <span class="texto-link">Sair</span>
-                </a>
-            </li>
+    @if (!logado()) {
+      <section aria-label="Acesso" class="mt-3 border-t border-branco-600 pt-1">
+        <h2 class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-cinza-300">Acesso</h2>
+        <div class="px-3 py-1">
+          <app-microsoft-login-button></app-microsoft-login-button>
+        </div>
+      </section>
+    } @else {
+      <section aria-label="Conta" class="mt-3 border-t border-branco-600 pt-1">
+        <h2 class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-cinza-300">Conta</h2>
+        <ul class="flex flex-col gap-0.5">
+          <li>
+            <a routerLink="/perfil" (click)="fecharMenu()" routerLinkActive="drawer-ativo"
+              class="group flex items-center gap-3 border-l-4 border-transparent px-3 py-2.5 text-sm text-cinza-500 transition-colors hover:bg-branco-400">
+              @if (usuario()?.foto) {
+                <img class="h-5 w-5 rounded-full border border-amarelo-500 object-cover" [src]="usuario()!.foto" alt="" aria-hidden="true" />
+              } @else {
+                <span class="material-symbols-outlined text-[20px] leading-none text-cinza-400 group-hover:text-cinza-500">account_circle</span>
+              }
+              <span class="truncate">{{ primeiroNome() || 'Meu perfil' }}</span>
+            </a>
+          </li>
+          <!-- Admin: rotas /admin-main ainda não existem em app.routes.ts; entrada oculta para não gerar navegação quebrada. -->
+          <li>
+            <button type="button" (click)="logout()"
+              class="group flex w-full items-center gap-3 border-l-4 border-transparent px-3 py-2.5 text-left text-sm text-cinza-500 transition-colors hover:bg-branco-400">
+              <span class="material-symbols-outlined text-[20px] leading-none text-cinza-400 group-hover:text-cinza-500">logout</span>
+              <span>Sair</span>
+            </button>
+          </li>
         </ul>
-    </section>
-    <hr>
+      </section>
+    }
 
-    <section>
-        <h2 class="inativo">Procura por</h2>
-        <ul>
-            <li>
-                <a routerLink="/inicio" class="frame">
-                    <span class="material-symbols-outlined inativo">category_search</span>
-                    <span class="texto-link inativo">Curso</span>
-                </a>
-            </li>
-            <li>
-                <a routerLink="/inicio" class="frame">
-                    <span class="material-symbols-outlined inativo">filter_alt</span>
-                    <span class="texto-link inativo">Categorias</span>
-                </a>
-            </li>
-        </ul>
+    <section aria-label="Em breve" class="mt-3 border-t border-branco-600 pt-1">
+      <h2 class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-cinza-300">Descobrir <span class="ml-1 bg-branco-400 px-1.5 py-0.5 text-[10px] font-medium normal-case text-cinza-400">em breve</span></h2>
+      <ul class="flex flex-col gap-0.5" aria-disabled="true">
+        <li>
+          <span class="flex cursor-not-allowed items-center gap-3 px-3 py-2.5 text-sm text-cinza-200">
+            <span class="material-symbols-outlined text-[20px] leading-none">category_search</span>
+            <span>Curso</span>
+          </span>
+        </li>
+        <li>
+          <span class="flex cursor-not-allowed items-center gap-3 px-3 py-2.5 text-sm text-cinza-200">
+            <span class="material-symbols-outlined text-[20px] leading-none">filter_alt</span>
+            <span>Categorias</span>
+          </span>
+        </li>
+        <li>
+          <span class="flex cursor-not-allowed items-center gap-3 px-3 py-2.5 text-sm text-cinza-200">
+            <span class="material-symbols-outlined text-[20px] leading-none">dark_mode</span>
+            <span>Modo escuro</span>
+          </span>
+        </li>
+        <li>
+          <span class="flex cursor-not-allowed items-center gap-3 px-3 py-2.5 text-sm text-cinza-200">
+            <span class="material-symbols-outlined text-[20px] leading-none">settings</span>
+            <span>Configurações</span>
+          </span>
+        </li>
+      </ul>
     </section>
-    <hr>
-
-    <section>
-        <h2 class="inativo">Extras</h2>
-        <ul>
-            <li>
-                <a routerLink="/inicio" class="frame">
-                    <span class="material-symbols-outlined inativo">dark_mode</span>
-                    <span class="texto-link inativo">Modo Escuro [a mudar]</span>
-                </a>
-            </li>
-            <li>
-                <a routerLink="/inicio" class="frame">
-                    <span class="material-symbols-outlined inativo">settings</span>
-                    <span class="texto-link inativo">Configurações</span>
-                </a>
-            </li>
-        </ul>
-    </section>
+  </div>
 </nav>
-

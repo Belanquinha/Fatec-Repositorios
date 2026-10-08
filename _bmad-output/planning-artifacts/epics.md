@@ -163,32 +163,40 @@ So that a lista disponível aos professores reflita os dados oficiais das instit
 - **And** o catálogo oficial é pré-populado no boot a partir dos recursos versionados (seed idempotente, sem importação em runtime)
 - **And** sem papel admin, qualquer alteração de catálogo é negada (403)
 
-### Story 2.2: Professor lista o catálogo oficial
+### Story 2.2: Professor consulta o catálogo oficial (tipo-para-revelar)
 
 As a professor,  
-I want ver a lista oficial de instituições do catálogo,  
-So that eu escolha somente instituições oficiais, sem digitar nome livre.
+I want digitar e ver o catálogo oficial filtrar pela minha consulta,  
+So that eu escolha somente instituições oficiais, sem digitar nome livre e sem percorrer a lista inteira.
 
 **Acceptance Criteria:**
-- **Given** que sou professor autenticado
-- **When** abro a seleção de instituições
-- **Then** vejo a lista do catálogo administrado
-- **And** não existe campo de criação livre de instituição na tela
+- **Given** que sou professor autenticado na aba **"Instituições (0–4)"** do Perfil (`/perfil`, `institution-autocomplete mode=multi`)
+- **When** o campo está vazio (inclusive no foco/clique)
+- **Then** **nenhum popup/lista é exibido** — vejo apenas o texto de ajuda "Buscamos no catálogo oficial do Centro Paula Souza (86 unidades em operação)."
+- **When** digito uma consulta (ex.: "ipe")
+- **Then** o popup filtra o catálogo oficial por `nome`, `cidade`, `codigoUnidade` e `regiaoAdministrativa` (accent-insensitive), ordenado por `nome` e depois `cidade`, com no máximo 20 linhas + "… e mais N unidades. Refine a busca." (contagem anunciada = nº real de correspondências)
+- **And** sem correspondência, o popup mostra o empty state "Nada encontrado por nome, cidade, código ou região." + "Limpar busca" (cinza, sem vermelho)
+- **And** catálogo indisponível mostra no popup "Catálogo indisponível no momento. [Tentar novamente]", mantendo a consulta
+- **And** não existe campo de criação livre de instituição em superfície nenhuma (sem texto livre, sem auto-cadastro)
 
-### Story 2.3: Professor seleciona de 0 a 4 instituições
+### Story 2.3: Professor vincula de 0 a 4 instituições na aba do Perfil
 
 As a professor,  
-I want associar de 0 a 4 instituições do catálogo à minha conta,  
-So that eu gerencie a aprovação apenas das instituições onde atuo.
+I want associar de 0 a 4 instituições do catálogo na aba **"Instituições (0–4)"** do meu Perfil,  
+So that eu gerencie a aprovação apenas das instituições onde atuo, sem sair do meu hub.
 
 **Acceptance Criteria:**
-- **Given** que sou professor autenticado
-- **When** seleciono entre 0 e 4 instituições e salvo (seleção opcional no primeiro login)
-- **Then** o vínculo é salvo com sucesso
-- **And** tentar adicionar uma 5ª instituição é recusado com mensagem clara (limite reforçado no servidor)
+- **Given** que sou professor autenticado no `/perfil`, aba **"Instituições (0–4)"** (título "Vincule as unidades onde você atua", `institution-autocomplete mode=multi` — Frame B de `mockups/institution-autocomplete.html`)
+- **When** confirmo unidades (`Enter`/clique)
+- **Then** cada confirmação **acrescenta um chip e reabre a consulta**; o contador mostra "X de 4 unidades" por extenso (no teto, "4 de 4 unidades" em `accent-ink`); a remoção de chip é **estado local imediato**, sem chamada ao servidor, até o Save
+- **And** com 0 vínculos vejo o onboarding inline "Sem instituições vinculadas ainda — escolha até 4 unidades." + "0 de 4" (mínimo 0 permitido, não bloqueante — FR-6)
+- **When** tento vincular a 5ª unidade
+- **Then** ela é **recusada inline** com "Máximo de 4 instituições por professor", popup continua aberto, sem modal e sem vermelho; para trocar, removo um chip e adiciono outro — **e** o servidor reforça o teto (`PUT /professores/me/instituicoes` com 5+ ids → 409, nada persistido)
+- **When** clico em **"Salvar vínculos"**
+- **Then** os vínculos persistem via `PUT /professores/me/instituicoes` (`{ "instituicaoIds": [...] }`, `[]` válido — contrato em `architecture/architecture-Fatec-Repositorios-2026-10-07-vinculo-professor-instituicao/`); sair/trocar de aba com alterações não salvas pede confirmação; falha no Save mostra painel neutro **acima** do conteúdo da aba **mantendo chips e contagem**, com Save reabilitado
 - **And** posso alterar a seleção no futuro, mantendo entre 0 e 4 instituições
 
-Nota (correção de curso 2026-09-23): a superfície de seleção é apresentada como a aba **"Instituições (0–4)"** do Perfil (FR-13/FR-14), não como rota avulsa; as regras de vínculo 0–4 permanecem inalteradas no servidor.
+Nota (correção de curso 2026-09-23, mantida): a superfície de seleção é a aba **"Instituições (0–4)"** do Perfil (FR-13/FR-14), não rota avulsa; as regras de vínculo 0–4 permanecem inalteradas no servidor.
 
 ---
 
@@ -208,6 +216,9 @@ So that meu trabalho é submetido diretamente para aprovação.
 - **Then** o projeto é salvo diretamente com estado `AGUARDANDO_APROVACAO` (não existe estado rascunho)
 - **And** os integrantes são salvos associados ao projeto (Projeto 1 ── N Integrante) com `nome` e `linkLinkedin`
 - **And** imagens complementares são blocos nativos do Editor.js (não existe `imagensExtras`)
+- **And** a instituição (`instituicaoId`) é escolhida **na Seção 2 do `/projeto-forms`** via `institution-autocomplete mode=single`: nada renderiza antes de digitar; a confirmação (`Enter`/clique) fixa o valor e exibe metadado ("Cód. 291 · São Paulo · Região Litoral") + ação **"Alterar"** (cancelar a edição preserva o valor confirmado); sem texto livre
+- **And** enviar sem confirmar a instituição **não submete**: o foco volta ao campo com borda de erro neutra + mensagem ligada por `aria-describedby`
+- **And** `?instituicaoId=` válido na URL **pré-preenche** o campo já confirmado (deep-link retrocompatível, não produzido por nenhuma UI); id inválido/inativo volta o campo a vazio sem erro
 
 ### Story 3.2: Informar e-mail do professor responsável com autocomplete
 
@@ -223,7 +234,7 @@ So that o projeto registre o responsável de forma consistente, inclusive fora d
 - **And** o atributo `emailProfessorResponsavel` é persistido obrigatoriamente
 - **And** tentar publicar sem `emailProfessorResponsavel` falha
 
-Nota (correção de curso 2026-09-23): o CTA "Novo Projeto" e o acompanhamento do estado vivem na aba **"Meus projetos"** do Perfil (FR-13/FR-14); esta story cobre apenas a criação e as regras da postagem, não superfície própria de listagem.
+Nota (correção de curso 2026-09-23, mantida): o CTA "Novo Projeto" e o acompanhamento do estado vivem na aba **"Meus projetos"** do Perfil (FR-13/FR-14); esta story cobre apenas a criação e as regras da postagem, não superfície própria de listagem. **Não há passo prévio de instituição** — a rota `/selecionar-instituicao` foi removida (2026-09-29).
 
 ---
 
@@ -273,7 +284,7 @@ So that eu conheça os trabalhos desenvolvidos pelos alunos da Fatec/CPS.
 - **Given** que não estou autenticado na aplicação
 - **When** acesso a página de catálogo público (a raiz `/` renderiza a Home — o redirect `'' → projeto-forms` deixa de existir)
 - **Then** visualizo a lista/cards de projetos com estado `APROVADO` (hero tipográfico + busca + filtros + grade; shell header/footer existentes)
-- **And** posso pesquisar por palavras-chave e filtrar por instituição sem requerer token JWT
+- **And** posso pesquisar por palavras-chave e filtrar por instituição **sem requerer token JWT**, sendo o filtro de instituição o `institution-autocomplete mode=filter` (mesmo campo dos outros usos, Frame C de `mockups/institution-autocomplete.html`): digito e o catálogo público filtra (nome, cidade, código, região); a confirmação vira um `institution-chip` removível; a grade filtra **por `instituicaoId`** (o `<select>` antigo com `value = inst.nome` deixa de existir, e com ele o bug de binding); "Limpar" aparece só com filtro ativo; remover o chip restaura o recorte anterior
 - **And** quando **logado**, a Home ganha uma faixa discreta de atalho para o Perfil — mas permanece a voz pública da plataforma (vitrine sem barreira de login)
 
 ### Story 5.2: Visualizar detalhes completos de um projeto aprovado
