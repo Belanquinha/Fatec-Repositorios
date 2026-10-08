@@ -19,6 +19,14 @@ export interface InstituicaoOption {
 export interface ProfessorOption {
   id: string;
   nome: string;
+  // LGPD: a lista (/professores?q) expõe só id+nome; o e-mail vem só do
+  // detalhe do professor selecionado ou da digitação livre (convidado).
+  email?: string;
+}
+
+export interface ProfessorDetalhe {
+  id: string;
+  nome: string;
   email: string;
 }
 

@@ -368,11 +368,10 @@
                   <!-- Dropdown de Sugestões -->
                   @if (mostrarDropdownProfessor() && professoresFiltrados.length > 0) {
                     <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-solid border-cinza-200 rounded-lg shadow-lg max-h-48 overflow-y-auto divide-y divide-cinza-50">
-                      @for (prof of professoresFiltrados; track prof.email) {
+                      @for (prof of professoresFiltrados; track prof.id) {
                         <li (mousedown)="selecionarProfessor(prof)"
                             class="px-4 py-3 hover:bg-amarelo-50 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between text-sm transition-colors">
                           <span class="font-medium text-cinza-800">{{ prof.nome }}</span>
-                          <span class="text-xs text-cinza-400 font-mono">{{ prof.email }}</span>
                         </li>
                       }
                     </ul>

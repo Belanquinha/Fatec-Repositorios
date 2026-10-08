@@ -12,5 +12,4 @@ import java.util.UUID;
 public class ProfessorLookupResponse {
     private UUID id;
     private String nome;
-    private String email;
 }

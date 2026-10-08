@@ -64,12 +64,37 @@ describe('ProjetoService (contrato HTTP)', () => {
       expect(recebido[0].nome).toBe('Fatec Americana');
     });
 
-    it('deve pedir a lista de professores para o autocomplete em GET /professores', () => {
-      service.listarProfessores().subscribe();
+    it('deve buscar professores por nome em GET /professores?q= (LGPD, Story 3.2)', () => {
+      service.buscarProfessores('maria').subscribe();
 
-      const req = http.expectOne(`${base}/professores`);
+      const req = http.expectOne(`${base}/professores?q=maria`);
       expect(req.request.method).toBe('GET');
-      req.flush([]);
+      req.flush([{ id: 'p1', nome: 'Maria Silva' }]);
+    });
+
+    it('não deve expor e-mail em massa na busca (só id+nome)', () => {
+      let recebido: Array<{ id: string; nome: string }> = [];
+      service.buscarProfessores('maria').subscribe((r) => (recebido = r));
+
+      http.expectOne(`${base}/professores?q=maria`).flush([{ id: 'p1', nome: 'Maria Silva' }]);
+
+      expect(recebido[0]).toEqual({ id: 'p1', nome: 'Maria Silva' });
+    });
+
+    it('não deve chamar o backend com termo curto (<2 chars)', () => {
+      let recebido: unknown;
+      service.buscarProfessores('m').subscribe((r) => (recebido = r));
+
+      http.expectNone(`${base}/professores?q=m`);
+      expect(recebido).toEqual([]);
+    });
+
+    it('deve obter o e-mail só no detalhe do selecionado em GET /professores/{id}', () => {
+      service.obterProfessorPorId('p1').subscribe();
+
+      const req = http.expectOne(`${base}/professores/p1`);
+      expect(req.request.method).toBe('GET');
+      req.flush({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' });
     });
   });
 

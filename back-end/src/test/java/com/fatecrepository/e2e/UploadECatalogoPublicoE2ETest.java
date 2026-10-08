@@ -132,12 +132,9 @@ class UploadECatalogoPublicoE2ETest extends ApiE2ETestSupport {
         }
 
         @Test
-        @DisplayName("Lista de professores para autocomplete responde sem token")
-        void listaProfessoresSemToken() {
-            ResponseEntity<String> response = get("/professores");
-
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody()).startsWith("[");
+        @DisplayName("Autocomplete de professores exige sessão (LGPD — sem dump público)")
+        void listaProfessoresExigeSessao() {
+            assertNaoAutorizado(get("/professores"));
         }
 
         @Test

@@ -200,11 +200,12 @@ class AutorizacaoPorPapelE2ETest extends ApiE2ETestSupport {
         }
 
         @Test
-        @DisplayName("Lista de professores é pública (usada no autocomplete da Story 3.2)")
-        void listaProfessoresPublica() {
-            ResponseEntity<String> response = get("/professores");
+        @DisplayName("Autocomplete de professor exige sessão (LGPD — sem dump público)")
+        void listaProfessoresExigeSessao() {
+            assertNaoAutorizado(get("/professores"));
 
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            String aluno = tokenPara("Aluno", "aluno.autocomplete@cps.sp.gov.br", UserRole.ALUNO);
+            assertThat(get("/professores?q=ma", aluno).getStatusCode().value()).isEqualTo(200);
         }
 
         @Test

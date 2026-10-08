@@ -6,6 +6,7 @@ import com.fatecrepository.model.Instituicao;
 import com.fatecrepository.model.User;
 import com.fatecrepository.model.UserRole;
 import com.fatecrepository.repository.InstituicaoRepository;
+import com.fatecrepository.repository.ProfessorInstituicaoRepository;
 import com.fatecrepository.repository.ProjetoRepository;
 import com.fatecrepository.repository.UserRepository;
 import com.fatecrepository.security.JwtTokenProvider;
@@ -66,6 +67,9 @@ abstract class ApiE2ETestSupport {
     @Autowired
     protected ProjetoRepository projetoRepository;
 
+    @Autowired
+    protected ProfessorInstituicaoRepository vinculoRepository;
+
     /**
      * O Boot 4 não auto-configura {@code RestTemplate} nesta combinação de jars,
      * então instanciamos direto.
@@ -73,8 +77,8 @@ abstract class ApiE2ETestSupport {
      * <p>Dois detalhes importam aqui:
      * <ul>
      *   <li>a request factory é a do JDK, porque a do {@code SimpleClientHttpRequestFactory}
-     *       ({@code HttpURLConnection}) descarta o corpo das respostas 4xx — e o corpo
-     *       da resposta 401/403 é justamente o que我们要 asseverar;</li>
+      *       ({@code HttpURLConnection}) descarta o corpo das respostas 4xx — e o corpo
+      *       da resposta 401/403 é justamente o que precisamos asseverar;</li>
      *   <li>o error handler é desligado porque 401/403/404/400 são resultados
      *       esperados e precisam ser asseridos, não lançados como exceção.</li>
      * </ul>
@@ -98,6 +102,7 @@ abstract class ApiE2ETestSupport {
      */
     @BeforeEach
     void limparBase() {
+        vinculoRepository.deleteAll();
         projetoRepository.deleteAll();
         instituicaoRepository.deleteAll();
         userRepository.deleteAll();

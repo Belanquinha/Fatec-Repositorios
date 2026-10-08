@@ -74,14 +74,18 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   professorEmail = '';
   professorStatus: 'cadastrado' | 'novo' | 'vazio' = 'vazio';
   mostrarDropdownProfessor = signal(false);
+  /** Nome confirmado via autocomplete (LGPD: a lista expõe só id+nome). */
+  professorNomeSelecionado: string | null = null;
+  private buscaProfessorTimer: ReturnType<typeof setTimeout> | null = null;
   linkRepositorio = '';
   palavrasChave = '';
 
   /**
-   * Sugestões vindas de `/professores`. Vazio enquanto o backend não responde —
-   * o campo de e-mail continua aceitando digitação livre, só não há autocompletar.
+   * Sugestões vindas de `GET /professores?q=` (autenticado, só id+nome).
+   * Nada é carregado no init — a busca é server-side, sob demanda, a partir
+   * de 2 caracteres do nome. E-mail digitado livremente segue como
+   * "Professor Convidado" (Story 3.2, sem notificação no MVP).
    */
-  professoresBase = signal<ProfessorOption[]>([]);
   professoresFiltrados: ProfessorOption[] = [];
   erroCarregarProfessores = signal(false);
 
@@ -104,7 +108,6 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   erroMensagem = signal<string | null>(null);
 
   ngOnInit() {
-    this.carregarProfessores();
     this.carregarInstituicoes();
 
     this.route.queryParams.subscribe((params) => {
@@ -126,6 +129,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (this.buscaProfessorTimer) {
+      clearTimeout(this.buscaProfessorTimer);
+    }
     this.editorInicializacaoPendente = false;
     this.encadearEditor(async () => {
       await this.sairDaSecaoDoEditor();
@@ -275,18 +281,31 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       .trim();
   }
 
-  private carregarProfessores() {
+  private buscarProfessoresPorNome(termo: string) {
+    if (this.buscaProfessorTimer) {
+      clearTimeout(this.buscaProfessorTimer);
+    }
+    // Digitação livre de e-mail (convidado) não dispara busca.
+    if (termo.includes('@') || termo.trim().length < 2) {
+      this.professoresFiltrados = [];
+      this.mostrarDropdownProfessor.set(false);
+      return;
+    }
     this.erroCarregarProfessores.set(false);
-    this.projetoService.listarProfessores().subscribe({
-      next: (profs) => {
-        this.professoresBase.set(profs ?? []);
-      },
-      error: (err) => {
-        this.professoresBase.set([]);
-        this.erroCarregarProfessores.set(true);
-        console.warn('Não foi possível carregar a lista de professores:', err);
-      },
-    });
+    this.buscaProfessorTimer = setTimeout(() => {
+      this.projetoService.buscarProfessores(termo).subscribe({
+        next: (profs) => {
+          this.professoresFiltrados = profs ?? [];
+          this.mostrarDropdownProfessor.set(this.professoresFiltrados.length > 0);
+        },
+        error: (err) => {
+          this.professoresFiltrados = [];
+          this.mostrarDropdownProfessor.set(false);
+          this.erroCarregarProfessores.set(true);
+          console.warn('Não foi possível buscar professores:', err);
+        },
+      });
+    }, 250);
   }
 
   // --- Inicialização do Editor.js ---
@@ -463,34 +482,54 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.imagemCapaUrl = null;
   }
 
-  // --- Autocomplete Professor Responsável ---
+  // --- Autocomplete Professor Responsável (LGPD: busca por nome) ---
   onProfessorEmailInput() {
-    const busca = this.professorEmail.trim().toLowerCase();
-    const base = this.professoresBase();
-    if (!busca) {
+    const atual = this.professorEmail.trim();
+    if (!atual) {
       this.professoresFiltrados = [];
       this.mostrarDropdownProfessor.set(false);
       this.professorStatus = 'vazio';
+      this.professorNomeSelecionado = null;
       return;
     }
 
-    this.professoresFiltrados = base.filter(
-      (p) =>
-        p.nome.toLowerCase().includes(busca) ||
-        p.email.toLowerCase().includes(busca)
-    );
-    this.mostrarDropdownProfessor.set(this.professoresFiltrados.length > 0);
+    // Valor vindo de seleção confirmada mantém o selo até o usuário editar.
+    if (
+      this.professorStatus === 'cadastrado' &&
+      this.professorNomeSelecionado !== null
+    ) {
+      this.professorStatus = 'vazio';
+      this.professorNomeSelecionado = null;
+    }
 
-    const encontrado = base.some(
-      (p) => p.email.toLowerCase() === busca
-    );
-    this.professorStatus = encontrado ? 'cadastrado' : 'novo';
+    // E-mail digitado diretamente = "Professor Convidado" (Story 3.2 AC).
+    if (atual.includes('@')) {
+      this.professoresFiltrados = [];
+      this.mostrarDropdownProfessor.set(false);
+      this.professorStatus = 'novo';
+      return;
+    }
+    this.professorStatus = 'vazio';
+    this.buscarProfessoresPorNome(atual);
   }
 
   selecionarProfessor(prof: ProfessorOption) {
-    this.professorEmail = prof.email;
-    this.professorStatus = 'cadastrado';
     this.mostrarDropdownProfessor.set(false);
+    this.professoresFiltrados = [];
+    // O e-mail sai só no detalhe do selecionado — nunca em lista.
+    this.projetoService.obterProfessorPorId(prof.id).subscribe({
+      next: (detalhe) => {
+        this.professorEmail = detalhe.email;
+        this.professorNomeSelecionado = detalhe.nome;
+        this.professorStatus = 'cadastrado';
+      },
+      error: (err) => {
+        console.warn('Não foi possível obter o e-mail do professor:', err);
+        this.professorEmail = '';
+        this.professorNomeSelecionado = null;
+        this.professorStatus = 'vazio';
+      },
+    });
   }
 
   ocultarDropdownComDelay() {
@@ -690,6 +729,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.instituicaoDestaque = -1;
     this.professorEmail = '';
     this.professorStatus = 'vazio';
+    this.professorNomeSelecionado = null;
+    this.professoresFiltrados = [];
+    this.mostrarDropdownProfessor.set(false);
     this.erroCarregarProfessores.set(false);
     this.linkRepositorio = '';
     this.palavrasChave = '';

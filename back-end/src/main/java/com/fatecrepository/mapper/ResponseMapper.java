@@ -23,6 +23,9 @@ public class ResponseMapper {
     }
 
     public InstituicaoResponse toInstituicaoResponse(Instituicao instituicao) {
+        if (instituicao == null) {
+            throw new IllegalArgumentException("Instituição vinculada inexistente");
+        }
         return new InstituicaoResponse(
             instituicao.getId(),
             instituicao.getCodigoUnidade(),

@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,6 +23,7 @@ import java.util.List;
 @Slf4j
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -55,7 +57,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/instituicoes/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/uploads").authenticated()
-                .requestMatchers(HttpMethod.GET, "/professores/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/professores/me/instituicoes").hasRole("PROFESSOR")
+                .requestMatchers(HttpMethod.PUT, "/professores/me/instituicoes").hasRole("PROFESSOR")
+                // LGPD: autocomplete de professor exige sessão (lista só id+nome via ?q,
+                // e-mail só no detalhe do selecionado) — nunca dump público em massa.
+                .requestMatchers(HttpMethod.GET, "/professores/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/projetos").authenticated()
                 .requestMatchers(HttpMethod.GET, "/projetos/meus").authenticated()
                 .requestMatchers(HttpMethod.GET, "/projetos/**").permitAll()

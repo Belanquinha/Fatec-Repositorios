@@ -74,10 +74,10 @@ class ProjetoSeedLoaderTest {
         assertThat(goldenMaker.getAnoPublicado()).isEqualTo(2025);
         assertThat(goldenMaker.getAutorEmail()).isEqualTo("aluno.teste@aluno.cps.sp.gov.br");
         assertThat(goldenMaker.getCodigoUnidadeInstituicao()).isEqualTo("003");
-        assertThat(goldenMaker.getIntegrantes()).hasSize(5);
+        assertThat(goldenMaker.getIntegrantes()).hasSize(4);
         assertThat(goldenMaker.getIntegrantes())
                 .extracting(ProjetoSeedDto.IntegranteSeedDto::getNome)
-                .containsExactlyInAnyOrder("Adryelle", "Gabriel", "Luiz", "Shania", "Thiago");
+                .containsExactlyInAnyOrder("Adryelle", "Gabriel", "Luiz", "Shania");
     }
 
     @Test
@@ -112,7 +112,7 @@ class ProjetoSeedLoaderTest {
         assertThat(salvo.getEstado()).isEqualTo(ProjetoEstado.APROVADO);
         assertThat(salvo.getInstituicao()).isEqualTo(fatecSp);
         assertThat(salvo.getAutor()).isEqualTo(autor);
-        assertThat(salvo.getIntegrantes()).hasSize(5);
+        assertThat(salvo.getIntegrantes()).hasSize(4);
     }
 
     @Test
