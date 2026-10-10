@@ -245,14 +245,22 @@ O professor vê a fila de projetos das suas instituições e aprova/rejeita (com
 ### Story 4.1: Professor vê a fila ("Pendentes") na aba do Perfil
 
 As a professor,  
-I want acessar a fila dos projetos vinculados às minhas instituições pela aba **"Pendentes"** do Perfil,  
-So that eu acompanhe e julgue o que foi produzido nas minhas unidades no meu hub.
+I want acessar a fila dos projetos pelos quais sou responsável pela aba **"Pendentes"** do Perfil,  
+So that eu acompanhe e julgue o que me foi submetido no meu hub.
 
 **Acceptance Criteria:**
-- **Given** que sou professor com instituições selecionadas (de 0 a 4) e estou no Perfil
+- **Given** que sou professor autenticado e estou no Perfil
 - **When** aciono a aba "Pendentes"
-- **Then** vejo os projetos das minhas instituições em estado `AGUARDANDO_APROVACAO`, como conteúdo da aba (não como rota paralela)
-- **And** projetos em que meu e-mail é o `emailProfessorResponsavel` aparecem destacados
+- **Then** vejo os projetos em estado `AGUARDANDO_APROVACAO` em que meu e-mail é o `emailProfessorResponsavel` (sem barreira de vínculo), como conteúdo da aba (não como rota paralela)
+- **And** só aparecem projetos de instituição ativa (`ativo=true`; inativa some da fila)
+- **And** o vínculo 0–4 segue como organização da fila no front (aviso para revisar a instituição quando não vinculado), não como autorização
+
+Decisão 2026-10-10 (sprint-planning + code-review, aprovada pelo usuário): **responsável-somente**.
+O vínculo é auto-declarado pelo próprio professor (ele escolhe as 0–4 unidades), logo
+exigi-lo como barreira não adiciona segurança — só fricção. A identidade/autorização
+real vem do MSAL (`emailProfessorResponsavel` == e-mail da conta). Implementado em
+`ProjetoService.listarPendentesParaProfessor` / `verificarPermissaoAvaliacao`; coberto por
+`AvaliacaoProjetoE2ETest` (12 testes). A leitura antiga de "interseção" está superada.
 
 Rationale (correção de curso 2026-09-23): a "fila de aprovação" deixa de ser superfície/rota avulsa e vira aba do hub `/perfil` (CAP-8/FR-14).
 

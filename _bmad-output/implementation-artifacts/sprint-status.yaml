@@ -29,40 +29,40 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-16-2026 00:00
-last_updated: 09-23-2026 12:30
+last_updated: 10-10-2026 12:00 # bmad-sprint-planning: tudo done (review executado + suite verde reportada); retrospectives seguem optional
 project: Fatec-Repositorios
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
 development_status:
-  epic-1: backlog
-  1-1-autenticar-via-msal-restrito-ao-tenant-cps: backlog
-  1-2-classificar-papel-por-domínio-no-back-end: backlog
-  1-3-manter-sessão-e-fazer-logout: backlog
-  1-4-aplicar-autorização-por-papel-no-servidor: backlog
+  epic-1: done
+  1-1-autenticar-via-msal-restrito-ao-tenant-cps: done
+  1-2-classificar-papel-por-domínio-no-back-end: done
+  1-3-manter-sessão-e-fazer-logout: done
+  1-4-aplicar-autorização-por-papel-no-servidor: done
   epic-1-retrospective: optional
 
-  epic-2: in-progress
-  2-1-admin-mantém-o-catálogo-de-instituições: in-progress
-  2-2-professor-lista-o-catálogo-oficial: backlog
-  2-3-professor-seleciona-de-0-a-4-instituições: backlog
+  epic-2: done
+  2-1-admin-mantém-o-catálogo-de-instituições: done
+  2-2-professor-lista-o-catálogo-oficial: done
+  2-3-professor-seleciona-de-0-a-4-instituições: done
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-aluno-cria-e-publica-um-projeto: backlog
-  3-2-selecionar-o-professor-responsável-é-obrigatório: backlog
+  epic-3: done
+  3-1-aluno-cria-e-publica-um-projeto: done
+  3-2-selecionar-o-professor-responsável-é-obrigatório: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-professor-vê-a-fila-pendentes-na-aba-do-perfil: backlog
-  4-2-aprovar-ou-rejeitar-projeto-com-estado-visível: backlog
+  epic-4: done
+  4-1-professor-vê-a-fila-pendentes-na-aba-do-perfil: done # DECIDIDO 2026-10-10: responsável-somente (vínculo não é barreira); AC reescrito no epics.md; E2E AvaliacaoProjetoE2ETest (12 testes)
+  4-2-aprovar-ou-rejeitar-projeto-com-estado-visível: done
   epic-4-retrospective: optional
 
-  epic-5: backlog
-  5-1-pesquisar-e-listar-projetos-aprovados-na-vitrine-pública: backlog
-  5-2-visualizar-detalhes-completos-de-um-projeto-aprovado: backlog
+  epic-5: done
+  5-1-pesquisar-e-listar-projetos-aprovados-na-vitrine-pública: done # verificado 2026-10-10: teste assevera 200, zero PROJETOS_MOCK
+  5-2-visualizar-detalhes-completos-de-um-projeto-aprovado: done
   epic-5-retrospective: optional
 
-  epic-6: backlog
-  6-1-perfil-hub-com-identidade-e-landing-única: backlog
+  epic-6: done
+  6-1-perfil-hub-com-identidade-e-landing-única: done
   epic-6-retrospective: optional
