@@ -112,6 +112,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(
+        org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+        log.warn("Upload excedeu o limite de tamanho: {}", ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.BAD_REQUEST.value(),
+            "Imagem excede o limite de 10MB. Comprima ou escolha um arquivo menor",
+            LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(ConcurrencyFailureException.class)
     public ResponseEntity<ErrorResponse> handleConcurrencyFailure(ConcurrencyFailureException ex) {
         log.warn("Concurrency conflict (provável aborto de serialização, tente novamente): {}", ex.getMessage());

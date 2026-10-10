@@ -63,7 +63,9 @@ public class SecurityConfig {
                 // e-mail só no detalhe do selecionado) — nunca dump público em massa.
                 .requestMatchers(HttpMethod.GET, "/professores/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/projetos").authenticated()
+                .requestMatchers(HttpMethod.GET, "/projetos/pendentes").hasRole("PROFESSOR")
                 .requestMatchers(HttpMethod.GET, "/projetos/meus").authenticated()
+                .requestMatchers(HttpMethod.PATCH, "/projetos/**").hasRole("PROFESSOR")
                 .requestMatchers(HttpMethod.GET, "/projetos/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs").permitAll()
                 .requestMatchers("/error").permitAll()
@@ -98,7 +100,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         log.info("Origens liberadas no CORS: {}", allowedOrigins);
         configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);

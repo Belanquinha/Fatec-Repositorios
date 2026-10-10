@@ -520,6 +520,93 @@
   margin-top: 0.5rem;
 }
 
+/* --- Pendentes para aprovação (professor responsável + vínculo) --- */
+
+.pendente-lista {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pendente-item {
+  border: 1px solid #6a6a6c;
+  border-radius: 0;
+  background: var(--branco-50);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pendente-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.pendente-titulo {
+  font-size: 1rem;
+  color: var(--cinza-500);
+  overflow-wrap: break-word;
+}
+
+.pendente-meta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cinza-300);
+}
+
+.pendente-desc {
+  font-size: 0.875rem;
+  color: var(--cinza-500);
+  overflow-wrap: break-word;
+}
+
+.pendente-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pendente-acoes-linha {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rejeicao-rotulo {
+  width: 100%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-500);
+}
+
+.rejeicao-campo {
+  width: 100%;
+  border: 1px solid #6a6a6c;
+  border-radius: 0;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--cinza-500);
+  background: var(--branco-50);
+  resize: vertical;
+}
+
+.rejeicao-campo:focus {
+  outline: 2px solid #8a6802;
+  border-color: #8a6802;
+}
+
 @keyframes perfil-pulse {
   0%,
   100% {

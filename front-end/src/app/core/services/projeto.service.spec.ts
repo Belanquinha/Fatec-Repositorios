@@ -232,6 +232,46 @@ describe('ProjetoService (contrato HTTP)', () => {
       expect((erro as { status: number }).status).toBe(401);
     });
   });
+
+  describe('aprovação do professor (pendentes → PATCH aprovar/rejeitar)', () => {
+    it('deve listar pendentes em GET /projetos/pendentes', () => {
+      service.listarPendentesAprovacao().subscribe();
+
+      const req = http.expectOne(`${base}/projetos/pendentes`);
+      expect(req.request.method).toBe('GET');
+      req.flush([]);
+    });
+
+    it('deve aprovar em PATCH /projetos/{id}/aprovar', () => {
+      service.aprovarProjeto('proj-1').subscribe();
+
+      const req = http.expectOne(`${base}/projetos/proj-1/aprovar`);
+      expect(req.request.method).toBe('PATCH');
+      req.flush({ id: 'proj-1', estado: 'APROVADO' });
+    });
+
+    it('deve rejeitar em PATCH /projetos/{id}/rejeitar com motivo', () => {
+      service.rejeitarProjeto('proj-1', 'Falta referencial').subscribe();
+
+      const req = http.expectOne(`${base}/projetos/proj-1/rejeitar`);
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ motivo: 'Falta referencial' });
+      req.flush({ id: 'proj-1', estado: 'REJEITADO' });
+    });
+
+    it('deve propagar 403 quando o professor não é o responsável/vinculado', () => {
+      let erro: unknown;
+      service.aprovarProjeto('proj-outra').subscribe({ error: (e) => (erro = e) });
+
+      http.expectOne(`${base}/projetos/proj-outra/aprovar`).flush(
+        { codigo: 403, mensagem: 'Acesso negado' },
+        { status: 403, statusText: 'Forbidden' }
+      );
+
+      expect(erro).toBeTruthy();
+      expect((erro as { status: number }).status).toBe(403);
+    });
+  });
 });
 
 describe('authInterceptor (NFR2 — o front-end não decide papel, só anexa o token)', () => {

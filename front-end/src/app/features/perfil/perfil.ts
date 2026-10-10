@@ -7,7 +7,7 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
 import { UsuarioLogado } from '../../core/auth/models/usuario-logado';
 import { ProjetoService } from '../../core/services/projeto.service';
-import { InstituicaoOption } from '../../core/models/projeto.model';
+import { InstituicaoOption, ProjetoResponseModel } from '../../core/models/projeto.model';
 
 /**
  * Tela de Perfil (DESIGN 4.6 + UX-SELECAO-INSTITUICOES-PROFESSOR Frame B).
@@ -63,6 +63,15 @@ export class Perfil implements OnInit {
   /** Recusa inline da 5ª (AD-4): cinza neutro + aria-live, sem modal. */
   tetoRecusado = signal(false);
   logosComErro = new Set<string>();
+
+  // --- Pendentes para aprovação (professor responsável + vínculo) ---
+  pendentes = signal<ProjetoResponseModel[]>([]);
+  carregandoPendentes = signal(false);
+  erroPendentes = signal<string | null>(null);
+  sucessoAprovacao = signal<string | null>(null);
+  processandoId = signal<string | null>(null);
+  rejeicaoAbertaId = signal<string | null>(null);
+  motivosRejeicao = signal<Record<string, string>>({});
 
   contadorVinculos = computed(() => `${this.selecao().length} de ${this.LIMITE_VINCULOS} unidades`);
   noTeto = computed(() => this.selecao().length >= this.LIMITE_VINCULOS);
@@ -150,6 +159,104 @@ export class Perfil implements OnInit {
       }
       this.carregandoVinculos.set(false);
       this.carregando.set(false);
+    });
+    this.carregarPendentes();
+  }
+
+  /** Pendentes onde o professor é o responsável indicado + vinculado à instituição. */
+  carregarPendentes(): void {
+    this.carregandoPendentes.set(true);
+    this.erroPendentes.set(null);
+    this.projetoService.listarPendentesAprovacao().subscribe({
+      next: (lista) => {
+        this.pendentes.set(lista ?? []);
+        this.carregandoPendentes.set(false);
+      },
+      error: (err) => {
+        console.error('Erro ao carregar pendentes para aprovação:', err);
+        const mensagem =
+          err?.error?.mensagem ||
+          err?.error?.message ||
+          'Não foi possível carregar os projetos pendentes agora. Tente novamente.';
+        this.erroPendentes.set(mensagem);
+        this.carregandoPendentes.set(false);
+      },
+    });
+  }
+
+  tentarNovamentePendentes(): void {
+    this.carregarPendentes();
+  }
+
+  aprovarPendente(id: string): void {
+    if (this.processandoId()) {
+      return;
+    }
+    this.processandoId.set(id);
+    this.erroPendentes.set(null);
+    this.sucessoAprovacao.set(null);
+    this.projetoService.aprovarProjeto(id).subscribe({
+      next: (aprovado) => {
+        this.pendentes.set(this.pendentes().filter((p) => p.id !== id));
+        this.processandoId.set(null);
+        this.sucessoAprovacao.set(
+          `Projeto "${aprovado.titulo}" aprovado e publicado na vitrine.`
+        );
+      },
+      error: (err) => {
+        console.error('Erro ao aprovar projeto:', err);
+        this.processandoId.set(null);
+        const mensagem =
+          err?.error?.mensagem ||
+          err?.error?.message ||
+          'Não foi possível aprovar o projeto agora. Tente novamente.';
+        this.erroPendentes.set(mensagem);
+      },
+    });
+  }
+
+  abrirRejeicao(id: string): void {
+    this.rejeicaoAbertaId.set(id);
+    this.erroPendentes.set(null);
+    this.sucessoAprovacao.set(null);
+  }
+
+  fecharRejeicao(): void {
+    this.rejeicaoAbertaId.set(null);
+  }
+
+  onMotivoRejeicao(id: string, valor: string): void {
+    this.motivosRejeicao.set({ ...this.motivosRejeicao(), [id]: valor });
+  }
+
+  confirmarRejeicao(id: string): void {
+    const motivo = (this.motivosRejeicao()[id] || '').trim();
+    if (!motivo) {
+      this.erroPendentes.set('Informe o motivo da rejeição para o aluno.');
+      return;
+    }
+    if (this.processandoId()) {
+      return;
+    }
+    this.processandoId.set(id);
+    this.erroPendentes.set(null);
+    this.sucessoAprovacao.set(null);
+    this.projetoService.rejeitarProjeto(id, motivo).subscribe({
+      next: (rejeitado) => {
+        this.pendentes.set(this.pendentes().filter((p) => p.id !== id));
+        this.processandoId.set(null);
+        this.rejeicaoAbertaId.set(null);
+        this.sucessoAprovacao.set(`Projeto "${rejeitado.titulo}" rejeitado com retorno ao aluno.`);
+      },
+      error: (err) => {
+        console.error('Erro ao rejeitar projeto:', err);
+        this.processandoId.set(null);
+        const mensagem =
+          err?.error?.mensagem ||
+          err?.error?.message ||
+          'Não foi possível rejeitar o projeto agora. Tente novamente.';
+        this.erroPendentes.set(mensagem);
+      },
     });
   }
 

@@ -35,6 +35,29 @@ interface IntegranteLocal {
   linkedin: string;
 }
 
+/**
+ * Teto de imagem (capa + blocos do Editor.js), espelhando o back-end
+ * (`multipart.max-file-size: 10MB` + `FileStorageService`). O front recusa
+ * antes de enviar para que o usuário veja a mensagem na hora, em vez de um
+ * 413 do nginx / 400 genérico depois do upload.
+ */
+const MAX_IMAGEM_BYTES = 10 * 1024 * 1024;
+const TIPOS_IMAGEM_PERMITIDOS = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+/** Fallback base64 só é seguro para arquivos pequenos; acima disso o JSON estoura o proxy. */
+const MAX_BASE64_FALLBACK_BYTES = 512 * 1024;
+/** Guarda do POST /projetos: abaixo do `client_max_body_size 12m` do nginx. */
+const MAX_PAYLOAD_BYTES = 11 * 1024 * 1024;
+
+function validarArquivoImagem(file: File): string | null {
+  if (!TIPOS_IMAGEM_PERMITIDOS.includes((file.type || '').toLowerCase())) {
+    return 'Tipo de arquivo não permitido. Use PNG, JPG, JPEG ou WEBP.';
+  }
+  if (file.size > MAX_IMAGEM_BYTES) {
+    return `Imagem de ${(file.size / 1024 / 1024).toFixed(1)}MB excede o limite de 10MB. Comprima ou escolha um arquivo menor.`;
+  }
+  return null;
+}
+
 @Component({
   selector: 'app-upload-projeto',
   standalone: true,
@@ -378,6 +401,10 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
             config: {
               uploader: {
                 uploadByFile: async (file: File) => {
+                  const invalido = validarArquivoImagem(file);
+                  if (invalido) {
+                    throw new Error(invalido);
+                  }
                   try {
                     const res = await firstValueFrom(this.projetoService.uploadImagem(file));
                     const fullUrl = res.url.startsWith('http')
@@ -390,6 +417,14 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
                       },
                     };
                   } catch (err) {
+                    // Sem fallback silencioso para arquivos grandes: embutir em
+                    // base64 infla ~33% e o POST /projetos cai com 413 no nginx.
+                    if (file.size > MAX_BASE64_FALLBACK_BYTES) {
+                      console.warn('Upload de imagem falhou, sem fallback base64 (arquivo grande):', err);
+                      throw new Error(
+                        'Não foi possível enviar a imagem ao servidor. Use uma imagem menor (até 10MB) e tente de novo.'
+                      );
+                    }
                     console.warn('Upload remoto de imagem falhou, usando fallback Base64:', err);
                     return new Promise((resolve) => {
                       const reader = new FileReader();
@@ -462,6 +497,13 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const arquivo = input.files[0];
+      const invalido = validarArquivoImagem(arquivo);
+      if (invalido) {
+        this.capaArquivo = null;
+        this.erroMensagem.set(invalido);
+        input.value = '';
+        return;
+      }
       this.capaArquivo = arquivo;
       this.erroMensagem.set(null);
 
@@ -647,14 +689,30 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       // 3. Upload da capa se arquivo físico estiver pendente
       let capaFinalUrl = this.imagemCapaUrl;
       if (this.capaArquivo) {
+        const invalido = validarArquivoImagem(this.capaArquivo);
+        if (invalido) {
+          this.enviando.set(false);
+          this.erroMensagem.set(invalido);
+          this.irParaSecao(1);
+          return;
+        }
         try {
           const uploadRes = await firstValueFrom(this.projetoService.uploadImagem(this.capaArquivo));
           capaFinalUrl = uploadRes.url;
         } catch (uploadErr: any) {
           console.error('Falha no upload da capa:', uploadErr);
-          // Se falhar upload de imagem no backend por estar offline ou não autorizado, prossegue se tiver preview
-          if (!capaFinalUrl && this.capaPreview()) {
-            capaFinalUrl = this.capaPreview();
+          // Nunca envia o preview base64 como imagemCapaUrl: ele infla o JSON
+          // e o POST cai com 413. Só reaproveita URL que já veio do servidor.
+          const jaEhUrl = (capaFinalUrl ?? '').startsWith('/') || (capaFinalUrl ?? '').startsWith('http');
+          if (!jaEhUrl) {
+            this.enviando.set(false);
+            const msgUpload =
+              uploadErr?.error?.mensagem ||
+              uploadErr?.error?.message ||
+              'Não foi possível enviar a capa ao servidor. Use uma imagem até 10MB e tente de novo.';
+            this.erroMensagem.set(msgUpload);
+            this.irParaSecao(1);
+            return;
           }
         }
       }
@@ -684,7 +742,22 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         })),
       };
 
-      // 6. Chamada de criação do projeto
+      // 6. Guarda de tamanho: barra antes do 413 do nginx com mensagem acionável.
+      const tamanhoPayload = JSON.stringify(payload).length;
+      const temBase64Embutido =
+        (payload.conteudoEditorJs ?? '').includes('data:image') ||
+        (payload.imagemCapaUrl ?? '').startsWith('data:');
+      if (temBase64Embutido || tamanhoPayload > MAX_PAYLOAD_BYTES) {
+        this.enviando.set(false);
+        this.erroMensagem.set(
+          temBase64Embutido
+            ? 'Há imagens embutidas no conteúdo (não enviadas ao servidor). Remova-as e reinsira por upload, com arquivos até 10MB.'
+            : `Projeto muito grande (${(tamanhoPayload / 1024 / 1024).toFixed(1)}MB). Reduza as imagens (até 10MB cada) e tente de novo.`
+        );
+        return;
+      }
+
+      // 7. Chamada de criação do projeto
       const projetoCriado = await firstValueFrom(this.projetoService.criarProjeto(payload));
       console.log('Projeto submetido com sucesso:', projetoCriado);
 
@@ -693,11 +766,19 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     } catch (err: any) {
       console.error('Erro ao submeter projeto para avaliação:', err);
       this.enviando.set(false);
+      if (err?.status === 413) {
+        this.erroMensagem.set(
+          'Projeto muito grande para o servidor (limite 10MB por imagem). Comprima as imagens e tente de novo.'
+        );
+        return;
+      }
       const msgErro =
         err?.error?.mensagem ||
         err?.error?.message ||
         'Não foi possível enviar o projeto para avaliação. Verifique sua conexão e tente novamente.';
-      this.erroMensagem.set(msgErro);
+      this.erroMensagem.set(typeof msgErro === 'string' && msgErro.trim().startsWith('<')
+        ? 'O servidor recusou o envio pelo tamanho. Comprima as imagens (até 10MB) e tente de novo.'
+        : msgErro);
     }
   }
 

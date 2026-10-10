@@ -67,6 +67,29 @@ export class ProjetoService {
   }
 
   /**
+   * Pendentes para o professor logado (tela /perfil).
+   * O back-end filtra por: professor responsável indicado na submissão +
+   * vínculo com a instituição do projeto. Sem vínculo ou sem indicação → [].
+   */
+  listarPendentesAprovacao(): Observable<ProjetoResponseModel[]> {
+    return this.http.get<ProjetoResponseModel[]>(`${this.apiUrl}/projetos/pendentes`);
+  }
+
+  aprovarProjeto(id: string): Observable<ProjetoResponseModel> {
+    return this.http.patch<ProjetoResponseModel>(
+      `${this.apiUrl}/projetos/${encodeURIComponent(id)}/aprovar`,
+      {}
+    );
+  }
+
+  rejeitarProjeto(id: string, motivo: string): Observable<ProjetoResponseModel> {
+    return this.http.patch<ProjetoResponseModel>(
+      `${this.apiUrl}/projetos/${encodeURIComponent(id)}/rejeitar`,
+      { motivo }
+    );
+  }
+
+  /**
    * Vínculos do professor (Frame B · aba "Instituições (0–4)" do /perfil).
    * GET retorna 0–4 instituições ordenadas por nome; PUT substitui o conjunto
    * completo (idempotente, [] limpa). Erros 400/404/409 vêm no envelope

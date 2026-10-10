@@ -26,6 +26,9 @@ public class FileStorageService {
         "image/png", "image/jpeg", "image/jpg", "image/webp"
     );
 
+    /** Mesmo teto do multipart no application.yml: barreira amigável antes do 500 do container. */
+    private static final long TAMANHO_MAXIMO_BYTES = 10L * 1024 * 1024;
+
     public FileStorageService(@Value("${app.upload.dir:uploads}") String uploadDir) {
         this.uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
@@ -45,6 +48,10 @@ public class FileStorageService {
         String contentType = file.getContentType();
         if (contentType == null || !EXTENSOES_PERMITIDAS.contains(contentType.toLowerCase())) {
             throw new BadRequestException("Tipo de arquivo não permitido. Use PNG, JPG, JPEG ou WEBP");
+        }
+
+        if (file.getSize() > TAMANHO_MAXIMO_BYTES) {
+            throw new BadRequestException("Imagem excede o limite de 10MB. Comprima ou escolha um arquivo menor");
         }
 
         String originalFilename = file.getOriginalFilename();

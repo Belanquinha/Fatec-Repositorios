@@ -1,6 +1,7 @@
 package com.fatecrepository.controller;
 
 import com.fatecrepository.dto.request.ProjetoCreateRequest;
+import com.fatecrepository.dto.request.RejeitarProjetoRequest;
 import com.fatecrepository.dto.response.ProjetoResponse;
 import com.fatecrepository.exception.UnauthorizedException;
 import com.fatecrepository.security.CustomUserDetails;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,6 +65,27 @@ public class ProjetoController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/pendentes")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    @Operation(summary = "Listar projetos pendentes para o professor logado",
+        description = "Retorna os projetos em AGUARDANDO_APROVACAO onde o professor autenticado é o responsável indicado "
+            + "e está vinculado à instituição do projeto. Usado na tela do professor (/perfil) para aprovar o fluxo de submissão.")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de pendentes retornada (vazia quando sem vínculo ou sem indicação)"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado"),
+        @ApiResponse(responseCode = "403", description = "Papel diferente de PROFESSOR")
+    })
+    public ResponseEntity<List<ProjetoResponse>> listarPendentes(
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+        log.info("GET /projetos/pendentes para o professor: {}", userDetails.getId());
+        return ResponseEntity.ok(projetoService.listarPendentesParaProfessor(userDetails.getId()));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Obter projeto por ID", description = "Retorna os detalhes de um projeto específico")
     @ApiResponses(value = {
@@ -89,5 +112,54 @@ public class ProjetoController {
         log.info("GET /projetos/meus para o usuário: {}", userDetails.getId());
         List<ProjetoResponse> response = projetoService.obterMeusProjetos(userDetails.getId());
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/aprovar")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    @Operation(summary = "Aprovar projeto pendente",
+        description = "Aprova um projeto em AGUARDANDO_APROVACAO. Somente o professor responsável indicado na submissão "
+            + "e vinculado à instituição do projeto pode aprovar (403 caso contrário).")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Projeto aprovado"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado"),
+        @ApiResponse(responseCode = "403", description = "Professor não é o responsável ou não é vinculado à instituição"),
+        @ApiResponse(responseCode = "404", description = "Projeto não encontrado"),
+        @ApiResponse(responseCode = "409", description = "Projeto já avaliado")
+    })
+    public ResponseEntity<ProjetoResponse> aprovar(
+        @Parameter(description = "ID do projeto") @PathVariable UUID id,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+        log.info("PATCH /projetos/{}/aprovar pelo professor: {}", id, userDetails.getId());
+        return ResponseEntity.ok(projetoService.aprovar(id, userDetails.getId()));
+    }
+
+    @PatchMapping("/{id}/rejeitar")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    @Operation(summary = "Rejeitar projeto pendente",
+        description = "Rejeita um projeto em AGUARDANDO_APROVACAO com motivo obrigatório. Mesma regra de permissão da aprovação.")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Projeto rejeitado"),
+        @ApiResponse(responseCode = "400", description = "Motivo ausente"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado"),
+        @ApiResponse(responseCode = "403", description = "Professor não é o responsável ou não é vinculado à instituição"),
+        @ApiResponse(responseCode = "404", description = "Projeto não encontrado"),
+        @ApiResponse(responseCode = "409", description = "Projeto já avaliado")
+    })
+    public ResponseEntity<ProjetoResponse> rejeitar(
+        @Parameter(description = "ID do projeto") @PathVariable UUID id,
+        @Valid @RequestBody RejeitarProjetoRequest request,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+        log.info("PATCH /projetos/{}/rejeitar pelo professor: {}", id, userDetails.getId());
+        return ResponseEntity.ok(projetoService.rejeitar(id, userDetails.getId(), request.getMotivo()));
     }
 }

@@ -50,6 +50,9 @@ describe('Perfil', () => {
       listarInstituicoes: vi.fn().mockReturnValue(of(catalogo)),
       obterMeusVinculos: vi.fn().mockReturnValue(of(vinculos)),
       salvarMeusVinculos: vi.fn().mockReturnValue(of(vinculos)),
+      listarPendentesAprovacao: vi.fn().mockReturnValue(of([])),
+      aprovarProjeto: vi.fn().mockReturnValue(of({})),
+      rejeitarProjeto: vi.fn().mockReturnValue(of({})),
     };
   }
 
@@ -177,11 +180,80 @@ describe('Perfil', () => {
         listarInstituicoes: vi.fn().mockReturnValue(throwError(() => new Error('fora do ar'))),
         obterMeusVinculos: vi.fn().mockReturnValue(of([])),
         salvarMeusVinculos: vi.fn(),
+        listarPendentesAprovacao: vi.fn().mockReturnValue(of([])),
+        aprovarProjeto: vi.fn(),
+        rejeitarProjeto: vi.fn(),
       }
     );
     fixture.detectChanges();
 
     expect(component.erroVinculos()).toContain('Não foi possível carregar');
     expect(fixture.nativeElement.textContent as string).toContain('Tentar novamente');
+  });
+
+  it('professor carrega pendentes para aprovação ao abrir o perfil', async () => {
+    const pendente = {
+      id: 'proj-1',
+      titulo: 'Projeto Pendente',
+      descricaoCurta: 'Descrição',
+      instituicaoNome: 'Fatec Ipiranga',
+      autorNome: 'Aluno',
+      estado: 'AGUARDANDO_APROVACAO',
+    };
+    const mock = projetosProfessor([], [fatecA, fatecB]);
+    mock.listarPendentesAprovacao.mockReturnValue(of([pendente]));
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+
+    expect(mock.listarPendentesAprovacao).toHaveBeenCalled();
+    expect(component.pendentes()).toHaveLength(1);
+    expect(fixture.nativeElement.textContent as string).toContain('Projeto Pendente');
+    expect(fixture.nativeElement.textContent as string).toContain('Aprovar projeto');
+  });
+
+  it('aprovar remove da lista e mostra sucesso', async () => {
+    const pendente = {
+      id: 'proj-1',
+      titulo: 'Projeto Pendente',
+      descricaoCurta: 'Descrição',
+      instituicaoNome: 'Fatec Ipiranga',
+      autorNome: 'Aluno',
+      estado: 'AGUARDANDO_APROVACAO',
+    };
+    const mock = projetosProfessor([], [fatecA, fatecB]);
+    mock.listarPendentesAprovacao.mockReturnValue(of([pendente]));
+    mock.aprovarProjeto.mockReturnValue(of({ ...pendente, estado: 'APROVADO' }));
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+
+    component.aprovarPendente('proj-1');
+
+    expect(mock.aprovarProjeto).toHaveBeenCalledWith('proj-1');
+    expect(component.pendentes()).toHaveLength(0);
+    expect(component.sucessoAprovacao()).toContain('aprovado');
+  });
+
+  it('rejeitar exige motivo e remove da lista', async () => {
+    const pendente = {
+      id: 'proj-1',
+      titulo: 'Projeto Pendente',
+      descricaoCurta: 'Descrição',
+      instituicaoNome: 'Fatec Ipiranga',
+      autorNome: 'Aluno',
+      estado: 'AGUARDANDO_APROVACAO',
+    };
+    const mock = projetosProfessor([], [fatecA, fatecB]);
+    mock.listarPendentesAprovacao.mockReturnValue(of([pendente]));
+    mock.rejeitarProjeto.mockReturnValue(of({ ...pendente, estado: 'REJEITADO' }));
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+
+    component.abrirRejeicao('proj-1');
+    component.confirmarRejeicao('proj-1');
+    expect(component.erroPendentes()).toContain('motivo');
+    expect(mock.rejeitarProjeto).not.toHaveBeenCalled();
+
+    component.onMotivoRejeicao('proj-1', 'Falta referencial teórico');
+    component.confirmarRejeicao('proj-1');
+
+    expect(mock.rejeitarProjeto).toHaveBeenCalledWith('proj-1', 'Falta referencial teórico');
+    expect(component.pendentes()).toHaveLength(0);
   });
 });

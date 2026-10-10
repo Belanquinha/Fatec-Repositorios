@@ -133,3 +133,100 @@ describe('UploadProjeto (autocomplete LGPD, Story 3.2)', () => {
     expect(component.mostrarDropdownProfessor()).toBe(false);
   });
 });
+
+/**
+ * Limites de imagem (capa + Editor.js): o front recusa antes de enviar para
+ * que um arquivo grande vire mensagem acionável, e não um 413 do nginx.
+ */
+describe('UploadProjeto (limites de imagem)', () => {
+  let component: UploadProjeto;
+  let fixture: ComponentFixture<UploadProjeto>;
+
+  const mockProjetoService = {
+    listarInstituicoes: () => of([]),
+    buscarProfessores: () => of([]),
+    obterProfessorPorId: () => of({ id: 'p1', nome: 'Maria', email: 'maria@cps.sp.gov.br' }),
+    uploadImagem: vi.fn(() => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' })),
+    criarProjeto: vi.fn(() => of({ id: '123', titulo: 'Teste' })),
+  };
+
+  function eventoComArquivo(file: File) {
+    return { target: { files: [file], value: 'capa.png' } } as unknown as Event;
+  }
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await TestBed.configureTestingModule({
+      imports: [UploadProjeto],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ProjetoService, useValue: mockProjetoService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UploadProjeto);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('deve recusar capa com tipo não permitido (ex.: GIF)', () => {
+    const gif = new File([new ArrayBuffer(1024)], 'capa.gif', { type: 'image/gif' });
+
+    component.onCapaSelecionada(eventoComArquivo(gif));
+
+    expect(component.capaArquivo).toBeNull();
+    expect(component.erroMensagem()).toContain('Tipo de arquivo não permitido');
+  });
+
+  it('deve recusar capa acima de 10MB antes de enviar', () => {
+    const grande = new File([new ArrayBuffer(11 * 1024 * 1024)], 'capa.png', {
+      type: 'image/png',
+    });
+
+    component.onCapaSelecionada(eventoComArquivo(grande));
+
+    expect(component.capaArquivo).toBeNull();
+    expect(component.erroMensagem()).toContain('10MB');
+  });
+
+  it('deve aceitar capa válida e limpar o erro', () => {
+    const ok = new File([new ArrayBuffer(1024)], 'capa.png', { type: 'image/png' });
+
+    component.onCapaSelecionada(eventoComArquivo(ok));
+
+    expect(component.capaArquivo).toBe(ok);
+    expect(component.erroMensagem()).toBeNull();
+  });
+
+  it('deve barrar o envio quando a capa burlou a seleção e é grande demais', async () => {
+    component.titulo = 'Projeto Teste';
+    component.descricaoCurta = 'Descrição curta';
+    component.instituicaoId = 'inst-1';
+    component.professorEmail = 'prof@cps.sp.gov.br';
+    component.integrantes = [{ id: 1, nome: 'Aluno', linkedin: '' }];
+    component.capaArquivo = new File([new ArrayBuffer(11 * 1024 * 1024)], 'capa.png', {
+      type: 'image/png',
+    });
+
+    await component.enviarParaAvaliacao();
+
+    expect(mockProjetoService.criarProjeto).not.toHaveBeenCalled();
+    expect(component.erroMensagem()).toContain('10MB');
+  });
+
+  it('deve barrar o envio com capa embutida em base64 (upload falhou)', async () => {
+    component.titulo = 'Projeto Teste';
+    component.descricaoCurta = 'Descrição curta';
+    component.instituicaoId = 'inst-1';
+    component.professorEmail = 'prof@cps.sp.gov.br';
+    component.integrantes = [{ id: 1, nome: 'Aluno', linkedin: '' }];
+    component.capaArquivo = null;
+    component.imagemCapaUrl = 'data:image/png;base64,AAAA';
+
+    await component.enviarParaAvaliacao();
+
+    expect(mockProjetoService.criarProjeto).not.toHaveBeenCalled();
+    expect(component.erroMensagem()).toContain('embutida');
+  });
+});

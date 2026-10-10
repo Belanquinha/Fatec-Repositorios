@@ -228,6 +228,105 @@
           <p class="vazio-nota">Você pode alterar a qualquer momento (0 a 4).</p>
         }
       </section>
+
+      <section class="perfil-card" aria-labelledby="pendentes-titulo">
+        <h2 class="secao-titulo" id="pendentes-titulo">Projetos aguardando sua aprovação</h2>
+        <p class="vazio-nota">
+          Aparecem aqui somente os projetos com estado pendente em que você foi indicado como
+          professor responsável e está vinculado à instituição do projeto.
+        </p>
+
+        @if (carregandoPendentes()) {
+          <div aria-busy="true" aria-label="Carregando projetos pendentes">
+            <div class="skeleton-linha skeleton-nome"></div>
+            <div class="skeleton-linha skeleton-email"></div>
+          </div>
+        } @else if (erroPendentes()) {
+          <div class="painel-neutro" role="alert">
+            <span class="material-symbols-outlined">info</span>
+            <span>{{ erroPendentes() }}</span>
+          </div>
+          <button type="button" class="btn-secundario" (click)="tentarNovamentePendentes()">
+            <span class="material-symbols-outlined">refresh</span>
+            <span>Tentar novamente</span>
+          </button>
+        } @else {
+          @if (sucessoAprovacao()) {
+            <p class="painel-sucesso" role="status">
+              <span class="material-symbols-outlined">check_circle</span>
+              <span>{{ sucessoAprovacao() }}</span>
+            </p>
+          }
+          @if (pendentes().length === 0) {
+            <p class="vazio-mensagem">Nenhum projeto pendente para você agora.</p>
+            <p class="vazio-nota">
+              Quando um aluno enviar um projeto indicando seu e-mail e sua unidade, ele aparece aqui
+              para aprovação e depois na vitrine pública.
+            </p>
+          } @else {
+            <ul class="pendente-lista">
+              @for (p of pendentes(); track p.id) {
+                <li class="pendente-item">
+                  <div class="pendente-info">
+                    <strong class="pendente-titulo">{{ p.titulo }}</strong>
+                    <span class="pendente-meta">{{ p.instituicaoNome }} · {{ p.autorNome }}</span>
+                    <span class="pendente-desc">{{ p.descricaoCurta }}</span>
+                  </div>
+                  <div class="pendente-acoes">
+                    <button
+                      type="button"
+                      class="btn-primario"
+                      [disabled]="processandoId() === p.id"
+                      (click)="aprovarPendente(p.id)"
+                      [attr.aria-label]="'Aprovar projeto ' + p.titulo"
+                    >
+                      <span class="material-symbols-outlined">check_circle</span>
+                      <span>{{ processandoId() === p.id ? 'Aprovando…' : 'Aprovar projeto' }}</span>
+                    </button>
+                    @if (rejeicaoAbertaId() !== p.id) {
+                      <button
+                        type="button"
+                        class="btn-secundario"
+                        [disabled]="processandoId() === p.id"
+                        (click)="abrirRejeicao(p.id)"
+                      >
+                        <span>Rejeitar</span>
+                      </button>
+                    } @else {
+                      <label class="rejeicao-rotulo" [for]="'motivo-' + p.id">Motivo da rejeição</label>
+                      <textarea
+                        [id]="'motivo-' + p.id"
+                        class="rejeicao-campo"
+                        rows="2"
+                        placeholder="Explique ao aluno o que ajustar"
+                        [value]="motivosRejeicao()[p.id] || ''"
+                        (input)="onMotivoRejeicao(p.id, $any($event.target).value)"
+                      ></textarea>
+                      <span class="pendente-acoes-linha">
+                        <button
+                          type="button"
+                          class="btn-secundario"
+                          (click)="fecharRejeicao()"
+                        >
+                          <span>Cancelar</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-primario"
+                          [disabled]="processandoId() === p.id"
+                          (click)="confirmarRejeicao(p.id)"
+                        >
+                          <span>Confirmar rejeição</span>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        }
+      </section>
     }
   }
 </div>
