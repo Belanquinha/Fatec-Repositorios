@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ public class Projeto {
     @Column(nullable = false)
     private ProjetoEstado estado = ProjetoEstado.AGUARDANDO_APROVACAO;
 
-    @Column(nullable = true, columnDefinition = "TEXT")
+    @Column(nullable = true, length = 2000, columnDefinition = "TEXT")
     private String motivoRejeicao;
 
     @Column(nullable = false)
@@ -67,6 +68,7 @@ public class Projeto {
 
     @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
+    @BatchSize(size = 32)
     private List<Integrante> integrantes = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
@@ -74,6 +76,16 @@ public class Projeto {
 
     @Column(nullable = false)
     private LocalDateTime atualizadoEm = LocalDateTime.now();
+
+    /**
+     * Lock otimista: duas avaliações concorrentes (aprovar × rejeitar) sobre o mesmo
+     * projeto fazem o perdedor falhar com OptimisticLock → 409 (via
+     * ConcurrencyFailureException), em vez de last-write-wins silencioso.
+     * O default 0 protege linhas legadas criadas antes da coluna existir.
+     */
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private Long versao = 0L;
 
     public void adicionarIntegrante(Integrante integrante) {
         integrantes.add(integrante);

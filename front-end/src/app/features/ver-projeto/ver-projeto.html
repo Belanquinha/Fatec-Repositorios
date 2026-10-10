@@ -208,10 +208,15 @@
                 <dd>{{ p.autorNome }}</dd>
               </div>
             }
-            @if (p.emailProfessorResponsavel) {
+            @if (p.nomeProfessorResponsavel) {
               <div class="detalhe-item">
                 <dt>Professor responsável</dt>
-                <dd class="quebra-email">{{ p.emailProfessorResponsavel }}</dd>
+                <dd>{{ p.nomeProfessorResponsavel }}</dd>
+              </div>
+            } @else {
+              <div class="detalhe-item">
+                <dt>Professor responsável</dt>
+                <dd>Professor Convidado</dd>
               </div>
             }
             @if (p.criadoEm) {

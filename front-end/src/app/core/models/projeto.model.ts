@@ -58,6 +58,8 @@ export interface ProjetoResponseModel {
   estado: 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
   motivoRejeicao?: string;
   emailProfessorResponsavel: string;
+  /** Nome da conta do professor responsável (visão pública/LGPD — e-mail não é mais exposto na vitrine). */
+  nomeProfessorResponsavel?: string | null;
   instituicaoId: string;
   instituicaoNome: string;
   autorId: string;

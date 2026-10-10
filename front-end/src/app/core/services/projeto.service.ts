@@ -59,7 +59,7 @@ export class ProjetoService {
   }
 
   obterProjetoPorId(id: string): Observable<ProjetoResponseModel> {
-    return this.http.get<ProjetoResponseModel>(`${this.apiUrl}/projetos/${id}`);
+    return this.http.get<ProjetoResponseModel>(`${this.apiUrl}/projetos/${encodeURIComponent(id)}`);
   }
 
   obterMeusProjetos(): Observable<ProjetoResponseModel[]> {

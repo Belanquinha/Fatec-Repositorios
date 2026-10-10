@@ -46,7 +46,12 @@ class AutorizacaoPorPapelE2ETest extends ApiE2ETestSupport {
         @EnumSource(value = UserRole.class, names = {"ALUNO", "PROFESSOR"})
         @DisplayName("AC 1.4 — aluno e professor recebem 403 ao criar instituição")
         void criarComoNaoAdminRecebe403(UserRole role) {
-            String token = tokenPara("Usuário " + role, role.name().toLowerCase() + ".e2e@cps.sp.gov.br", role);
+            // Domínio coerente com o papel (regra de UserProvisioningService.classificarPapel):
+            // usuário ALUNO usa @aluno.cps.sp.gov.br — um @cps.sp.gov.br seria PROFESSOR no login real.
+            String email = role == UserRole.ALUNO
+                ? "aluno.e2e@aluno.cps.sp.gov.br"
+                : "professor.e2e@cps.sp.gov.br";
+            String token = tokenPara("Usuário " + role, email, role);
 
             ResponseEntity<String> response = post("/instituicoes", novaInstituicaoPayload(), token);
 
@@ -204,7 +209,7 @@ class AutorizacaoPorPapelE2ETest extends ApiE2ETestSupport {
         void listaProfessoresExigeSessao() {
             assertNaoAutorizado(get("/professores"));
 
-            String aluno = tokenPara("Aluno", "aluno.autocomplete@cps.sp.gov.br", UserRole.ALUNO);
+            String aluno = tokenPara("Aluno", "aluno.autocomplete@aluno.cps.sp.gov.br", UserRole.ALUNO);
             assertThat(get("/professores?q=ma", aluno).getStatusCode().value()).isEqualTo(200);
         }
 

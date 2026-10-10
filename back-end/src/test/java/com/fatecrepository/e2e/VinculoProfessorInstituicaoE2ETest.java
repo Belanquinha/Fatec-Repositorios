@@ -76,7 +76,7 @@ class VinculoProfessorInstituicaoE2ETest extends ApiE2ETestSupport {
     class Validacao {
 
         @Test
-        @DisplayName("PUT 5 ids → 409 com microcopy do teto e nada persistido")
+        @DisplayName("PUT 5 ids → 400 na fronteira (@Size) e nada persistido; 409 segue no service")
         void cincoIdsDa409() {
             String token = tokenPara("Prof Teto", "prof.teto@cps.sp.gov.br", UserRole.PROFESSOR);
             List<UUID> cinco = List.of(
@@ -86,9 +86,11 @@ class VinculoProfessorInstituicaoE2ETest extends ApiE2ETestSupport {
 
             ResponseEntity<String> response = put("/professores/me/instituicoes", payload(cinco), token);
 
-            assertThat(response.getStatusCode().value()).isEqualTo(409);
-            assertThat(texto(response, "codigo")).isEqualTo("409");
-            assertThat(texto(response, "mensagem")).isEqualTo("Máximo de 4 instituições por professor");
+            // A fronteira (@Size max=4 no DTO) barra antes do service: 400 com erro
+            // por campo. O 409 "Máximo de 4 instituições por professor" continua
+            // valendo no service (ProfessorVinculoServiceTest) para quem o chamar direto.
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            assertThat(json(response).path("erros").has("instituicaoIds")).isTrue();
             assertThat(jsonList(get("/professores/me/instituicoes", token))).isEmpty();
         }
 

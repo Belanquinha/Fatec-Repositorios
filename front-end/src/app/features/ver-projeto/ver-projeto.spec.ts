@@ -28,6 +28,7 @@ describe('VerProjeto', () => {
     anoPublicado: 2026,
     estado: 'APROVADO',
     emailProfessorResponsavel: 'professor@cps.sp.gov.br',
+    nomeProfessorResponsavel: 'Prof. Helena',
     instituicaoId: 'inst-1',
     instituicaoNome: 'Fatec Americana',
     autorId: 'u1',
@@ -91,5 +92,12 @@ describe('VerProjeto', () => {
     const erro404 = Object.assign(new Error('Não encontrado'), { status: 404 });
     await configurar('inexistente', erro404);
     expect(component.projetoNaoEncontrado()).toBe(true);
+  });
+
+  it('exibe o nome do professor responsável e nunca o e-mail (LGPD)', async () => {
+    await configurar('p1', projetoMock);
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.textContent).toContain('Prof. Helena');
+    expect(html.textContent).not.toContain('professor@cps.sp.gov.br');
   });
 });

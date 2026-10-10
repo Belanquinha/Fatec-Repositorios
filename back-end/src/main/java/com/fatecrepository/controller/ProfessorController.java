@@ -69,7 +69,14 @@ public class ProfessorController {
     @Operation(summary = "Detalhe do professor selecionado",
         description = "Retorna id+nome+e-mail de UM professor (para preencher "
             + "emailProfessorResponsavel após seleção no autocomplete). Exige autenticação.")
-    public ResponseEntity<ProfessorDetalheResponse> detalharProfessor(@PathVariable UUID id) {
+    public ResponseEntity<ProfessorDetalheResponse> detalharProfessor(
+        @PathVariable UUID id,
+        @AuthenticationPrincipal CustomUserDetails userDetails) {
+        // Auditoria LGPD: o detalhe expõe e-mail pessoal; logar acessor+alvo (só UUIDs,
+        // sem nome/e-mail) permite detectar harvesting (varredura sequencial de /professores/{id}).
+        // Aceite de risco residual: sem rate-limit; logs devem ser monitorados para
+        // rajadas de 404/200 neste endpoint vindas do mesmo acessor.
+        log.info("GET /professores/{} por {}", id, userDetails == null ? "anonimo" : userDetails.getId());
         User professor = userRepository.findById(id)
             .filter(u -> u.getRole() == UserRole.PROFESSOR)
             .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado"));

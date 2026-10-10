@@ -117,11 +117,22 @@ public class GlobalExceptionHandler {
         org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
         log.warn("Upload excedeu o limite de tamanho: {}", ex.getMessage());
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.BAD_REQUEST.value(),
+            HttpStatus.PAYLOAD_TOO_LARGE.value(),
             "Imagem excede o limite de 10MB. Comprima ou escolha um arquivo menor",
             LocalDateTime.now()
         );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(errorResponse);
+    }
+
+    @ExceptionHandler(PayloadTooLargeException.class)
+    public ResponseEntity<ErrorResponse> handlePayloadTooLarge(PayloadTooLargeException ex) {
+        log.warn("Upload excedeu o limite de tamanho: {}", ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.PAYLOAD_TOO_LARGE.value(),
+            ex.getMessage(),
+            LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(errorResponse);
     }
 
     @ExceptionHandler(ConcurrencyFailureException.class)
@@ -137,12 +148,25 @@ public class GlobalExceptionHandler {
             .body(errorResponse);
     }
 
+    @ExceptionHandler({jakarta.persistence.PessimisticLockException.class, jakarta.persistence.LockTimeoutException.class})
+    public ResponseEntity<ErrorResponse> handlePessimisticLock(jakarta.persistence.PessimisticLockException ex) {
+        log.warn("Concurrency conflict (lock pessimista/timeout, tente novamente): {}", ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.CONFLICT.value(),
+            "Conflito de concorrência, tente novamente",
+            LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .header("Retry-After", "1")
+            .body(errorResponse);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMessage());
         ErrorResponse errorResponse = new ErrorResponse(
             HttpStatus.CONFLICT.value(),
-            "Conflito de dados (vínculo duplicado ou limite excedido)",
+            "Conflito de dados",
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);

@@ -53,6 +53,19 @@ public class ProjetoService {
             throw new BadRequestException("O projeto deve conter pelo menos 1 integrante");
         }
 
+        // Story 3.2 + MSAL CPS-only: o responsável precisa ser alcançável pelo login
+        // Microsoft (só @cps.sp.gov.br vira PROFESSOR; @aluno.* e externo caem em ALUNO
+        // e nunca conseguiriam aprovar — seria órfão permanente). Falha rápido aqui.
+        String emailResponsavel = request.getEmailProfessorResponsavel().trim().toLowerCase();
+        if (emailResponsavel.endsWith("@aluno.cps.sp.gov.br") || !emailResponsavel.endsWith("@cps.sp.gov.br")) {
+            throw new BadRequestException("O e-mail do professor responsável deve ser institucional (@cps.sp.gov.br)");
+        }
+        userRepository.findByEmail(emailResponsavel).ifPresent(u -> {
+            if (u.getRole() != UserRole.PROFESSOR) {
+                throw new BadRequestException("O e-mail informado pertence a um usuário que não é professor");
+            }
+        });
+
         Projeto projeto = new Projeto();
         projeto.setTitulo(request.getTitulo().trim());
         projeto.setDescricaoCurta(request.getDescricaoCurta().trim());
@@ -63,7 +76,7 @@ public class ProjetoService {
         projeto.setAnoPublicado(request.getAnoPublicado() != null ? request.getAnoPublicado() : LocalDate.now().getYear());
         projeto.setEstado(ProjetoEstado.AGUARDANDO_APROVACAO); // Regra AD-7: nasce diretamente aguardando aprovação
         projeto.setMotivoRejeicao(null);
-        projeto.setEmailProfessorResponsavel(request.getEmailProfessorResponsavel().trim().toLowerCase()); // Regra AD-6
+        projeto.setEmailProfessorResponsavel(emailResponsavel); // Regra AD-6
         projeto.setInstituicao(instituicao);
         projeto.setAutor(autor);
         projeto.setCriadoEm(LocalDateTime.now());
@@ -80,7 +93,9 @@ public class ProjetoService {
         Projeto salvo = projetoRepository.save(projeto);
         log.info("Projeto criado com sucesso! ID: {}, Estado: {}", salvo.getId(), salvo.getEstado());
 
-        return responseMapper.toProjetoResponse(salvo);
+        ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
+        preencherNomeProfessor(resp);
+        return resp;
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +103,15 @@ public class ProjetoService {
         log.info("Buscando projeto por ID: {}", id);
         Projeto projeto = projetoRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado"));
-        return responseMapper.toProjetoResponse(projeto);
+        ProjetoResponse resp = responseMapper.toProjetoResponse(projeto);
+        preencherNomeProfessor(resp);
+        // Visão pública (GET /projetos/{id} é permitAll): nunca expõe e-mail (LGPD).
+        // Fluxos autenticados (meus/pendentes) mantêm o e-mail para operação.
+        resp.setEmailProfessorResponsavel(null);
+        if (projeto.getEstado() != ProjetoEstado.APROVADO) {
+            resp.setMotivoRejeicao(null);
+        }
+        return resp;
     }
 
     @Transactional(readOnly = true)
@@ -96,7 +119,11 @@ public class ProjetoService {
         log.info("Buscando projetos do autorId: {}", autorId);
         List<Projeto> projetos = projetoRepository.findByAutorIdOrderByCriadoEmDesc(autorId);
         return projetos.stream()
-            .map(responseMapper::toProjetoResponse)
+            .map(p -> {
+                ProjetoResponse resp = responseMapper.toProjetoResponse(p);
+                preencherNomeProfessor(resp);
+                return resp;
+            })
             .toList();
     }
 
@@ -105,7 +132,14 @@ public class ProjetoService {
         log.info("Buscando projetos públicos com estado APROVADO");
         List<Projeto> projetos = projetoRepository.findByEstadoOrderByCriadoEmDesc(ProjetoEstado.APROVADO);
         return projetos.stream()
-            .map(responseMapper::toProjetoResponse)
+            .map(p -> {
+                ProjetoResponse resp = responseMapper.toProjetoResponse(p);
+                preencherNomeProfessor(resp);
+                // Vitrine pública: nome da conta, nunca e-mail (LGPD).
+                resp.setEmailProfessorResponsavel(null);
+                resp.setMotivoRejeicao(null);
+                return resp;
+            })
             .toList();
     }
 
@@ -116,19 +150,20 @@ public class ProjetoService {
         if (professor.getRole() != UserRole.PROFESSOR) {
             throw new AccessDeniedException("Somente professores podem avaliar projetos");
         }
-        List<UUID> instituicoesVinculadas = vinculoRepository.buscarComInstituicao(professorId).stream()
-            .map(v -> v.getInstituicao() != null ? v.getInstituicao().getId() : null)
-            .filter(id -> id != null)
-            .toList();
-        if (instituicoesVinculadas.isEmpty()) {
-            return List.of();
-        }
+        // Regra vigente: fila por e-mail do responsável (sem barreira de vínculo).
+        // O vínculo continua como organização da fila no front (aviso "revise a
+        // instituição"), não como autorização — o vínculo é auto-declarado e a
+        // identidade já é garantida pelo MSAL. Filtro ativo mantido (inativa some da fila).
         List<Projeto> candidatos = projetoRepository
             .findByEstadoAndEmailProfessorResponsavelIgnoreCaseOrderByCriadoEmDesc(
                 ProjetoEstado.AGUARDANDO_APROVACAO, professor.getEmail());
         return candidatos.stream()
-            .filter(p -> p.getInstituicao() != null && instituicoesVinculadas.contains(p.getInstituicao().getId()))
-            .map(responseMapper::toProjetoResponse)
+            .filter(p -> p.getInstituicao() != null && p.getInstituicao().isAtivo())
+            .map(p -> {
+                ProjetoResponse resp = responseMapper.toProjetoResponse(p);
+                preencherNomeProfessor(resp);
+                return resp;
+            })
             .toList();
     }
 
@@ -145,7 +180,9 @@ public class ProjetoService {
         projeto.setAtualizadoEm(LocalDateTime.now());
         Projeto salvo = projetoRepository.save(projeto);
         log.info("Projeto {} APROVADO pelo professor {}", projetoId, professorId);
-        return responseMapper.toProjetoResponse(salvo);
+        ProjetoResponse respAprovado = responseMapper.toProjetoResponse(salvo);
+        preencherNomeProfessor(respAprovado);
+        return respAprovado;
     }
 
     @Transactional
@@ -164,7 +201,26 @@ public class ProjetoService {
         projeto.setAtualizadoEm(LocalDateTime.now());
         Projeto salvo = projetoRepository.save(projeto);
         log.info("Projeto {} REJEITADO pelo professor {}", projetoId, professorId);
-        return responseMapper.toProjetoResponse(salvo);
+        ProjetoResponse respRejeitado = responseMapper.toProjetoResponse(salvo);
+        preencherNomeProfessor(respRejeitado);
+        return respRejeitado;
+    }
+
+    /**
+     * Preenche {@code nomeProfessorResponsavel} a partir da conta cadastrada.
+     * "Professor Convidado" (e-mail livre, Story 3.2) fica com nome null — o front
+     * exibe o rótulo de convidado nesse caso. Nunca falha: lookup é best-effort.
+     */
+    private void preencherNomeProfessor(ProjetoResponse resp) {
+        if (resp == null || resp.getEmailProfessorResponsavel() == null) {
+            return;
+        }
+        try {
+            userRepository.findByEmail(resp.getEmailProfessorResponsavel())
+                .ifPresent(u -> resp.setNomeProfessorResponsavel(u.getNome()));
+        } catch (Exception e) {
+            log.warn("Não foi possível resolver o nome do professor responsável", e);
+        }
     }
 
     private Projeto buscarProjeto(UUID projetoId) {
@@ -183,17 +239,14 @@ public class ProjetoService {
 
     /**
      * Regra de avaliação: somente o professor indicado como responsável na submissão
-     * ({@code emailProfessorResponsavel}) E vinculado à instituição do projeto pode
-     * aprovar/rejeitar. Qualquer outra combinação devolve 403.
+     * ({@code emailProfessorResponsavel}) pode aprovar/rejeitar — sem exigir vínculo
+     * com a instituição (o vínculo é auto-declarado; a identidade vem do MSAL).
+     * O front exibe aviso para revisar a instituição quando não vinculado.
      */
     private void verificarPermissaoAvaliacao(Projeto projeto, User professor) {
         if (projeto.getEmailProfessorResponsavel() == null
             || !projeto.getEmailProfessorResponsavel().equalsIgnoreCase(professor.getEmail())) {
             throw new AccessDeniedException("Somente o professor responsável indicado na submissão pode avaliar este projeto");
-        }
-        if (projeto.getInstituicao() == null
-            || !vinculoRepository.existsByUsuarioIdAndInstituicaoId(professor.getId(), projeto.getInstituicao().getId())) {
-            throw new AccessDeniedException("Professor não vinculado à instituição deste projeto");
         }
     }
 }

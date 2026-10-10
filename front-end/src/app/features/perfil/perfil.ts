@@ -10,6 +10,34 @@ import { ProjetoService } from '../../core/services/projeto.service';
 import { InstituicaoOption, ProjetoResponseModel } from '../../core/models/projeto.model';
 
 /**
+ * Normaliza erro HTTP para mensagem exibível (item 30): o nginx devolve HTML
+ * (ex.: 413 `client_max_body_size`) e o `HttpClient` entrega esse corpo cru em
+ * `err.error` (string começando com `<`) ou dentro de
+ * `err.error.mensagem/message`. Corpo/trecho cru começando com `<` nunca vai
+ * para a tela — cai no `padrao` amigável (mesmo padrão de
+ * `upload-projeto.ts:enviarParaAvaliacao`).
+ */
+function mensagemErroAmigavel(err: unknown, padrao: string): string {
+  const corpo = (err as { error?: unknown })?.error;
+  const bruta =
+    typeof corpo === 'string'
+      ? corpo
+      : (
+        (corpo as { mensagem?: unknown; message?: unknown } | null | undefined)?.mensagem ??
+        (corpo as { message?: unknown } | null | undefined)?.message
+      );
+  if (typeof bruta === 'string') {
+    if (bruta.trim().startsWith('<')) {
+      return padrao;
+    }
+    if (bruta.trim()) {
+      return bruta;
+    }
+  }
+  return padrao;
+}
+
+/**
  * Tela de Perfil (DESIGN 4.6 + UX-SELECAO-INSTITUICOES-PROFESSOR Frame B).
  *
  * Identidade (nome, e-mail, foto, papel) é somente leitura, vinda da sessão.
@@ -64,7 +92,7 @@ export class Perfil implements OnInit {
   tetoRecusado = signal(false);
   logosComErro = new Set<string>();
 
-  // --- Pendentes para aprovação (professor responsável + vínculo) ---
+  // --- Pendentes para aprovação (professor responsável indicado) ---
   pendentes = signal<ProjetoResponseModel[]>([]);
   carregandoPendentes = signal(false);
   erroPendentes = signal<string | null>(null);
@@ -136,34 +164,45 @@ export class Perfil implements OnInit {
   }
 
   private carregarContextoProfessor(): void {
+    this.carregarVinculos();
+    this.carregarPendentes();
+  }
+
+  /** Vínculos + catálogo com falhas independentes: um lado bom nunca é apagado pelo outro. */
+  carregarVinculos(): void {
     this.carregandoVinculos.set(true);
     this.erroVinculos.set(null);
     forkJoin({
       catalogo: this.projetoService.listarInstituicoes().pipe(catchError(() => of(null))),
       vinculos: this.projetoService.obterMeusVinculos().pipe(catchError(() => of(null))),
     }).subscribe(({ catalogo, vinculos }) => {
-      if (catalogo === null || vinculos === null) {
+      if (vinculos === null) {
         this.erroVinculos.set(
           'Não foi possível carregar suas instituições agora. Verifique sua conexão.'
         );
-        this.catalogo.set(catalogo ?? []);
-        this.vinculos.set([]);
-        this.selecao.set([]);
       } else {
-        const ativas = (catalogo ?? []).filter((i) => i.ativo);
-        this.catalogo.set(ativas);
         // Garante ordem por nome como o servidor promete.
         const ordenados = [...(vinculos ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
         this.vinculos.set(ordenados);
+        // A seleção só é sincronizada quando os vínculos carregaram de verdade:
+        // uma falha transitória do catálogo jamais zera vínculos salvos
+        // (PUT [] acidental apagaria tudo).
         this.selecao.set([...ordenados]);
+      }
+      if (catalogo === null) {
+        this.erroVinculos.set(
+          'Não foi possível carregar suas instituições agora. Verifique sua conexão.'
+        );
+      } else {
+        const ativas = (catalogo ?? []).filter((i) => i.ativo);
+        this.catalogo.set(ativas);
       }
       this.carregandoVinculos.set(false);
       this.carregando.set(false);
     });
-    this.carregarPendentes();
   }
 
-  /** Pendentes onde o professor é o responsável indicado + vinculado à instituição. */
+  /** Pendentes onde o professor é o responsável indicado (vínculo não é barreira). */
   carregarPendentes(): void {
     this.carregandoPendentes.set(true);
     this.erroPendentes.set(null);
@@ -174,11 +213,12 @@ export class Perfil implements OnInit {
       },
       error: (err) => {
         console.error('Erro ao carregar pendentes para aprovação:', err);
-        const mensagem =
-          err?.error?.mensagem ||
-          err?.error?.message ||
-          'Não foi possível carregar os projetos pendentes agora. Tente novamente.';
-        this.erroPendentes.set(mensagem);
+        this.erroPendentes.set(
+          mensagemErroAmigavel(
+            err,
+            'Não foi possível carregar os projetos pendentes agora. Tente novamente.'
+          )
+        );
         this.carregandoPendentes.set(false);
       },
     });
@@ -206,11 +246,9 @@ export class Perfil implements OnInit {
       error: (err) => {
         console.error('Erro ao aprovar projeto:', err);
         this.processandoId.set(null);
-        const mensagem =
-          err?.error?.mensagem ||
-          err?.error?.message ||
-          'Não foi possível aprovar o projeto agora. Tente novamente.';
-        this.erroPendentes.set(mensagem);
+        this.erroPendentes.set(
+          mensagemErroAmigavel(err, 'Não foi possível aprovar o projeto agora. Tente novamente.')
+        );
       },
     });
   }
@@ -251,17 +289,16 @@ export class Perfil implements OnInit {
       error: (err) => {
         console.error('Erro ao rejeitar projeto:', err);
         this.processandoId.set(null);
-        const mensagem =
-          err?.error?.mensagem ||
-          err?.error?.message ||
-          'Não foi possível rejeitar o projeto agora. Tente novamente.';
-        this.erroPendentes.set(mensagem);
+        this.erroPendentes.set(
+          mensagemErroAmigavel(err, 'Não foi possível rejeitar o projeto agora. Tente novamente.')
+        );
       },
     });
   }
 
   tentarNovamenteVinculos(): void {
-    this.carregarContextoProfessor();
+    // Retry só da seção de vínculos: não dispara a rede dos pendentes.
+    this.carregarVinculos();
   }
 
   // --- Autocomplete multi (tipo-para-revelar, Frame B §3) ---
@@ -379,11 +416,9 @@ export class Perfil implements OnInit {
         console.error('Erro ao salvar vínculos do professor:', err);
         this.salvandoVinculos.set(false);
         // Mantém chips e contagem; mostra o envelope do servidor em painel neutro.
-        const mensagem =
-          err?.error?.mensagem ||
-          err?.error?.message ||
-          'Não foi possível salvar os vínculos agora. Tente novamente.';
-        this.erroSalvarVinculos.set(mensagem);
+        this.erroSalvarVinculos.set(
+          mensagemErroAmigavel(err, 'Não foi possível salvar os vínculos agora. Tente novamente.')
+        );
       },
     });
   }

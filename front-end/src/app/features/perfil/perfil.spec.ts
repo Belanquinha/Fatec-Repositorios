@@ -191,6 +191,47 @@ describe('Perfil', () => {
     expect(fixture.nativeElement.textContent as string).toContain('Tentar novamente');
   });
 
+  it('falha do catálogo preserva vínculos salvos (sem PUT [] acidental)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
+      {
+        obterMeusProjetos: vi.fn(),
+        listarInstituicoes: vi.fn().mockReturnValue(throwError(() => new Error('fora do ar'))),
+        obterMeusVinculos: vi.fn().mockReturnValue(of([fatecA])),
+        salvarMeusVinculos: vi.fn(),
+        listarPendentesAprovacao: vi.fn().mockReturnValue(of([])),
+        aprovarProjeto: vi.fn(),
+        rejeitarProjeto: vi.fn(),
+      }
+    );
+    fixture.detectChanges();
+
+    expect(component.erroVinculos()).toContain('Não foi possível carregar');
+    expect(component.vinculos().map((v) => v.id)).toEqual(['a']);
+    expect(component.selecao().map((v) => v.id)).toEqual(['a']);
+  });
+
+  it('falha dos vínculos preserva o catálogo carregado', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
+      {
+        obterMeusProjetos: vi.fn(),
+        listarInstituicoes: vi.fn().mockReturnValue(of([fatecA, fatecB])),
+        obterMeusVinculos: vi.fn().mockReturnValue(throwError(() => new Error('fora do ar'))),
+        salvarMeusVinculos: vi.fn(),
+        listarPendentesAprovacao: vi.fn().mockReturnValue(of([])),
+        aprovarProjeto: vi.fn(),
+        rejeitarProjeto: vi.fn(),
+      }
+    );
+    fixture.detectChanges();
+
+    expect(component.erroVinculos()).toContain('Não foi possível carregar');
+    expect(component.catalogo().map((v) => v.id)).toEqual(['a', 'b']);
+  });
+
   it('professor carrega pendentes para aprovação ao abrir o perfil', async () => {
     const pendente = {
       id: 'proj-1',
@@ -255,5 +296,127 @@ describe('Perfil', () => {
 
     expect(mock.rejeitarProjeto).toHaveBeenCalledWith('proj-1', 'Falta referencial teórico');
     expect(component.pendentes()).toHaveLength(0);
+  });
+});
+
+/**
+ * Item 30: corpo HTML cru (ex.: 413 do nginx) nunca vai para a tela —
+ * `err.error` string começando com `<` ou envelope com mensagem `<...`
+ * cai na mensagem amigável.
+ */
+describe('Perfil (erro HTML normalizado, item 30)', () => {
+  const professor = {
+    nome: 'Professor Teste',
+    email: 'professor.teste@cps.sp.gov.br',
+    role: 'PROFESSOR',
+  };
+  const html413 = '<html><body><h1>413 Request Entity Too Large</h1></body></html>';
+
+  async function configurarProfessor(mock: unknown) {
+    await TestBed.configureTestingModule({
+      imports: [Perfil],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) } },
+        { provide: ProjetoService, useValue: mock },
+      ],
+    }).compileComponents();
+    const fx = TestBed.createComponent(Perfil);
+    const comp = fx.componentInstance;
+    await fx.whenStable();
+    fx.detectChanges();
+    return { fx, comp: comp as Perfil };
+  }
+
+  function baseMock() {
+    return {
+      obterMeusProjetos: vi.fn(),
+      listarInstituicoes: vi.fn().mockReturnValue(of([])),
+      obterMeusVinculos: vi.fn().mockReturnValue(of([])),
+      salvarMeusVinculos: vi.fn().mockReturnValue(of([])),
+      listarPendentesAprovacao: vi.fn().mockReturnValue(of([])),
+      aprovarProjeto: vi.fn().mockReturnValue(of({})),
+      rejeitarProjeto: vi.fn().mockReturnValue(of({})),
+    };
+  }
+
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('carregarPendentes troca corpo HTML por mensagem amigável', async () => {
+    const mock = baseMock();
+    mock.listarPendentesAprovacao.mockReturnValue(
+      throwError(() => ({ status: 413, error: html413 }))
+    );
+    const { comp } = await configurarProfessor(mock);
+
+    comp.carregarPendentes();
+    expect(comp.erroPendentes()).toBe(
+      'Não foi possível carregar os projetos pendentes agora. Tente novamente.'
+    );
+    expect(comp.erroPendentes()).not.toContain('<html>');
+  });
+
+  it('aprovarPendente troca envelope com mensagem HTML por amigável', async () => {
+    const mock = baseMock();
+    mock.aprovarProjeto.mockReturnValue(
+      throwError(() => ({ status: 413, error: { mensagem: html413 } }))
+    );
+    const { comp } = await configurarProfessor(mock);
+
+    comp.aprovarPendente('proj-1');
+    expect(comp.erroPendentes()).toBe(
+      'Não foi possível aprovar o projeto agora. Tente novamente.'
+    );
+    expect(comp.erroPendentes()).not.toContain('<html>');
+  });
+
+  it('confirmarRejeicao troca corpo HTML por amigável', async () => {
+    const mock = baseMock();
+    mock.rejeitarProjeto.mockReturnValue(
+      throwError(() => ({ status: 413, error: html413 }))
+    );
+    const { comp } = await configurarProfessor(mock);
+
+    comp.onMotivoRejeicao('proj-1', 'Falta referencial');
+    comp.confirmarRejeicao('proj-1');
+    expect(comp.erroPendentes()).toBe(
+      'Não foi possível rejeitar o projeto agora. Tente novamente.'
+    );
+    expect(comp.erroPendentes()).not.toContain('<html>');
+  });
+
+  it('salvarVinculos troca corpo HTML por amigável e mantém a seleção', async () => {
+    const fatec = { id: 'a', codigoUnidade: '291', nome: 'Fatec Ipiranga', cidade: 'São Paulo', ativo: true };
+    const mock = baseMock();
+    mock.obterMeusVinculos.mockReturnValue(of([]));
+    mock.salvarMeusVinculos.mockReturnValue(
+      throwError(() => ({ status: 413, error: html413 }))
+    );
+    const { comp } = await configurarProfessor(mock);
+
+    comp.adicionarVinculo(fatec as never);
+    comp.salvarVinculos();
+    expect(comp.erroSalvarVinculos()).toBe(
+      'Não foi possível salvar os vínculos agora. Tente novamente.'
+    );
+    expect(comp.erroSalvarVinculos()).not.toContain('<html>');
+    expect(comp.selecao().map((s) => s.id)).toEqual(['a']);
+  });
+
+  it('mantém mensagem JSON normal do servidor quando não é HTML', async () => {
+    const mock = baseMock();
+    mock.aprovarProjeto.mockReturnValue(
+      throwError(() => ({ status: 409, error: { mensagem: 'Projeto já avaliado' } }))
+    );
+    const { comp } = await configurarProfessor(mock);
+
+    comp.aprovarPendente('proj-1');
+    expect(comp.erroPendentes()).toBe('Projeto já avaliado');
   });
 });

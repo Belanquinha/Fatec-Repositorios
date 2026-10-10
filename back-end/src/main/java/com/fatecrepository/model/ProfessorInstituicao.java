@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Entity
@@ -28,8 +27,9 @@ public class ProfessorInstituicao {
     @EqualsAndHashCode.Include
     private UUID id;
 
-    @Column(name = "usuario_id", nullable = false)
-    private UUID usuarioId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private User usuario;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "instituicao_id", nullable = false)
@@ -42,7 +42,7 @@ public class ProfessorInstituicao {
     @PrePersist
     void prePersist() {
         if (criadoEm == null) {
-            criadoEm = LocalDateTime.now(ZoneOffset.UTC);
+            criadoEm = LocalDateTime.now();
         }
     }
 }

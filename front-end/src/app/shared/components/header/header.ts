@@ -29,6 +29,10 @@ export class Header implements OnInit, OnDestroy {
   });
 
   @ViewChild('menuNav') menuNav!: ElementRef<HTMLElement>;
+  /** Foco a restaurar ao fechar o drawer (a11y: o Tab volta para o toggle). */
+  private ultimoFocoAntesDoMenu: HTMLElement | null = null;
+  /** `overflow` do body antes da trava — restaurado ao fechar (não zerado). */
+  private overflowAnteriorDoBody: string | null = null;
 
   constructor(private elementRef: ElementRef, private authService: AuthService, private router: Router) {}
 
@@ -45,8 +49,9 @@ export class Header implements OnInit, OnDestroy {
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
     }
-    if (typeof document !== 'undefined') {
-      document.body.style.overflow = '';
+    if (typeof document !== 'undefined' && this.overflowAnteriorDoBody !== null) {
+      document.body.style.overflow = this.overflowAnteriorDoBody;
+      this.overflowAnteriorDoBody = null;
     }
   }
 
@@ -73,7 +78,17 @@ export class Header implements OnInit, OnDestroy {
 
   mudarMenu(): void {
     this.estadoDoMenuAberto = !this.estadoDoMenuAberto;
-    this.aplicarTravaDeRolagem();
+    if (this.estadoDoMenuAberto) {
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        this.ultimoFocoAntesDoMenu = document.activeElement;
+      }
+      this.aplicarTravaDeRolagem();
+      // Leva o foco para dentro do drawer (sem mudar o visual).
+      queueMicrotask(() => this.menuNav?.nativeElement.focus());
+    } else {
+      this.aplicarTravaDeRolagem();
+      this.restaurarFoco();
+    }
   }
 
   loginMicrosoft(): void {
@@ -92,11 +107,28 @@ export class Header implements OnInit, OnDestroy {
     if (!this.estadoDoMenuAberto) return;
     this.estadoDoMenuAberto = false;
     this.aplicarTravaDeRolagem();
+    this.restaurarFoco();
+  }
+
+  private restaurarFoco(): void {
+    const alvo = this.ultimoFocoAntesDoMenu;
+    this.ultimoFocoAntesDoMenu = null;
+    if (alvo && typeof document !== 'undefined' && document.contains(alvo)) {
+      alvo.focus();
+    }
   }
 
   private aplicarTravaDeRolagem(): void {
     if (typeof document === 'undefined') return;
-    document.body.style.overflow = this.estadoDoMenuAberto ? 'hidden' : '';
+    if (this.estadoDoMenuAberto) {
+      if (this.overflowAnteriorDoBody === null) {
+        this.overflowAnteriorDoBody = document.body.style.overflow;
+      }
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = this.overflowAnteriorDoBody ?? '';
+      this.overflowAnteriorDoBody = null;
+    }
   }
 
   @HostListener('document:keydown.escape')
@@ -110,8 +142,6 @@ export class Header implements OnInit, OnDestroy {
 
     const target = event.target as HTMLElement;
     if (target.closest('[data-menu-toggle]')) return;
-    if (target.closest('.icon-menu')) return;
-    if (target.closest('.profile-btn')) return;
     if (this.menuNav?.nativeElement.contains(target)) return;
 
     this.fecharMenu();

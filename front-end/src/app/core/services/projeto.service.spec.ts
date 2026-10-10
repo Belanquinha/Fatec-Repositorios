@@ -218,6 +218,14 @@ describe('ProjetoService (contrato HTTP)', () => {
       req.flush({ id: 'abc-123' });
     });
 
+    it('deve encodar o id no detalhe (item 23, como aprovar/rejeitar)', () => {
+      service.obterProjetoPorId('a/b c').subscribe();
+
+      const req = http.expectOne(`${base}/projetos/a%2Fb%20c`);
+      expect(req.request.method).toBe('GET');
+      req.flush({ id: 'a/b c' });
+    });
+
     it('deve propagar o erro 401 do back-end em vez de mascará-lo', () => {
       let erro: unknown;
       service.obterMeusProjetos().subscribe({ error: (e) => (erro = e) });

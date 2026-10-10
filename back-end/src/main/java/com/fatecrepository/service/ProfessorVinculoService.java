@@ -7,6 +7,7 @@ import com.fatecrepository.exception.ResourceNotFoundException;
 import com.fatecrepository.mapper.ResponseMapper;
 import com.fatecrepository.model.Instituicao;
 import com.fatecrepository.model.ProfessorInstituicao;
+import com.fatecrepository.model.User;
 import com.fatecrepository.repository.InstituicaoRepository;
 import com.fatecrepository.repository.ProfessorInstituicaoRepository;
 import lombok.RequiredArgsConstructor;
@@ -78,6 +79,9 @@ public class ProfessorVinculoService {
             if (instituicao == null) {
                 throw new ResourceNotFoundException("Instituição não encontrada");
             }
+            if (!instituicao.isAtivo()) {
+                throw new BadRequestException("A instituição selecionada está inativa no catálogo");
+            }
             instituicoes.add(instituicao);
         }
         instituicoes.sort(ordenacao());
@@ -87,7 +91,9 @@ public class ProfessorVinculoService {
             vinculoRepository.flush();
             for (Instituicao instituicao : instituicoes) {
                 ProfessorInstituicao vinculo = new ProfessorInstituicao();
-                vinculo.setUsuarioId(usuarioId);
+                User usuarioRef = new User();
+                usuarioRef.setId(usuarioId);
+                vinculo.setUsuario(usuarioRef);
                 vinculo.setInstituicao(instituicao);
                 vinculoRepository.save(vinculo);
             }

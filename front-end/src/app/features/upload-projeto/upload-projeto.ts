@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   ElementRef,
   OnInit,
   AfterViewInit,
@@ -12,7 +13,9 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject, Subscription, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import EditorJS, { OutputData } from '@editorjs/editorjs';
 import Header from '@editorjs/header';
@@ -43,8 +46,6 @@ interface IntegranteLocal {
  */
 const MAX_IMAGEM_BYTES = 10 * 1024 * 1024;
 const TIPOS_IMAGEM_PERMITIDOS = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-/** Fallback base64 só é seguro para arquivos pequenos; acima disso o JSON estoura o proxy. */
-const MAX_BASE64_FALLBACK_BYTES = 512 * 1024;
 /** Guarda do POST /projetos: abaixo do `client_max_body_size 12m` do nginx. */
 const MAX_PAYLOAD_BYTES = 11 * 1024 * 1024;
 
@@ -69,6 +70,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   private projetoService = inject(ProjetoService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   secaoAtual = 1;
   totalSecoes = 4;
@@ -99,7 +101,17 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   mostrarDropdownProfessor = signal(false);
   /** Nome confirmado via autocomplete (LGPD: a lista expõe só id+nome). */
   professorNomeSelecionado: string | null = null;
-  private buscaProfessorTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Detalhe do professor em voo: enquanto ligado, o submit é bloqueado (anti-race). */
+  carregandoProfessor = signal(false);
+  private selecaoProfessorPendente: string | null = null;
+  /**
+   * Busca de professores com debounce + cancelamento (item 20): o termo entra
+   * em `buscaProfessorTermo$` e o pipeline (`debounceTime` + `distinctUntilChanged`
+   * + `switchMap`) garante que só a última digitação dispare `GET /professores`
+   * e que uma resposta tardia nunca sobrescreva uma mais recente.
+   */
+  private buscaProfessorTermo$ = new Subject<string>();
+  private buscaProfessorInscricao: Subscription | null = null;
   linkRepositorio = '';
   palavrasChave = '';
 
@@ -133,12 +145,36 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     this.carregarInstituicoes();
 
-    this.route.queryParams.subscribe((params) => {
+    // takeUntilDestroyed: a navegação (`atualizarQueryParamInstituicao`, merge)
+    // reusa este componente sem destruí-lo, então take(1) perderia trocas de
+    // `instituicaoId` vindas da URL depois do primeiro emit.
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       if (params['instituicaoId']) {
         this.instituicaoId = params['instituicaoId'];
         this.sincronizarInstituicaoSelecionada();
       }
     });
+
+    this.buscaProfessorInscricao = this.buscaProfessorTermo$
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((termo) =>
+          this.projetoService.buscarProfessores(termo).pipe(
+            catchError((err) => {
+              this.professoresFiltrados = [];
+              this.mostrarDropdownProfessor.set(false);
+              this.erroCarregarProfessores.set(true);
+              console.warn('Não foi possível buscar professores:', err);
+              return of([]);
+            })
+          )
+        )
+      )
+      .subscribe((profs) => {
+        this.professoresFiltrados = profs ?? [];
+        this.mostrarDropdownProfessor.set(this.professoresFiltrados.length > 0);
+      });
   }
 
   ngAfterViewInit() {
@@ -152,9 +188,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.buscaProfessorTimer) {
-      clearTimeout(this.buscaProfessorTimer);
-    }
+    this.buscaProfessorInscricao?.unsubscribe();
+    this.buscaProfessorInscricao = null;
+    this.buscaProfessorTermo$.complete();
     this.editorInicializacaoPendente = false;
     this.encadearEditor(async () => {
       await this.sairDaSecaoDoEditor();
@@ -305,30 +341,16 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private buscarProfessoresPorNome(termo: string) {
-    if (this.buscaProfessorTimer) {
-      clearTimeout(this.buscaProfessorTimer);
-    }
-    // Digitação livre de e-mail (convidado) não dispara busca.
+    // Digitação livre de e-mail (convidado, Story 3.2) não dispara busca.
     if (termo.includes('@') || termo.trim().length < 2) {
       this.professoresFiltrados = [];
       this.mostrarDropdownProfessor.set(false);
       return;
     }
     this.erroCarregarProfessores.set(false);
-    this.buscaProfessorTimer = setTimeout(() => {
-      this.projetoService.buscarProfessores(termo).subscribe({
-        next: (profs) => {
-          this.professoresFiltrados = profs ?? [];
-          this.mostrarDropdownProfessor.set(this.professoresFiltrados.length > 0);
-        },
-        error: (err) => {
-          this.professoresFiltrados = [];
-          this.mostrarDropdownProfessor.set(false);
-          this.erroCarregarProfessores.set(true);
-          console.warn('Não foi possível buscar professores:', err);
-        },
-      });
-    }, 250);
+    // O debounce + cancelamento vive no pipeline de `buscaProfessorTermo$`
+    // (ngOnInit); aqui só produzimos o termo.
+    this.buscaProfessorTermo$.next(termo);
   }
 
   // --- Inicialização do Editor.js ---
@@ -417,27 +439,16 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
                       },
                     };
                   } catch (err) {
-                    // Sem fallback silencioso para arquivos grandes: embutir em
-                    // base64 infla ~33% e o POST /projetos cai com 413 no nginx.
-                    if (file.size > MAX_BASE64_FALLBACK_BYTES) {
-                      console.warn('Upload de imagem falhou, sem fallback base64 (arquivo grande):', err);
-                      throw new Error(
-                        'Não foi possível enviar a imagem ao servidor. Use uma imagem menor (até 10MB) e tente de novo.'
-                      );
-                    }
-                    console.warn('Upload remoto de imagem falhou, usando fallback Base64:', err);
-                    return new Promise((resolve) => {
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        resolve({
-                          success: 1,
-                          file: {
-                            url: reader.result as string,
-                          },
-                        });
-                      };
-                      reader.readAsDataURL(file);
-                    });
+                    // Sem fallback base64 (item 22): `uploadByFile` é o uploader
+                    // de blocos de imagem do Editor.js (único chamador — ver
+                    // grep) e qualquer `data:image/...` embutido é barrado no
+                    // submit por `temBase64Embutido`, então gerar base64 aqui
+                    // seria caminho morto que só adia o erro para um 413 do
+                    // nginx. Falha vira mensagem acionável na hora.
+                    console.warn('Upload de imagem falhou (sem fallback base64):', err);
+                    throw new Error(
+                      'Não foi possível enviar a imagem ao servidor. Use uma imagem menor (até 10MB) e tente de novo.'
+                    );
                   }
                 },
               },
@@ -527,6 +538,10 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   // --- Autocomplete Professor Responsável (LGPD: busca por nome) ---
   onProfessorEmailInput() {
     const atual = this.professorEmail.trim();
+    // Edição manual cancela o detalhe em voo: a resposta tardia não pode
+    // sobrescrever o que o usuário digitou (id check em selecionarProfessor).
+    this.selecaoProfessorPendente = null;
+    this.carregandoProfessor.set(false);
     if (!atual) {
       this.professoresFiltrados = [];
       this.mostrarDropdownProfessor.set(false);
@@ -558,14 +573,29 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   selecionarProfessor(prof: ProfessorOption) {
     this.mostrarDropdownProfessor.set(false);
     this.professoresFiltrados = [];
+    // Trava o submit até o detalhe chegar: sem isso, "selecionar + Enviar"
+    // rápido envia o e-mail antigo/vazio (ou o de outra seleção anterior).
+    this.selecaoProfessorPendente = prof.id;
+    this.carregandoProfessor.set(true);
     // O e-mail sai só no detalhe do selecionado — nunca em lista.
     this.projetoService.obterProfessorPorId(prof.id).subscribe({
       next: (detalhe) => {
+        // Resposta de seleção superada (duplo clique rápido): ignora.
+        if (this.selecaoProfessorPendente !== prof.id) {
+          return;
+        }
+        this.selecaoProfessorPendente = null;
+        this.carregandoProfessor.set(false);
         this.professorEmail = detalhe.email;
         this.professorNomeSelecionado = detalhe.nome;
         this.professorStatus = 'cadastrado';
       },
       error: (err) => {
+        if (this.selecaoProfessorPendente !== prof.id) {
+          return;
+        }
+        this.selecaoProfessorPendente = null;
+        this.carregandoProfessor.set(false);
         console.warn('Não foi possível obter o e-mail do professor:', err);
         this.professorEmail = '';
         this.professorNomeSelecionado = null;
@@ -673,6 +703,14 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // Detalhe do professor selecionado ainda em voo: enviar agora usaria o
+    // e-mail antigo/vazio. Bloqueia com mensagem em vez de adivinhar.
+    if (this.carregandoProfessor()) {
+      this.erroMensagem.set('Aguarde a confirmação do professor selecionado antes de enviar.');
+      this.irParaSecao(2);
+      return;
+    }
+
     const integrantesValidos = this.integrantes.filter((i) => i.nome.trim().length > 0);
     if (integrantesValidos.length === 0) {
       this.erroMensagem.set('Informe ao menos um integrante com o nome completo preenchido.');
@@ -743,7 +781,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       };
 
       // 6. Guarda de tamanho: barra antes do 413 do nginx com mensagem acionável.
-      const tamanhoPayload = JSON.stringify(payload).length;
+      // Mede em bytes UTF-8 (não em UTF-16 `.length`): acentos/emoji contam
+      // mais de 1 byte no fio e o limite do nginx é em bytes.
+      const tamanhoPayload = new TextEncoder().encode(JSON.stringify(payload)).length;
       const temBase64Embutido =
         (payload.conteudoEditorJs ?? '').includes('data:image') ||
         (payload.imagemCapaUrl ?? '').startsWith('data:');
@@ -811,6 +851,8 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.professorEmail = '';
     this.professorStatus = 'vazio';
     this.professorNomeSelecionado = null;
+    this.selecaoProfessorPendente = null;
+    this.carregandoProfessor.set(false);
     this.professoresFiltrados = [];
     this.mostrarDropdownProfessor.set(false);
     this.erroCarregarProfessores.set(false);

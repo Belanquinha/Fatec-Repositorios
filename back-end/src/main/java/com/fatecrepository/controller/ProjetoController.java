@@ -3,6 +3,7 @@ package com.fatecrepository.controller;
 import com.fatecrepository.dto.request.ProjetoCreateRequest;
 import com.fatecrepository.dto.request.RejeitarProjetoRequest;
 import com.fatecrepository.dto.response.ProjetoResponse;
+import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.UnauthorizedException;
 import com.fatecrepository.security.CustomUserDetails;
 import com.fatecrepository.service.ProjetoService;
@@ -118,14 +119,14 @@ public class ProjetoController {
     @PreAuthorize("hasRole('PROFESSOR')")
     @Operation(summary = "Aprovar projeto pendente",
         description = "Aprova um projeto em AGUARDANDO_APROVACAO. Somente o professor responsável indicado na submissão "
-            + "e vinculado à instituição do projeto pode aprovar (403 caso contrário).")
+            + "pode aprovar (403 caso contrário; vínculo não é exigido — revise a instituição no front).")
     @SecurityRequirement(name = "Bearer JWT")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Projeto aprovado"),
         @ApiResponse(responseCode = "401", description = "Não autenticado"),
-        @ApiResponse(responseCode = "403", description = "Professor não é o responsável ou não é vinculado à instituição"),
+        @ApiResponse(responseCode = "403", description = "Professor não é o responsável indicado"),
         @ApiResponse(responseCode = "404", description = "Projeto não encontrado"),
-        @ApiResponse(responseCode = "409", description = "Projeto já avaliado")
+        @ApiResponse(responseCode = "409", description = "Projeto já avaliado ou avaliação concorrente")
     })
     public ResponseEntity<ProjetoResponse> aprovar(
         @Parameter(description = "ID do projeto") @PathVariable UUID id,
@@ -147,9 +148,9 @@ public class ProjetoController {
         @ApiResponse(responseCode = "200", description = "Projeto rejeitado"),
         @ApiResponse(responseCode = "400", description = "Motivo ausente"),
         @ApiResponse(responseCode = "401", description = "Não autenticado"),
-        @ApiResponse(responseCode = "403", description = "Professor não é o responsável ou não é vinculado à instituição"),
+        @ApiResponse(responseCode = "403", description = "Professor não é o responsável indicado"),
         @ApiResponse(responseCode = "404", description = "Projeto não encontrado"),
-        @ApiResponse(responseCode = "409", description = "Projeto já avaliado")
+        @ApiResponse(responseCode = "409", description = "Projeto já avaliado ou avaliação concorrente")
     })
     public ResponseEntity<ProjetoResponse> rejeitar(
         @Parameter(description = "ID do projeto") @PathVariable UUID id,
@@ -158,6 +159,9 @@ public class ProjetoController {
     ) {
         if (userDetails == null) {
             throw new UnauthorizedException("Usuário não autenticado");
+        }
+        if (request == null) {
+            throw new BadRequestException("O motivo da rejeição é obrigatório");
         }
         log.info("PATCH /projetos/{}/rejeitar pelo professor: {}", id, userDetails.getId());
         return ResponseEntity.ok(projetoService.rejeitar(id, userDetails.getId(), request.getMotivo()));

@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { UploadProjeto } from './upload-projeto';
 
 import { provideHttpClient } from '@angular/common/http';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { vi } from 'vitest';
 import { ProjetoService } from '../../core/services/projeto.service';
 
@@ -132,6 +132,48 @@ describe('UploadProjeto (autocomplete LGPD, Story 3.2)', () => {
     expect(component.professoresFiltrados).toEqual([]);
     expect(component.mostrarDropdownProfessor()).toBe(false);
   });
+
+  it('bloqueia o envio enquanto o detalhe do professor está em voo (anti-race)', async () => {
+    const detalhePendente = new Subject<{ id: string; nome: string; email: string }>();
+    mockProjetoService.obterProfessorPorId.mockReturnValueOnce(detalhePendente.asObservable());
+    const criarSpy = vi.fn(() => of({ id: '123', titulo: 'Teste' }));
+    (mockProjetoService as { criarProjeto: unknown }).criarProjeto = criarSpy;
+
+    component.selecionarProfessor({ id: 'p1', nome: 'Maria Silva' });
+    expect(component.carregandoProfessor()).toBe(true);
+
+    // Formulário válido para chegar até a guarda do professor em voo.
+    component.titulo = 'Projeto Teste';
+    component.descricaoCurta = 'Descrição curta válida';
+    component.imagemCapaUrl = '/uploads/capa.png';
+    component.instituicaoId = 'inst-1';
+    component.professorEmail = 'antigo@cps.sp.gov.br';
+    component.integrantes = [{ id: 1, nome: 'Ana', linkedin: '' }];
+
+    await component.enviarParaAvaliacao();
+
+    expect(criarSpy).not.toHaveBeenCalled();
+    expect(component.erroMensagem()).toContain('Aguarde a confirmação do professor');
+
+    detalhePendente.next({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' });
+    expect(component.carregandoProfessor()).toBe(false);
+    expect(component.professorEmail).toBe('maria@cps.sp.gov.br');
+  });
+
+  it('ignora resposta de seleção superada (duplo clique rápido)', () => {
+    const primeira = new Subject<{ id: string; nome: string; email: string }>();
+    mockProjetoService.obterProfessorPorId
+      .mockReturnValueOnce(primeira.asObservable())
+      .mockReturnValueOnce(of({ id: 'p2', nome: 'João Souza', email: 'joao@cps.sp.gov.br' }));
+
+    component.selecionarProfessor({ id: 'p1', nome: 'Maria Silva' });
+    component.selecionarProfessor({ id: 'p2', nome: 'João Souza' });
+
+    // A primeira resposta chega atrasada: não pode sobrescrever a seleção atual.
+    primeira.next({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' });
+    expect(component.professorEmail).toBe('joao@cps.sp.gov.br');
+    expect(component.carregandoProfessor()).toBe(false);
+  });
 });
 
 /**
@@ -228,5 +270,86 @@ describe('UploadProjeto (limites de imagem)', () => {
 
     expect(mockProjetoService.criarProjeto).not.toHaveBeenCalled();
     expect(component.erroMensagem()).toContain('embutida');
+  });
+});
+
+/**
+ * Item 20: debounce com cancelamento — Subject + debounceTime(250) + switchMap.
+ * Só a última digitação dispara GET /professores; resposta tardia não
+ * sobrescreve a mais recente.
+ */
+describe('UploadProjeto (debounce com cancelamento, item 20)', () => {
+  let component: UploadProjeto;
+  let fixture: ComponentFixture<UploadProjeto>;
+
+  const mockProjetoService = {
+    listarInstituicoes: () => of([]),
+    buscarProfessores: vi.fn(() => of([{ id: 'p1', nome: 'Maria Silva' }])),
+    obterProfessorPorId: vi.fn(() =>
+      of({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' })
+    ),
+    uploadImagem: () => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' }),
+    criarProjeto: () => of({ id: '123', titulo: 'Teste' }),
+  };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await TestBed.configureTestingModule({
+      imports: [UploadProjeto],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ProjetoService, useValue: mockProjetoService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UploadProjeto);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  let destruido = false;
+
+  afterEach(() => {
+    if (!destruido) {
+      fixture.destroy();
+    }
+  });
+
+  it('só a última digitação dentro da janela dispara a busca (switchMap)', async () => {
+    component.professorEmail = 'mar';
+    component.onProfessorEmailInput();
+    await new Promise((r) => setTimeout(r, 100));
+    component.professorEmail = 'mari';
+    component.onProfessorEmailInput();
+
+    expect(mockProjetoService.buscarProfessores).not.toHaveBeenCalled();
+    await new Promise((r) => setTimeout(r, 350));
+
+    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledTimes(1);
+    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledWith('mari');
+    expect(component.mostrarDropdownProfessor()).toBe(true);
+  });
+
+  it('não repete a busca para o mesmo termo em sequência (distinctUntilChanged)', async () => {
+    component.professorEmail = 'maria';
+    component.onProfessorEmailInput();
+    await new Promise((r) => setTimeout(r, 350));
+    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledTimes(1);
+
+    component.professorEmail = 'maria';
+    component.onProfessorEmailInput();
+    await new Promise((r) => setTimeout(r, 350));
+    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancela a inscrição no destroy (sem busca após ngOnDestroy)', async () => {
+    fixture.destroy();
+    destruido = true;
+    component.professorEmail = 'maria';
+    component.onProfessorEmailInput();
+    await new Promise((r) => setTimeout(r, 350));
+
+    expect(mockProjetoService.buscarProfessores).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,7 @@ package com.fatecrepository.mapper;
 import com.fatecrepository.dto.response.AuthResponse;
 import com.fatecrepository.dto.response.InstituicaoResponse;
 import com.fatecrepository.dto.response.UsuarioResponse;
+import com.fatecrepository.exception.ResourceNotFoundException;
 import com.fatecrepository.model.Instituicao;
 import com.fatecrepository.model.User;
 import org.springframework.stereotype.Component;
@@ -24,7 +25,7 @@ public class ResponseMapper {
 
     public InstituicaoResponse toInstituicaoResponse(Instituicao instituicao) {
         if (instituicao == null) {
-            throw new IllegalArgumentException("Instituição vinculada inexistente");
+            throw new ResourceNotFoundException("Instituição vinculada inexistente");
         }
         return new InstituicaoResponse(
             instituicao.getId(),
@@ -64,6 +65,11 @@ public class ResponseMapper {
         java.util.List<com.fatecrepository.dto.response.IntegranteResponse> integrantes = projeto.getIntegrantes() != null
             ? projeto.getIntegrantes().stream().map(this::toIntegranteResponse).toList()
             : java.util.Collections.emptyList();
+        // Cópia defensiva: nunca vazar a coleção persistente (PersistentBag) para o DTO.
+        // Com open-in-view desligado, serializar a bag fora da sessão dá LazyInitializationException.
+        java.util.List<String> palavrasChave = projeto.getPalavrasChave() != null
+            ? new java.util.ArrayList<>(projeto.getPalavrasChave())
+            : java.util.Collections.emptyList();
 
         return new com.fatecrepository.dto.response.ProjetoResponse(
             projeto.getId(),
@@ -72,11 +78,12 @@ public class ResponseMapper {
             projeto.getConteudoEditorJs(),
             projeto.getLinkRepositorio(),
             projeto.getImagemCapaUrl(),
-            projeto.getPalavrasChave(),
+            palavrasChave,
             projeto.getAnoPublicado(),
             projeto.getEstado().name(),
             projeto.getMotivoRejeicao(),
             projeto.getEmailProfessorResponsavel(),
+            null, // nomeProfessorResponsavel: preenchido pelo ProjetoService via lookup (LGPD)
             projeto.getInstituicao() != null ? projeto.getInstituicao().getId() : null,
             projeto.getInstituicao() != null ? projeto.getInstituicao().getNome() : null,
             projeto.getAutor() != null ? projeto.getAutor().getId() : null,

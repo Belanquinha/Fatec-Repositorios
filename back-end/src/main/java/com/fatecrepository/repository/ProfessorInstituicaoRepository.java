@@ -10,12 +10,10 @@ import java.util.UUID;
 
 public interface ProfessorInstituicaoRepository extends JpaRepository<ProfessorInstituicao, UUID> {
 
-    @Query("select v from ProfessorInstituicao v join fetch v.instituicao where v.usuarioId = :usuarioId")
+    @Query("select v from ProfessorInstituicao v join fetch v.instituicao where v.usuario.id = :usuarioId")
     List<ProfessorInstituicao> buscarComInstituicao(@Param("usuarioId") UUID usuarioId);
 
     void deleteByUsuarioId(UUID usuarioId);
 
     boolean existsByUsuarioIdAndInstituicaoId(UUID usuarioId, UUID instituicaoId);
-
-    long countByUsuarioId(UUID usuarioId);
 }

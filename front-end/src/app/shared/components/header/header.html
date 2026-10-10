@@ -6,7 +6,7 @@
       (click)="mudarMenu()"
       [attr.aria-expanded]="estadoDoMenuAberto"
       aria-controls="menu-lateral"
-      aria-label="Abrir menu de navegação"
+      [attr.aria-label]="estadoDoMenuAberto ? 'Fechar menu de navegação' : 'Abrir menu de navegação'"
       class="flex h-10 w-10 items-center justify-center text-cinza-500 transition-colors hover:bg-branco-400 hover:text-cinza-600 focus-visible:outline-2 focus-visible:outline-amarelo-500">
       <span class="material-symbols-outlined text-[24px] leading-none">{{
         estadoDoMenuAberto ? 'menu_open' : 'menu'
@@ -52,6 +52,11 @@
 <nav
   #menuNav
   id="menu-lateral"
+  tabindex="-1"
+  aria-label="Menu de navegação"
+  [attr.role]="estadoDoMenuAberto ? 'dialog' : null"
+  [attr.aria-modal]="estadoDoMenuAberto ? 'true' : null"
+  [attr.inert]="!estadoDoMenuAberto ? '' : null"
   [class.menu-aberto]="estadoDoMenuAberto"
   [attr.aria-hidden]="!estadoDoMenuAberto"
   class="fixed bottom-0 left-0 top-0 z-[60] flex w-[85vw] max-w-[320px] flex-col bg-branco-50 shadow-xl">

@@ -132,6 +132,10 @@ abstract class ApiE2ETestSupport {
         return exchange(HttpMethod.PUT, path, body, token);
     }
 
+    protected ResponseEntity<String> patch(String path, Object body, String token) {
+        return exchange(HttpMethod.PATCH, path, body, token);
+    }
+
     protected ResponseEntity<String> delete(String path, String token) {
         return exchange(HttpMethod.DELETE, path, null, token);
     }

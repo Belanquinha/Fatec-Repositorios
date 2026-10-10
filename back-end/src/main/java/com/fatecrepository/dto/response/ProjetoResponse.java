@@ -23,6 +23,8 @@ public class ProjetoResponse {
     private String estado;
     private String motivoRejeicao;
     private String emailProfessorResponsavel;
+    /** Nome da conta do professor responsável (visão pública/LGPD — nunca expor e-mail na vitrine). */
+    private String nomeProfessorResponsavel;
     private UUID instituicaoId;
     private String instituicaoNome;
     private UUID autorId;

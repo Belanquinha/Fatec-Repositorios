@@ -198,10 +198,15 @@ class PostagemProjetoE2ETest extends ApiE2ETestSupport {
             Map<String, Object> body = payloadValido();
             body.put("emailProfessorResponsavel", "Professor.Convidado@CPS.SP.GOV.BR");
 
-            String id = json(post("/projetos", body, tokenAluno)).path("id").asText();
+            ResponseEntity<String> criado = post("/projetos", body, tokenAluno);
+            assertThat(criado.getStatusCode().value()).isEqualTo(201);
+            String id = json(criado).path("id").asText();
 
-            assertThat(json(get("/projetos/" + id)).path("emailProfessorResponsavel").asText())
+            // A resposta de criação (autenticada) mantém o e-mail normalizado;
+            // a visão pública (GET /projetos/{id}) expõe só o nome (LGPD).
+            assertThat(json(criado).path("emailProfessorResponsavel").asText())
                 .isEqualTo("professor.convidado@cps.sp.gov.br");
+            assertThat(json(get("/projetos/" + id)).path("emailProfessorResponsavel").isNull()).isTrue();
         }
 
         @Test
@@ -219,15 +224,24 @@ class PostagemProjetoE2ETest extends ApiE2ETestSupport {
         }
 
         @Test
-        @DisplayName("E-mail de professor fora do tenant é aceito como 'Professor Convidado'")
+        @DisplayName("E-mail fora do tenant é recusado (MSAL CPS-only — seria órfão sem login)")
         void professorConvidadoForaDoTenant() {
             Map<String, Object> body = payloadValido();
             body.put("emailProfessorResponsavel", "convidado@universidade-externa.edu.br");
 
             ResponseEntity<String> response = post("/projetos", body, tokenAluno);
 
-            assertThat(response.getStatusCode().value()).isEqualTo(201);
-            assertThat(texto(response, "emailProfessorResponsavel")).isEqualTo("convidado@universidade-externa.edu.br");
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            assertThat(texto(response, "mensagem")).contains("@cps.sp.gov.br");
+        }
+
+        @Test
+        @DisplayName("E-mail de aluno como responsável é recusado (aluno nunca aprova)")
+        void emailAlunoComoResponsavel400() {
+            Map<String, Object> body = payloadValido();
+            body.put("emailProfessorResponsavel", "aluno.qualquer@aluno.cps.sp.gov.br");
+
+            assertThat(post("/projetos", body, tokenAluno).getStatusCode().value()).isEqualTo(400);
         }
     }
 

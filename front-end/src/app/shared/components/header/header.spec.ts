@@ -146,3 +146,138 @@ describe('Header', () => {
     expect(erroSpy).toHaveBeenCalled();
   });
 });
+
+/**
+ * Item 24: drawer a11y — role/dialog + aria-modal ao abrir, inert ao fechar,
+ * retorno de foco, Escape e preservação do overflow anterior do body.
+ */
+describe('Header (drawer a11y, item 24)', () => {
+  let component: Header;
+  let fixture: ComponentFixture<Header>;
+  let authServiceDouble: {
+    quandoPronto: ReturnType<typeof vi.fn>;
+    obterUsuarioLogado: ReturnType<typeof vi.fn>;
+    loginMicrosoft: ReturnType<typeof vi.fn>;
+    logout: ReturnType<typeof vi.fn>;
+    isAdmin: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(async () => {
+    authServiceDouble = {
+      quandoPronto: vi.fn().mockResolvedValue(undefined),
+      obterUsuarioLogado: vi.fn().mockResolvedValue(null),
+      loginMicrosoft: vi.fn().mockResolvedValue(undefined),
+      logout: vi.fn(),
+      isAdmin: vi.fn().mockReturnValue(false),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([]), { provide: AuthService, useValue: authServiceDouble }],
+    })
+      .overrideComponent(Header, {
+        remove: { imports: [MicrosoftLoginButton] },
+        add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] },
+      })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(Header);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    document.body.style.overflow = '';
+    vi.restoreAllMocks();
+  });
+
+  function navEl(): HTMLElement {
+    return fixture.nativeElement.querySelector('#menu-lateral') as HTMLElement;
+  }
+
+  function toggles(): HTMLElement[] {
+    return Array.from(
+      fixture.nativeElement.querySelectorAll('[data-menu-toggle]')
+    ) as HTMLElement[];
+  }
+
+  /**
+   * Mesmo padrão do bloco acima (zoneless): descarrega a navegação inicial do
+   * Router e as continuações de `iniciarSessao()` antes de alternar o drawer.
+   */
+  async function estabilizar(): Promise<void> {
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    TestBed.inject(ApplicationRef).tick();
+  }
+
+  /**
+   * O drawer é alternado por clique real (como o usuário faz), nunca por
+   * chamada imperativa + `detectChanges`: `estadoDoMenuAberto` é uma
+   * propriedade simples e, no modo zoneless, só o evento notifica o
+   * scheduler e marca a view como suja. Chamada direta deixa a view limpa —
+   * o `detectChanges` vira no-op e o `checkNoChanges` do dev-mode acusa
+   * NG0100 em `aria-expanded` (quirk pré-existente do harness, reproduz no
+   * código original sem as mudanças de a11y).
+   */
+  function clicarToggleAbrir(): void {
+    toggles()[0].click();
+    fixture.detectChanges();
+  }
+
+  function clicarToggleFechar(): void {
+    const lista = toggles();
+    lista[lista.length - 1].click();
+    fixture.detectChanges();
+  }
+
+  it('expõe role=dialog + aria-modal aberto e inert + aria-hidden fechado', async () => {
+    await estabilizar();
+    expect(navEl().getAttribute('aria-hidden')).toBe('true');
+    expect(navEl().hasAttribute('inert')).toBe(true);
+    expect(navEl().getAttribute('role')).toBeNull();
+
+    clicarToggleAbrir();
+
+    expect(navEl().getAttribute('role')).toBe('dialog');
+    expect(navEl().getAttribute('aria-modal')).toBe('true');
+    expect(navEl().hasAttribute('inert')).toBe(false);
+
+    clicarToggleFechar();
+
+    expect(navEl().getAttribute('aria-hidden')).toBe('true');
+    expect(navEl().hasAttribute('inert')).toBe(true);
+  });
+
+  it('fecha com Escape (HostListener)', async () => {
+    await estabilizar();
+    clicarToggleAbrir();
+    expect(component.estadoDoMenuAberto).toBe(true);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component.estadoDoMenuAberto).toBe(false);
+  });
+
+  it('restaura o overflow anterior do body em vez de zerar', () => {
+    document.body.style.overflow = 'auto';
+    component.mudarMenu();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    component.fecharMenu();
+    expect(document.body.style.overflow).toBe('auto');
+  });
+
+  it('retorna o foco ao toggle ao fechar', () => {
+    const toggle = fixture.nativeElement.querySelector(
+      '[data-menu-toggle]'
+    ) as HTMLElement;
+    toggle.focus();
+    expect(document.activeElement).toBe(toggle);
+
+    component.mudarMenu();
+    component.fecharMenu();
+
+    expect(document.activeElement).toBe(toggle);
+  });
+});

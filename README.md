@@ -5,6 +5,9 @@
 docker compose up -d --build     # 1º build baixa dependências (precisa internet) <br>
 docker compose down              # para o container
 
+# para testes
+python3 scripts/gerar-sessao.py aluno      # ou: professor
+
 
 
 ## erros meus a mecher
