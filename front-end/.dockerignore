@@ -5,9 +5,14 @@ dist
 .gitignore
 .idea
 *.iml
+.vscode/
 Dockerfile
 .dockerignore
-
-# Arquivos de ambiente nunca entram na imagem; a config chega por build args
+README.md
+coverage
+*.log
+# Arquivos de ambiente nunca entram na imagem. O front não lê variável de
+# ambiente: a API é a constante relativa `/api` e o nginx (nginx.conf) decide
+# o destino. Não há build args no compose.
 .env
 .env.*

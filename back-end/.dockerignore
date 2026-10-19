@@ -1,8 +1,18 @@
 .git
 .gitignore
+.gitattributes
 .idea
 *.iml
+.vscode/
 target
+# Tooling local de seed (geração manual do CSV em src/main/resources/seeds/).
+# Não é usado pelo Dockerfile (COPY . . + mvnw package) nem montado no compose.
 init
 Dockerfile
 .dockerignore
+README.md
+HELP.md
+*.log
+# Segurança: nenhum .env entra na imagem; segredos chegam por environment: no compose.
+.env
+.env.*

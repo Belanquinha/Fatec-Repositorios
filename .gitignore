@@ -1,13 +1,44 @@
 # IntelliJ IDEA project settings
 .idea/
+*.iml
+*.iws
+*.ipr
 
-# Agent and project directives / workspace configs
+# OS / system files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log
+yarn-error.log
+
+# Agent and project directives / workspace configs (local-only, generated)
+.agents/
 GEMINI.md
 BMAD-COMMANDS.md
-.agents/
+
+# Opencode plugin runtime (only .opencode/commands/ is versioned;
+# the manifest + dependencies are local — see .opencode/.gitignore)
+.opencode/node_modules/
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/bun.lock
 
 # Segredos do back-end (POSTGRES_PASSWORD, JWT_SECRET). `.env` na raiz é lido
 # pelo docker compose; nunca versionar. O molde versionado é `.env.example`.
 .env
+.env.*
 !.env.example
+
+# Build outputs (redundância proposital: cada subprojeto tem seu .gitignore;
+# estas regras cobrem qualquer nível)
+node_modules/
+dist/
+target/
+.angular/
+coverage/
+
+# Insumos one-shot já consolidados em back-end/src/main/resources/seeds/
+exportacao_*.csv
  
