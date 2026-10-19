@@ -281,3 +281,85 @@ describe('Header (drawer a11y, item 24)', () => {
     expect(document.activeElement).toBe(toggle);
   });
 });
+
+/**
+ * Modo escuro: o switch `role=switch` da seção Aparência alterna o tema
+ * via ThemeService sem fechar o drawer.
+ */
+describe('Header (modo escuro)', () => {
+  let component: Header;
+  let fixture: ComponentFixture<Header>;
+  let authServiceDouble: {
+    quandoPronto: ReturnType<typeof vi.fn>;
+    obterUsuarioLogado: ReturnType<typeof vi.fn>;
+    loginMicrosoft: ReturnType<typeof vi.fn>;
+    logout: ReturnType<typeof vi.fn>;
+    isAdmin: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(async () => {
+    authServiceDouble = {
+      quandoPronto: vi.fn().mockResolvedValue(undefined),
+      obterUsuarioLogado: vi.fn().mockResolvedValue(null),
+      loginMicrosoft: vi.fn().mockResolvedValue(undefined),
+      logout: vi.fn(),
+      isAdmin: vi.fn().mockReturnValue(false),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([]), { provide: AuthService, useValue: authServiceDouble }],
+    })
+      .overrideComponent(Header, {
+        remove: { imports: [MicrosoftLoginButton] },
+        add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] },
+      })
+      .compileComponents();
+
+    localStorage.removeItem('fatec-tema');
+    document.documentElement.classList.remove('dark');
+    fixture = TestBed.createComponent(Header);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    localStorage.removeItem('fatec-tema');
+    document.documentElement.classList.remove('dark');
+    document.body.style.overflow = '';
+    vi.restoreAllMocks();
+  });
+
+  async function estabilizar(): Promise<void> {
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    TestBed.inject(ApplicationRef).tick();
+  }
+
+  function interruptor(): HTMLElement {
+    return fixture.nativeElement.querySelector('[role="switch"]') as HTMLElement;
+  }
+
+  it('expõe o switch com aria-checked refletindo o tema', async () => {
+    await estabilizar();
+    expect(interruptor().getAttribute('aria-checked')).toBe('false');
+    expect(component.modoEscuro()).toBe(false);
+  });
+
+  it('alterna para escuro ao clicar, sem fechar o drawer', async () => {
+    await estabilizar();
+    // Abertura por clique real (mesmo padrão do bloco do drawer): chamada
+    // imperativa + detectChanges acusa NG0100 em `aria-expanded`.
+    (fixture.nativeElement.querySelector('[data-menu-toggle]') as HTMLElement).click();
+    fixture.detectChanges();
+    expect(component.estadoDoMenuAberto).toBe(true);
+
+    interruptor().click();
+    fixture.detectChanges();
+
+    expect(component.modoEscuro()).toBe(true);
+    expect(interruptor().getAttribute('aria-checked')).toBe('true');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(localStorage.getItem('fatec-tema')).toBe('escuro');
+    expect(component.estadoDoMenuAberto).toBe(true);
+  });
+});

@@ -1,0 +1,200 @@
+/* Modo escuro — exceções ao remapeamento de `paleta.css`.
+ *
+ * O `.dark` de paleta.css inverte as variáveis branco/cinza, o que cobre o grosso
+ * do layout. Aqui ficam os casos que a inversão quebraria:
+ *  1. texto escuro sobre fundo amarelo (vira texto claro ilegível);
+ *  2. fundos escuros fixos com texto claro (viram fundo claro);
+ *  3. cores chapadas (hex) que não usam variáveis;
+ *  4. links azuis e alertas que precisam de tons legíveis no escuro.
+ */
+
+.dark body {
+    background-color: var(--branco-500);
+    color: var(--cinza-500);
+}
+
+/* ---------- 1. Texto escuro preservado sobre amarelo ---------- */
+.dark .btn-primary-hero,
+.dark .btn-primario,
+.dark .btn-primary-vazio,
+.dark .chip-filtro.chip-ativo,
+.dark .badge-papel {
+    color: #1D1E21;
+}
+
+/* ---------- 2. Fundos escuros fixos que a inversão clarearia ---------- */
+.dark .ej-code {
+    background-color: #0D0E0F;
+    color: #F4F6F9;
+    border: 1px solid var(--branco-600);
+}
+
+.dark .btn-auth-action {
+    background-color: #0D0E0F;
+    border: 1px solid var(--branco-600);
+    color: #F4F6F9;
+}
+
+.dark .btn-auth-action:hover {
+    background-color: #1D1E21;
+}
+
+/* ---------- 3. Cores chapadas ---------- */
+.dark footer {
+    background-color: #17171A;
+    color: var(--branco-900);
+}
+
+.dark .banner-auth {
+    background-color: #241D02;
+    border-bottom-color: var(--amarelo-800);
+}
+
+.dark .banner-auth-title {
+    color: var(--branco-900);
+}
+
+.dark .banner-auth-desc {
+    color: var(--branco-800);
+}
+
+.dark .icon-auth {
+    color: var(--amarelo-400);
+}
+
+/* Painéis de erro/aviso âmbar: versão escura legível (vermelho CPS segue proibido). */
+.dark .painel-alerta-erro,
+.dark .painel-rejeicao {
+    background-color: #241D02;
+    border-color: var(--amarelo-800);
+    color: #EFD78B;
+}
+
+.dark .painel-alerta-content h3,
+.dark .painel-rejeicao strong {
+    color: #F4E4B1;
+}
+
+.dark .painel-alerta-content p,
+.dark .painel-rejeicao p {
+    color: #EFD78B;
+}
+
+/* Skeletons: brilho escuro em vez de cinza-claro. */
+.dark .skeleton-img,
+.dark .skeleton-line,
+.dark .skeleton-capa {
+    background: linear-gradient(90deg, #2A2B2F 25%, #3A3B40 50%, #2A2B2F 75%);
+    background-size: 200% 100%;
+}
+
+.dark .skeleton-tags {
+    background: #34363B;
+}
+
+/* Destaques e avisos que usam tons fixos claros. */
+.dark .combo-opcao-ativa {
+    background: #2A2303;
+}
+
+.dark .vinculo-recusa,
+.dark .painel-neutro {
+    background: #1D1E21;
+    border-color: var(--branco-600);
+    color: var(--branco-900);
+}
+
+.dark .vinculo-recusa strong,
+.dark .painel-neutro {
+    color: var(--branco-900);
+}
+
+/* ---------- 4. Links, acentos e alertas no escuro ---------- */
+.dark .link-repositorio {
+    color: var(--azul-200);
+    border-color: var(--azul-200);
+}
+
+.dark .link-repositorio:hover {
+    background-color: rgba(169, 169, 231, 0.12);
+}
+
+.dark .link-linkedin {
+    color: var(--azul-200);
+}
+
+.dark .highlight-title {
+    color: var(--amarelo-400);
+}
+
+.dark .icon-eyebrow {
+    color: var(--amarelo-400);
+}
+
+.dark .btn-limpar-todos,
+.dark .btn-limpar-todos:hover {
+    color: var(--amarelo-300);
+}
+
+.dark .meta-filtro-aviso {
+    color: var(--amarelo-300);
+}
+
+.dark .combo-contador,
+.dark .combo-check,
+.dark .vinculo-contador-teto,
+.dark .vinculo-contador-teto strong {
+    color: var(--amarelo-300);
+}
+
+/* Badges de estado com fundo chapado claro. */
+.dark .badge-aprovado {
+    background-color: #0B2E13;
+    color: #8ADC9D;
+    border-color: #006217;
+}
+
+.dark .badge-rejeitado {
+    background-color: #241D02;
+    color: #EFD78B;
+    border-color: var(--amarelo-800);
+}
+
+/* Editor.js: bloco selecionado e popovers no escuro. */
+.dark .editor-conteudo .ce-block--selected .ce-block__content {
+    background: #2A2303;
+}
+
+.dark .editor-conteudo .ce-popover,
+.dark .editor-conteudo .ce-inline-toolbar,
+.dark .editor-conteudo .ce-toolbar__plus,
+.dark .editor-conteudo .ce-toolbar__settings-btn {
+    background-color: #1D1E21;
+    border-color: var(--branco-600);
+    color: var(--branco-900);
+}
+
+/* Inputs/selects nativos: dropdown e indicadores seguem o esquema escuro. */
+.dark input,
+.dark select,
+.dark textarea {
+    color-scheme: dark;
+}
+
+.dark select option {
+    background-color: #1D1E21;
+    color: #F4F6F9;
+}
+
+/* Transição suave de troca de tema (respeita reduced-motion como o drawer). */
+@media (prefers-reduced-motion: no-preference) {
+    body,
+    .card,
+    .hero-section,
+    .filtros-container,
+    .bloco-titulo,
+    .bloco-conteudo,
+    .card-lateral {
+        transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+}

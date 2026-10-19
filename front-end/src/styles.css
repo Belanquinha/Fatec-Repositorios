@@ -1,6 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import './styles/paleta.css';
+@import './styles/tema-escuro.css';
 @import './styles/tipografia.css';
 @import './styles/reset.css';
 @import './styles/editorjs.css';

@@ -18,6 +18,39 @@ nav#menu-lateral .drawer-ativo {
   font-weight: 600;
 }
 
+.dark nav#menu-lateral .drawer-ativo {
+  background-color: rgba(220, 167, 3, 0.15);
+}
+
+/* Interruptor do modo escuro: geometria reta (DESIGN.md §1.1), trilho 40x22. */
+.interruptor {
+  display: inline-flex;
+  align-items: center;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 2px;
+  background-color: var(--cinza-200);
+  transition: background-color 0.2s ease;
+}
+
+.interruptor .pino {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background-color: var(--branco-50);
+  transition: transform 0.2s ease;
+}
+
+.interruptor.ligado {
+  background-color: var(--amarelo-500);
+  justify-content: flex-end;
+}
+
+.interruptor.ligado .pino {
+  background-color: var(--cinza-600);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

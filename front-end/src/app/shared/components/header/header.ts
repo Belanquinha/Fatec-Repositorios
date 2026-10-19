@@ -1,8 +1,9 @@
-import { Component, HostListener, ElementRef, ViewChild, OnInit, OnDestroy, computed, signal } from '@angular/core';
+import { Component, HostListener, ElementRef, ViewChild, OnInit, OnDestroy, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MicrosoftLoginButton } from '../microsoft-login-button/microsoft-login-button';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ThemeService } from '../../../core/theme/theme.service';
 import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
@@ -19,6 +20,9 @@ export class Header implements OnInit, OnDestroy {
   logado = signal(false);
   isAdmin = signal(false);
   usuario = signal<UsuarioLogado | null>(null);
+  private readonly themeService = inject(ThemeService);
+  /** Espelha o modo escuro no template (ícone sol/lua + estado do switch). */
+  modoEscuro = this.themeService.modoEscuro;
   private routerSubscription!: Subscription;
 
   primeiroNome = computed(() => {
@@ -95,6 +99,11 @@ export class Header implements OnInit, OnDestroy {
     this.authService.loginMicrosoft().catch((erro) => {
       console.error('Erro ao iniciar o login com a Microsoft: ', erro);
     });
+  }
+
+  /** Alterna o modo escuro sem fechar o drawer (o usuário vê o efeito na hora). */
+  alternarTema(): void {
+    this.themeService.alternar();
   }
 
   logout(): void {

@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // Toggle manual via classe `dark` em <html> (ThemeService), não via mídia do SO.
+  darkMode: 'class',
   content: [
     "./src/**/*.{html,ts}",
   ],

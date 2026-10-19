@@ -79,3 +79,35 @@
 
     --mobile-brakpoint: 768px;
 }
+
+/* Modo escuro: remapeia as variáveis semânticas para superfícies escuras e
+   texto claro. Como todo o CSS customizado usa estas variáveis, páginas, cards
+   e formulários escurecem automaticamente. Exceções (botões amarelos com texto
+   escuro, fundos escuros fixos, cores chapadas) estão em `tema-escuro.css`. */
+.dark {
+    color-scheme: dark;
+
+    /* cor de icones */
+    --icon-color: #DEE0E3;
+
+    /* Branco vira superfície escura */
+    --branco-50: #1D1E21;
+    --branco-100: #232427;
+    --branco-200: #26272B;
+    --branco-300: #2A2B2F;
+    --branco-400: #34363B;
+    --branco-500: #121214;
+    --branco-600: #3A3B40;
+    --branco-700: #868789;
+    --branco-800: #ADAFB1;
+    --branco-900: #DEE0E3;
+
+    /* Cinza vira texto/borda claros (700/800/900 seguem escuros: são fundos fixos) */
+    --cinza-50: #2A2B2F;
+    --cinza-100: #3A3B40;
+    --cinza-200: #868789;
+    --cinza-300: #ADAFB1;
+    --cinza-400: #DEE0E3;
+    --cinza-500: #F4F6F9;
+    --cinza-600: #FEFEFE;
+}

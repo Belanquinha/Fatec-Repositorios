@@ -2,17 +2,17 @@
   @let u = usuario()!;
   <div class="flex items-center gap-3 px-3 py-2.5">
     @if (u.foto) {
-      <img [src]="u.foto" alt="Foto de perfil" class="h-10 w-10 shrink-0 rounded-full border border-branco-600 object-cover" />
+      <img [src]="u.foto" alt="Foto de perfil" class="h-10 w-10 shrink-0 rounded-full border border-branco-600 object-cover dark:border-cinza-400" />
     } @else {
-      <span class="material-symbols-outlined shrink-0 text-[32px] leading-none text-cinza-300">account_circle</span>
+      <span class="material-symbols-outlined shrink-0 text-[32px] leading-none text-cinza-300 dark:text-branco-700">account_circle</span>
     }
     <div class="min-w-0 flex-1">
-      <p class="truncate text-sm font-semibold text-cinza-500">Olá, {{ u.nome }}!</p>
-      <p class="truncate text-xs text-cinza-300">{{ u.email }}</p>
+      <p class="truncate text-sm font-semibold text-cinza-500 dark:text-branco-500">Olá, {{ u.nome }}!</p>
+      <p class="truncate text-xs text-cinza-300 dark:text-branco-700">{{ u.email }}</p>
       <button
         type="button"
         (click)="logout()"
-        class="mt-1 text-xs font-medium text-cinza-400 underline-offset-2 transition-colors hover:text-cinza-600 hover:underline">
+        class="mt-1 text-xs font-medium text-cinza-400 underline-offset-2 transition-colors hover:text-cinza-600 hover:underline dark:text-branco-600 dark:hover:text-branco-500">
         Sair
       </button>
     </div>
