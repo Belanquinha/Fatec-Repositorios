@@ -13,8 +13,7 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { firstValueFrom, Subject, Subscription, of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import EditorJS, { OutputData } from '@editorjs/editorjs';
@@ -27,7 +26,6 @@ import ImageTool from '@editorjs/image';
 import { ProjetoService } from '../../core/services/projeto.service';
 import {
   InstituicaoOption,
-  ProfessorOption,
   ProjetoCreatePayload,
 } from '../../core/models/projeto.model';
 import { environment } from '../../../environments/environment';
@@ -96,33 +94,16 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   carregandoInstituicoes = signal(false);
   erroCarregarInstituicoes = signal(false);
 
-  professorEmail = '';
-  professorStatus: 'cadastrado' | 'novo' | 'vazio' = 'vazio';
-  mostrarDropdownProfessor = signal(false);
-  /** Nome confirmado via autocomplete (LGPD: a lista expõe só id+nome). */
-  professorNomeSelecionado: string | null = null;
-  /** Detalhe do professor em voo: enquanto ligado, o submit é bloqueado (anti-race). */
-  carregandoProfessor = signal(false);
-  private selecaoProfessorPendente: string | null = null;
   /**
-   * Busca de professores com debounce + cancelamento (item 20): o termo entra
-   * em `buscaProfessorTermo$` e o pipeline (`debounceTime` + `distinctUntilChanged`
-   * + `switchMap`) garante que só a última digitação dispare `GET /professores`
-   * e que uma resposta tardia nunca sobrescreva uma mais recente.
+   * Campo de e-mail do professor (Story 3.2, decisão 2026-10-26): somente
+   * e-mail, sem autocomplete por nome — o aluno digita o endereço direto e a
+   * validação de formato acontece no envio. E-mails fora do tenant são
+   * aceitos como "Professor Convidado" (registro informativo, sem notificação
+   * no MVP), então não há estado de "cadastrado/novo" a rastrear aqui.
    */
-  private buscaProfessorTermo$ = new Subject<string>();
-  private buscaProfessorInscricao: Subscription | null = null;
+  professorEmail = '';
   linkRepositorio = '';
   palavrasChave = '';
-
-  /**
-   * Sugestões vindas de `GET /professores?q=` (autenticado, só id+nome).
-   * Nada é carregado no init — a busca é server-side, sob demanda, a partir
-   * de 2 caracteres do nome. E-mail digitado livremente segue como
-   * "Professor Convidado" (Story 3.2, sem notificação no MVP).
-   */
-  professoresFiltrados: ProfessorOption[] = [];
-  erroCarregarProfessores = signal(false);
 
   // Seção 3: Editor.js
   @ViewChild('editorjsContainer') private editorjsContainer?: ElementRef<HTMLDivElement>;
@@ -154,27 +135,6 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         this.sincronizarInstituicaoSelecionada();
       }
     });
-
-    this.buscaProfessorInscricao = this.buscaProfessorTermo$
-      .pipe(
-        debounceTime(250),
-        distinctUntilChanged(),
-        switchMap((termo) =>
-          this.projetoService.buscarProfessores(termo).pipe(
-            catchError((err) => {
-              this.professoresFiltrados = [];
-              this.mostrarDropdownProfessor.set(false);
-              this.erroCarregarProfessores.set(true);
-              console.warn('Não foi possível buscar professores:', err);
-              return of([]);
-            })
-          )
-        )
-      )
-      .subscribe((profs) => {
-        this.professoresFiltrados = profs ?? [];
-        this.mostrarDropdownProfessor.set(this.professoresFiltrados.length > 0);
-      });
   }
 
   ngAfterViewInit() {
@@ -188,9 +148,6 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.buscaProfessorInscricao?.unsubscribe();
-    this.buscaProfessorInscricao = null;
-    this.buscaProfessorTermo$.complete();
     this.editorInicializacaoPendente = false;
     this.encadearEditor(async () => {
       await this.sairDaSecaoDoEditor();
@@ -338,19 +295,6 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .trim();
-  }
-
-  private buscarProfessoresPorNome(termo: string) {
-    // Digitação livre de e-mail (convidado, Story 3.2) não dispara busca.
-    if (termo.includes('@') || termo.trim().length < 2) {
-      this.professoresFiltrados = [];
-      this.mostrarDropdownProfessor.set(false);
-      return;
-    }
-    this.erroCarregarProfessores.set(false);
-    // O debounce + cancelamento vive no pipeline de `buscaProfessorTermo$`
-    // (ngOnInit); aqui só produzimos o termo.
-    this.buscaProfessorTermo$.next(termo);
   }
 
   // --- Inicialização do Editor.js ---
@@ -535,81 +479,6 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.imagemCapaUrl = null;
   }
 
-  // --- Autocomplete Professor Responsável (LGPD: busca por nome) ---
-  onProfessorEmailInput() {
-    const atual = this.professorEmail.trim();
-    // Edição manual cancela o detalhe em voo: a resposta tardia não pode
-    // sobrescrever o que o usuário digitou (id check em selecionarProfessor).
-    this.selecaoProfessorPendente = null;
-    this.carregandoProfessor.set(false);
-    if (!atual) {
-      this.professoresFiltrados = [];
-      this.mostrarDropdownProfessor.set(false);
-      this.professorStatus = 'vazio';
-      this.professorNomeSelecionado = null;
-      return;
-    }
-
-    // Valor vindo de seleção confirmada mantém o selo até o usuário editar.
-    if (
-      this.professorStatus === 'cadastrado' &&
-      this.professorNomeSelecionado !== null
-    ) {
-      this.professorStatus = 'vazio';
-      this.professorNomeSelecionado = null;
-    }
-
-    // E-mail digitado diretamente = "Professor Convidado" (Story 3.2 AC).
-    if (atual.includes('@')) {
-      this.professoresFiltrados = [];
-      this.mostrarDropdownProfessor.set(false);
-      this.professorStatus = 'novo';
-      return;
-    }
-    this.professorStatus = 'vazio';
-    this.buscarProfessoresPorNome(atual);
-  }
-
-  selecionarProfessor(prof: ProfessorOption) {
-    this.mostrarDropdownProfessor.set(false);
-    this.professoresFiltrados = [];
-    // Trava o submit até o detalhe chegar: sem isso, "selecionar + Enviar"
-    // rápido envia o e-mail antigo/vazio (ou o de outra seleção anterior).
-    this.selecaoProfessorPendente = prof.id;
-    this.carregandoProfessor.set(true);
-    // O e-mail sai só no detalhe do selecionado — nunca em lista.
-    this.projetoService.obterProfessorPorId(prof.id).subscribe({
-      next: (detalhe) => {
-        // Resposta de seleção superada (duplo clique rápido): ignora.
-        if (this.selecaoProfessorPendente !== prof.id) {
-          return;
-        }
-        this.selecaoProfessorPendente = null;
-        this.carregandoProfessor.set(false);
-        this.professorEmail = detalhe.email;
-        this.professorNomeSelecionado = detalhe.nome;
-        this.professorStatus = 'cadastrado';
-      },
-      error: (err) => {
-        if (this.selecaoProfessorPendente !== prof.id) {
-          return;
-        }
-        this.selecaoProfessorPendente = null;
-        this.carregandoProfessor.set(false);
-        console.warn('Não foi possível obter o e-mail do professor:', err);
-        this.professorEmail = '';
-        this.professorNomeSelecionado = null;
-        this.professorStatus = 'vazio';
-      },
-    });
-  }
-
-  ocultarDropdownComDelay() {
-    setTimeout(() => {
-      this.mostrarDropdownProfessor.set(false);
-    }, 200);
-  }
-
   // --- Integrantes Dinâmicos ---
   adicionarIntegrante() {
     const novoId = this.integrantes.length + 1;
@@ -637,6 +506,28 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
 
   secaoAnterior() {
     this.trocarSecao(this.secaoAtual - 1);
+  }
+
+  /**
+   * Enter em qualquer campo dispara o `ngSubmit` nativo do form — e aqui ele é
+   * **engolido de propósito**: não avança de seção e não envia o projeto. O
+   * envio só acontece pelo botão da última seção, que chama
+   * `enviarParaAvaliacao()` diretamente.
+   *
+   * Decisão (revisão 2026-10-27): avançar sem validar levava o aluno para a
+   * próxima seção com os obrigatórios da atual vazios (percebido na Seção 1).
+   * Alinha o form a EXPERIENCE.md, estado "Enter sem consulta — não submete".
+   */
+  aoSubmeterForm() {
+    // Intencionalmente vazio. Não "otimizar" para avançar de seção: ver doc acima.
+  }
+
+  /**
+   * Tela de sucesso (item 5): o aluno já enviou o projeto e quer acompanhar
+   * o andamento — o caminho natural é a aba "Meus projetos" do Perfil.
+   */
+  irParaMeusProjetos() {
+    this.router.navigate(['/perfil']);
   }
 
   private trocarSecao(secao: number) {
@@ -699,14 +590,6 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.professorEmail.trim())) {
       this.erroMensagem.set('Informe um e-mail válido para o professor responsável.');
-      this.irParaSecao(2);
-      return;
-    }
-
-    // Detalhe do professor selecionado ainda em voo: enviar agora usaria o
-    // e-mail antigo/vazio. Bloqueia com mensagem em vez de adivinhar.
-    if (this.carregandoProfessor()) {
-      this.erroMensagem.set('Aguarde a confirmação do professor selecionado antes de enviar.');
       this.irParaSecao(2);
       return;
     }
@@ -849,13 +732,6 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.mostrarDropdownInstituicao.set(false);
     this.instituicaoDestaque = -1;
     this.professorEmail = '';
-    this.professorStatus = 'vazio';
-    this.professorNomeSelecionado = null;
-    this.selecaoProfessorPendente = null;
-    this.carregandoProfessor.set(false);
-    this.professoresFiltrados = [];
-    this.mostrarDropdownProfessor.set(false);
-    this.erroCarregarProfessores.set(false);
     this.linkRepositorio = '';
     this.palavrasChave = '';
     this.integrantes = [

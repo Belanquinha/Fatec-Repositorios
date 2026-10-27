@@ -3,11 +3,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { UploadProjeto } from './upload-projeto';
 
 import { provideHttpClient } from '@angular/common/http';
-import { of, Subject } from 'rxjs';
+import { of } from 'rxjs';
 import { vi } from 'vitest';
+import { Router, provideRouter } from '@angular/router';
 import { ProjetoService } from '../../core/services/projeto.service';
-
-import { provideRouter } from '@angular/router';
 
 describe('UploadProjeto', () => {
   let component: UploadProjeto;
@@ -15,8 +14,6 @@ describe('UploadProjeto', () => {
 
   const mockProjetoService = {
     listarInstituicoes: () => of([]),
-    buscarProfessores: () => of([]),
-    obterProfessorPorId: () => of({ id: 'p1', nome: 'Maria', email: 'maria@cps.sp.gov.br' }),
     uploadImagem: () => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' }),
     criarProjeto: () => of({ id: '123', titulo: 'Teste' }),
   };
@@ -42,25 +39,18 @@ describe('UploadProjeto', () => {
 });
 
 /**
- * Story 3.2 (LGPD): o autocomplete busca por nome no servidor (só id+nome),
- * o e-mail sai só no detalhe do selecionado e a digitação livre de e-mail
- * segue como "Professor Convidado" sem chamar o backend.
+ * Item 1 (revisão 2026-10-27): Enter no formulário não navega nem envia — o
+ * `ngSubmit` é engolido em todas as seções. O envio real só acontece pelo
+ * botão da última seção.
  */
-describe('UploadProjeto (autocomplete LGPD, Story 3.2)', () => {
+describe('UploadProjeto (Enter não navega nem envia, item 1)', () => {
   let component: UploadProjeto;
   let fixture: ComponentFixture<UploadProjeto>;
 
-  /** Margem acima do debounce de 250ms do componente (timers reais, zoneless). */
-  const aguardarDebounce = () => new Promise((r) => setTimeout(r, 350));
-
   const mockProjetoService = {
     listarInstituicoes: () => of([]),
-    buscarProfessores: vi.fn(() => of([{ id: 'p1', nome: 'Maria Silva' }])),
-    obterProfessorPorId: vi.fn(() =>
-      of({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' })
-    ),
     uploadImagem: () => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' }),
-    criarProjeto: () => of({ id: '123', titulo: 'Teste' }),
+    criarProjeto: vi.fn(() => of({ id: '123', titulo: 'Teste' })),
   };
 
   beforeEach(async () => {
@@ -76,103 +66,193 @@ describe('UploadProjeto (autocomplete LGPD, Story 3.2)', () => {
 
     fixture = TestBed.createComponent(UploadProjeto);
     component = fixture.componentInstance;
+    // Formulário válido na seção 4 ANTES do primeiro render: trocar a seção
+    // depois que o template já foi pintado dispara NG0100 no zoneless.
+    component.titulo = 'Projeto Teste';
+    component.descricaoCurta = 'Descrição curta';
+    component.instituicaoId = 'inst-1';
+    component.professorEmail = 'prof@cps.sp.gov.br';
+    component.imagemCapaUrl = '/uploads/capa.png';
+    component.integrantes = [{ id: 1, nome: 'Aluno', linkedin: '' }];
+    component.secaoAtual = 4;
     await fixture.whenStable();
   });
 
-  it('não deve buscar no backend com termo curto (<2 chars)', async () => {
-    component.professorEmail = 'm';
-    component.onProfessorEmailInput();
-    await aguardarDebounce();
+  function submeterFormulario() {
+    const form: HTMLFormElement = fixture.nativeElement.querySelector('form');
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  }
+
+  it('submit do form (Enter) não avança de seção em nenhuma tela e não envia', async () => {
+    for (const secao of [1, 2, 3, 4]) {
+      component.secaoAtual = secao;
+
+      submeterFormulario();
+      await fixture.whenStable();
+
+      expect(component.secaoAtual).toBe(secao);
+    }
+
+    expect(mockProjetoService.criarProjeto).not.toHaveBeenCalled();
+  });
+
+  it('clique em "Enviar para Avaliação Acadêmica" dispara o envio real', async () => {
+    fixture.detectChanges();
+
+    const botoes = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    const botaoEnviar = botoes.find((b) => b.textContent?.includes('Enviar para Avaliação Acadêmica'));
+    expect(botaoEnviar).toBeTruthy();
+
+    botaoEnviar!.click();
+    await fixture.whenStable();
+
+    expect(mockProjetoService.criarProjeto).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * Itens 3 e 4 (decisão 2026-10-26): o campo do professor é somente e-mail.
+ * `type=text` + `inputmode=email` evita o balão nativo do navegador e a
+ * busca por nome (Story 3.2 original) foi removida do front-end.
+ */
+describe('UploadProjeto (campo do professor só e-mail, itens 3 e 4)', () => {
+  let component: UploadProjeto;
+  let fixture: ComponentFixture<UploadProjeto>;
+
+  const mockProjetoService = {
+    listarInstituicoes: () => of([]),
+    buscarProfessores: vi.fn(() => of([])),
+    obterProfessorPorId: vi.fn(() => of({ id: 'p1', nome: 'Maria', email: 'maria@cps.sp.gov.br' })),
+    uploadImagem: () => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' }),
+    criarProjeto: vi.fn(() => of({ id: '123', titulo: 'Teste' })),
+  };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await TestBed.configureTestingModule({
+      imports: [UploadProjeto],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ProjetoService, useValue: mockProjetoService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UploadProjeto);
+    component = fixture.componentInstance;
+    component.secaoAtual = 2;
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  function campoProfessor(): HTMLInputElement {
+    return fixture.nativeElement.querySelector('input[name="professorEmail"]');
+  }
+
+  it('campo é type=text com inputmode=email (sem balão nativo de validação)', () => {
+    const input = campoProfessor();
+
+    expect(input).toBeTruthy();
+    expect(input.type).toBe('text');
+    expect(input.getAttribute('inputmode')).toBe('email');
+  });
+
+  it('digitar um nome no campo não dispara busca por sugestão', () => {
+    const input = campoProfessor();
+    input.value = 'maria silva';
+    input.dispatchEvent(new Event('input'));
 
     expect(mockProjetoService.buscarProfessores).not.toHaveBeenCalled();
-    expect(component.mostrarDropdownProfessor()).toBe(false);
-    expect(component.professoresFiltrados).toEqual([]);
   });
 
-  it('deve tratar e-mail digitado como Professor Convidado sem buscar (Story 3.2 AC)', async () => {
-    component.professorEmail = 'convidado@externo.com';
-    component.onProfessorEmailInput();
-    await aguardarDebounce();
-
-    expect(mockProjetoService.buscarProfessores).not.toHaveBeenCalled();
-    expect(component.professorStatus).toBe('novo');
-    expect(component.mostrarDropdownProfessor()).toBe(false);
-  });
-
-  it('deve buscar por nome com debounce e abrir o dropdown só com id+nome', async () => {
-    component.professorEmail = 'mar';
-    component.onProfessorEmailInput();
-
-    // Debounce de 250ms: nada dispara de imediato (ambiente zoneless,
-    // sem fakeAsync — espera real um pouco acima do debounce).
-    expect(mockProjetoService.buscarProfessores).not.toHaveBeenCalled();
-    await aguardarDebounce();
-
-    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledWith('mar');
-    expect(component.professoresFiltrados).toEqual([{ id: 'p1', nome: 'Maria Silva' }]);
-    expect(component.mostrarDropdownProfessor()).toBe(true);
-  });
-
-  it('deve obter o e-mail só no detalhe ao selecionar (nunca em massa)', () => {
-    component.selecionarProfessor({ id: 'p1', nome: 'Maria Silva' });
-
-    expect(mockProjetoService.obterProfessorPorId).toHaveBeenCalledWith('p1');
-    expect(component.professorEmail).toBe('maria@cps.sp.gov.br');
-    expect(component.professorStatus).toBe('cadastrado');
-    expect(component.mostrarDropdownProfessor()).toBe(false);
-  });
-
-  it('deve voltar a vazio ao limpar o campo', () => {
-    component.professorEmail = 'maria@cps.sp.gov.br';
-    component.professorStatus = 'cadastrado';
-    component.professorEmail = '';
-    component.onProfessorEmailInput();
-
-    expect(component.professorStatus).toBe('vazio');
-    expect(component.professoresFiltrados).toEqual([]);
-    expect(component.mostrarDropdownProfessor()).toBe(false);
-  });
-
-  it('bloqueia o envio enquanto o detalhe do professor está em voo (anti-race)', async () => {
-    const detalhePendente = new Subject<{ id: string; nome: string; email: string }>();
-    mockProjetoService.obterProfessorPorId.mockReturnValueOnce(detalhePendente.asObservable());
-    const criarSpy = vi.fn(() => of({ id: '123', titulo: 'Teste' }));
-    (mockProjetoService as { criarProjeto: unknown }).criarProjeto = criarSpy;
-
-    component.selecionarProfessor({ id: 'p1', nome: 'Maria Silva' });
-    expect(component.carregandoProfessor()).toBe(true);
-
-    // Formulário válido para chegar até a guarda do professor em voo.
+  it('deve barrar o envio com e-mail de professor inválido', async () => {
     component.titulo = 'Projeto Teste';
-    component.descricaoCurta = 'Descrição curta válida';
-    component.imagemCapaUrl = '/uploads/capa.png';
+    component.descricaoCurta = 'Descrição curta';
     component.instituicaoId = 'inst-1';
-    component.professorEmail = 'antigo@cps.sp.gov.br';
-    component.integrantes = [{ id: 1, nome: 'Ana', linkedin: '' }];
+    component.professorEmail = 'sem-arroba';
+    component.imagemCapaUrl = '/uploads/capa.png';
+    component.integrantes = [{ id: 1, nome: 'Aluno', linkedin: '' }];
 
     await component.enviarParaAvaliacao();
 
-    expect(criarSpy).not.toHaveBeenCalled();
-    expect(component.erroMensagem()).toContain('Aguarde a confirmação do professor');
-
-    detalhePendente.next({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' });
-    expect(component.carregandoProfessor()).toBe(false);
-    expect(component.professorEmail).toBe('maria@cps.sp.gov.br');
+    expect(mockProjetoService.criarProjeto).not.toHaveBeenCalled();
+    expect(component.erroMensagem()).toContain('e-mail válido');
+    expect(component.secaoAtual).toBe(2);
   });
 
-  it('ignora resposta de seleção superada (duplo clique rápido)', () => {
-    const primeira = new Subject<{ id: string; nome: string; email: string }>();
-    mockProjetoService.obterProfessorPorId
-      .mockReturnValueOnce(primeira.asObservable())
-      .mockReturnValueOnce(of({ id: 'p2', nome: 'João Souza', email: 'joao@cps.sp.gov.br' }));
+  it('aceita e-mail de professor fora do tenant (Convidado) sem chamar a busca', async () => {
+    component.titulo = 'Projeto Teste';
+    component.descricaoCurta = 'Descrição curta';
+    component.instituicaoId = 'inst-1';
+    component.professorEmail = 'prof.externo@gmail.com';
+    component.imagemCapaUrl = '/uploads/capa.png';
+    component.integrantes = [{ id: 1, nome: 'Aluno', linkedin: '' }];
 
-    component.selecionarProfessor({ id: 'p1', nome: 'Maria Silva' });
-    component.selecionarProfessor({ id: 'p2', nome: 'João Souza' });
+    await component.enviarParaAvaliacao();
 
-    // A primeira resposta chega atrasada: não pode sobrescrever a seleção atual.
-    primeira.next({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' });
-    expect(component.professorEmail).toBe('joao@cps.sp.gov.br');
-    expect(component.carregandoProfessor()).toBe(false);
+    expect(mockProjetoService.criarProjeto).toHaveBeenCalledTimes(1);
+    expect(mockProjetoService.buscarProfessores).not.toHaveBeenCalled();
+    expect(mockProjetoService.obterProfessorPorId).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Item 5 (2026-10-26): a tela de sucesso oferece ir para a aba "Meus
+ * projetos" do Perfil (`/perfil`), além de cadastrar outro projeto.
+ */
+describe('UploadProjeto (tela de sucesso, item 5)', () => {
+  let component: UploadProjeto;
+  let fixture: ComponentFixture<UploadProjeto>;
+  let router: Router;
+
+  const mockProjetoService = {
+    listarInstituicoes: () => of([]),
+    uploadImagem: () => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' }),
+    criarProjeto: () => of({ id: '123', titulo: 'Teste' }),
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [UploadProjeto],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ProjetoService, useValue: mockProjetoService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UploadProjeto);
+    component = fixture.componentInstance;
+    router = TestBed.inject(Router);
+    component.enviadoComSucesso.set(true);
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  function botaoPorTexto(texto: string): HTMLButtonElement | undefined {
+    const botoes = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    return botoes.find((b) => b.textContent?.includes(texto));
+  }
+
+  it('exibe "Ver meus projetos" e "Cadastrar Outro Projeto"', () => {
+    expect(botaoPorTexto('Ver meus projetos')).toBeTruthy();
+    expect(botaoPorTexto('Cadastrar Outro Projeto')).toBeTruthy();
+  });
+
+  it('"Ver meus projetos" navega para /perfil', () => {
+    const navigateSpy = vi.spyOn(router, 'navigate');
+
+    botaoPorTexto('Ver meus projetos')!.click();
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/perfil']);
+  });
+
+  it('"Cadastrar Outro Projeto" reinicia o formulário', () => {
+    const resetSpy = vi.spyOn(component, 'resetarFormulario');
+
+    botaoPorTexto('Cadastrar Outro Projeto')!.click();
+
+    expect(resetSpy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -186,8 +266,6 @@ describe('UploadProjeto (limites de imagem)', () => {
 
   const mockProjetoService = {
     listarInstituicoes: () => of([]),
-    buscarProfessores: () => of([]),
-    obterProfessorPorId: () => of({ id: 'p1', nome: 'Maria', email: 'maria@cps.sp.gov.br' }),
     uploadImagem: vi.fn(() => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' })),
     criarProjeto: vi.fn(() => of({ id: '123', titulo: 'Teste' })),
   };
@@ -270,86 +348,5 @@ describe('UploadProjeto (limites de imagem)', () => {
 
     expect(mockProjetoService.criarProjeto).not.toHaveBeenCalled();
     expect(component.erroMensagem()).toContain('embutida');
-  });
-});
-
-/**
- * Item 20: debounce com cancelamento — Subject + debounceTime(250) + switchMap.
- * Só a última digitação dispara GET /professores; resposta tardia não
- * sobrescreve a mais recente.
- */
-describe('UploadProjeto (debounce com cancelamento, item 20)', () => {
-  let component: UploadProjeto;
-  let fixture: ComponentFixture<UploadProjeto>;
-
-  const mockProjetoService = {
-    listarInstituicoes: () => of([]),
-    buscarProfessores: vi.fn(() => of([{ id: 'p1', nome: 'Maria Silva' }])),
-    obterProfessorPorId: vi.fn(() =>
-      of({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' })
-    ),
-    uploadImagem: () => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' }),
-    criarProjeto: () => of({ id: '123', titulo: 'Teste' }),
-  };
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    await TestBed.configureTestingModule({
-      imports: [UploadProjeto],
-      providers: [
-        provideHttpClient(),
-        provideRouter([]),
-        { provide: ProjetoService, useValue: mockProjetoService },
-      ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(UploadProjeto);
-    component = fixture.componentInstance;
-    await fixture.whenStable();
-  });
-
-  let destruido = false;
-
-  afterEach(() => {
-    if (!destruido) {
-      fixture.destroy();
-    }
-  });
-
-  it('só a última digitação dentro da janela dispara a busca (switchMap)', async () => {
-    component.professorEmail = 'mar';
-    component.onProfessorEmailInput();
-    await new Promise((r) => setTimeout(r, 100));
-    component.professorEmail = 'mari';
-    component.onProfessorEmailInput();
-
-    expect(mockProjetoService.buscarProfessores).not.toHaveBeenCalled();
-    await new Promise((r) => setTimeout(r, 350));
-
-    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledTimes(1);
-    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledWith('mari');
-    expect(component.mostrarDropdownProfessor()).toBe(true);
-  });
-
-  it('não repete a busca para o mesmo termo em sequência (distinctUntilChanged)', async () => {
-    component.professorEmail = 'maria';
-    component.onProfessorEmailInput();
-    await new Promise((r) => setTimeout(r, 350));
-    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledTimes(1);
-
-    component.professorEmail = 'maria';
-    component.onProfessorEmailInput();
-    await new Promise((r) => setTimeout(r, 350));
-    expect(mockProjetoService.buscarProfessores).toHaveBeenCalledTimes(1);
-  });
-
-  it('cancela a inscrição no destroy (sem busca após ngOnDestroy)', async () => {
-    fixture.destroy();
-    destruido = true;
-    component.professorEmail = 'maria';
-    component.onProfessorEmailInput();
-    await new Promise((r) => setTimeout(r, 350));
-
-    expect(mockProjetoService.buscarProfessores).not.toHaveBeenCalled();
   });
 });
