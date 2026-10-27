@@ -28,8 +28,11 @@
 # - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
+# - Chaves das stories 1–6 preservadas do tracking de 2026-10-10 (não renomear: são IDs de continuidade).
+# - 2026-10-20: capa do projeto é obrigatória e NÃO conta no limite de 18 imagens; o limite conta apenas <img> de conteudoHtml.
+
 generated: 09-16-2026 00:00
-last_updated: 10-10-2026 12:00 # bmad-sprint-planning: tudo done (review executado + suite verde reportada); retrospectives seguem optional
+last_updated: 10-20-2026 12:00 # bmad-sprint-planning: épicos 7–8 adicionados (15 stories); 1–6 preservados
 project: Fatec-Repositorios
 project_key: NOKEY
 tracking_system: file-system
@@ -66,3 +69,28 @@ development_status:
   epic-6: done
   6-1-perfil-hub-com-identidade-e-landing-única: done
   epic-6-retrospective: optional
+
+  # Epic 7 — Editor TipTap e documentação em HTML (ST-7.1…ST-7.9)
+  # Nenhuma story iniciada: todas sem story file em implementation-artifacts.
+  epic-7: backlog
+  7-1-backend-contrato-conteudohtml-e-sanitização-na-escrita: backlog
+  7-2-backend-teto-de-18-imagens-distintas-e-allowlist-de-src: backlog
+  7-3-frontend-editor-tiptap-com-html-e-remoção-do-editor-js: backlog
+  7-4-frontend-paste-drop-de-docx-com-upload-automático-de-imagens: backlog
+  7-5-frontend-compressão-limite-de-5mb-e-contador-0-18: backlog
+  7-6-frontend-render-do-detalhe-como-html-sanitizado: backlog
+  7-7-frontend-autosave-local-em-indexeddb: backlog
+  7-8-seed-em-html-e-remoção-do-caminho-legado-de-blocos: backlog
+  7-9-frontend-rota-lazy-e-editor-js-fora-do-bundle-inicial: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8 — Pipeline de mídia, limites e performance (ST-8.1…ST-8.6)
+  # ST-8.4 e ST-8.5 são P2 (pós-migração); não bloqueiam o rollout.
+  epic-8: backlog
+  8-1-backend-normalização-de-imagem-e-thumbnail-da-capa: backlog
+  8-2-infra-frontend-tetos-de-transporte-coerentes-e-mensagem-de-413: backlog
+  8-3-infra-cache-imutável-para-uploads: backlog
+  8-4-backend-faxineiro-de-arquivos-órfãos-com-carência-de-7-dias: backlog
+  8-5-backend-frontend-get-uploads-policy-opcional: backlog
+  8-6-rollout-e-regressão-da-migração: backlog
+  epic-8-retrospective: optional
