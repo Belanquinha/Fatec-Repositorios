@@ -46,9 +46,17 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
 <dependency>
 <groupId>org.springframework.boot</groupId>
 <artifactId>spring-boot-starter-validation</artifactId>
-</dependency>
+    </dependency>
 
-<!-- Development Tools -->
+    <!-- Transporte de e-mail sem API paga: usa SMTP puro (JavaMail).
+         Configurado via variáveis de ambiente: MAIL_HOST / MAIL_PORT /
+         MAIL_USERNAME / MAIL_PASSWORD / EMAIL_FROM. -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-mail</artifactId>
+    </dependency>
+
+    <!-- Development Tools -->
 <dependency>
 <groupId>org.springframework.boot</groupId>
 <artifactId>spring-boot-devtools</artifactId>

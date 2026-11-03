@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,6 +36,7 @@ public class ProjetoService {
     private final UserRepository userRepository;
     private final ProfessorInstituicaoRepository vinculoRepository;
     private final ResponseMapper responseMapper;
+    private final EmailService emailService;
 
     @Transactional
     public ProjetoResponse criar(ProjetoCreateRequest request, UUID autorId) {
@@ -95,6 +98,17 @@ public class ProjetoService {
 
         ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
         preencherNomeProfessor(resp);
+
+        // Notificação ao professor responsável após o commit (pós-commit), e não
+        // dentro da transação. Assim, um SMTP lento ou inacessível não segura
+        // a conexão do banco nem pode lançar exceção que tenha contrado o INSERT.
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter<>() {
+            @Override
+            public void afterCommit() {
+                emailService.enviarNovoProjeto(salvo, autor);
+            }
+        });
+
         return resp;
     }
 

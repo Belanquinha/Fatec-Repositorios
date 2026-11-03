@@ -32,10 +32,10 @@ public class Projeto {
     @Column(columnDefinition = "TEXT")
     private String conteudoEditorJs;
 
-    @Column(nullable = true)
+    @Column(nullable = true, length = 500)
     private String linkRepositorio;
 
-    @Column(nullable = true)
+    @Column(nullable = true, length = 500)
     private String imagemCapaUrl;
 
     @ElementCollection(fetch = FetchType.EAGER)

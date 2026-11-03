@@ -55,10 +55,10 @@ export interface ProjetoResponseModel {
   imagemCapaUrl: string;
   palavrasChave: string[];
   anoPublicado: number;
-  estado: 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
+  estado: 'SUBMETIDO' | 'AGUARDANDO_APROVACAO' | 'ALTERACOES_SOLICITADAS' | 'REENVIADO' | 'APROVADO' | 'REJEITADO';
   motivoRejeicao?: string;
   emailProfessorResponsavel: string;
-  /** Nome da conta do professor responsável (visão pública/LGPD — e-mail não é mais exposto na vitrine). */
+  /** E-mail da conta do professor responsável (visão pública/LGPD — e-mail não é mais exposto na vitrine). */
   nomeProfessorResponsavel?: string | null;
   instituicaoId: string;
   instituicaoNome: string;

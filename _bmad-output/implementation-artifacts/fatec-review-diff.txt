@@ -1,0 +1,666 @@
+diff --git a/.gitignore b/.gitignore
+index e30f53b..19ff41d 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -17,6 +17,7 @@ yarn-error.log
+ .agents/
+ GEMINI.md
+ BMAD-COMMANDS.md
++AGENTS.md
+ 
+ # Opencode plugin runtime (only .opencode/commands/ is versioned;
+ # the manifest + dependencies are local — see .opencode/.gitignore)
+diff --git a/_bmad-output/specs/spec-fatec-repositorios/roles.md b/_bmad-output/specs/spec-fatec-repositorios/roles.md
+index d9a88d3..43b79e7 100644
+--- a/_bmad-output/specs/spec-fatec-repositorios/roles.md
++++ b/_bmad-output/specs/spec-fatec-repositorios/roles.md
+@@ -8,12 +8,10 @@ Matriz de papéis da plataforma, derivada do fluxo negocial definitivo. Contrato
+ | **Professor** | Membro do tenant CPS com UPN de domínio `@cps.sp.gov.br` | Login MSAL (tenant CPS); classificado pelo back-end | Selecionar entre 0 e 4 instituições do catálogo oficial (opcional no 1º login, alterável a qualquer momento); aprovar/rejeitar projetos vinculados às suas instituições (rejeição exige `motivoRejeicao`) |
+ | **Admin do sistema** | Dono do projeto; e-mail semeado no banco | Login MSAL (tenant CPS); papel `ADMIN` persistido quando o e-mail está no seed | Manter o catálogo oficial de instituições (CRUD simples no MVP; importação fica pós-MVP) |
+ | **Visitante (Não Autenticado)** | Qualquer usuário externo da web | Acesso livre sem login | Pesquisar e visualizar os detalhes completos dos projetos com estado `APROVADO` |
+-| ~**Gestor**~ | ~~Login institucional de gestor~~ | ~~Papel removido~~ | ~~Tela de instituição como área de trabalho, aprovação de professores, cadastro de instituição~~ — eliminado por decisão (minimizar trabalho de secretaria/gestor) |
+ 
+ Notas:
+ - **Validação de professor** é a regra de domínio `@cps.sp.gov.br`; **aluno** é `@aluno.cps.sp.gov.br`, checado antes (sufixo termina em `.cps.sp.gov.br`); não existe lista separada de professores — o domínio É a lista.
+ - **Vínculo do professor com instituições** é de no mínimo 0 e teto 4 (opcional no primeiro login e alterável livremente).
+-- **Máquina de estados de projeto**: estado `RASCUNHO` removido. Estados válidos: `AGUARDANDO_APROVACAO`, `APROVADO` e `REJEITADO` (com `motivoRejeicao` obrigatório).
+ - **Integrante**: sem `papelNoProjeto` (MVP). Contém `nome` e `linkLinkedin`.
+ - **Professor responsável**: autocomplete de professores do tenant CPS + aceite de **e-mail livre** ("Professor Convidado") como registro informativo. **Sem envio de notificações no MVP.**
+ - **Instituição** é dado de catálogo mantido pelo admin, nunca texto livre do professor.
+diff --git a/back-end/ARCHITECTURE.md b/back-end/ARCHITECTURE.md
+new file mode 100644
+index 0000000..5810990
+--- /dev/null
++++ b/back-end/ARCHITECTURE.md
+@@ -0,0 +1,96 @@
++# ARCHITECTURE — Fatec-Repositorios (Back-End)
++
++> Contexto para agentes e desenvolvedores. Documenta a arquitetura ativa,
++> o que funciona, o que está em planejamento e o que evitar.
++
++## Visão geral
++
++Aplicação Spring Boot 4.1 (Java 21), API REST, com autenticação via Azure AD (MSAL),
++banco PostgreSQL, contador de uploads gerenciados por arquivo.
++
++## Pilares da arquitetura
++
++| Camada | Responsabilidade | Notas |
++|---|---|---|
++| **Controller** | Receber requisição, validar, delegar | Sem lógica de negócio |
++| **Service** | Regras de negócio, orquestração | Um método só executa uma operação |
++| **Repository** | Persistência JPA | Query methods, não QueryDSL |
++| **Security** | Autenticação/MSAL, JWT, filtros | Todo acesso autenticado |
++| **Config** | Configuração Spring, OpenAPI, MVC | Centralizado |
++| **Seed** | Dados iniciais (CSV, JSON) | Carregados via `data.sql` |
++
++## Fluxos principais
++
++### Login (MSAL)
++1. Front-end redireciona para Azure AD (tenant `eabe64c5-68f5-4a76-8301-9577a679e449`).
++2. Azure AD retorna código de autorização → backend troca por token (MSAL).
++3. Backend extrai UPN (e-mail) → `CustomUserDetailsService` carrega/usa `User`.
++4. `JwtTokenProvider` assina token HS256 com `JWT_SECRET` do `.env`.
++5. `JwtAuthenticationFilter` injeta `SecurityContext` em cada request.
++6. `SecurityConfig` → todos os `POST /projetos` exigem `hasRole(ALUNO)` (ver bug registrada).
++
++### Postagem de projeto
++1. Aluno envia `ProjetoCreateRequest` (e-mail do professor responsável, instituição, integrantes).
++2. `ProjetoService.criar()` salva com estado `AGUARDANDO_APROVACAO`.
++3. `ProjetoRepository.save()` → trigger/DAO insere `data.sql`.
++4. Resposta `ProjetoResponse` com `id`, `titulo`, `estado`.
++
++### Upload de arquivo (capa, avatar, etc.)
++1. `UploadController` recibe multipart → `FileStorageService`.
++2. `FileStorageService.store()` salva em `/app/uploads` (volume Docker).
++3. Retorna `UploadResponse` com URL para o front.
++4. **NOVO**: verificar erros de upload antes de concluir (ver `README.md` no root).
++
++## Modelos essenciais
++
++| Entidade | Estados principais |
++|---|---|
++| `Projeto` | `AGUARDANDO_APROVACAO`, `APROVADO`, `REJEITADO`, `EM_REMOCAO`, `REMOVIDO` |
++| `User` | `ALUNO`, `PROFESSOR`, `ADMIN` (roles) |
++| `Instituicao` | Catálogo de instituições Fatec/CPS |
++| `Integrante` | Participantes de um projeto |
++| `ProfessorInstituicao` | Vinculação professor ↔ instituição |
++
++## Banco
++
++- PostgreSQL 17 (Docker, porta `5433` local)
++- Schema: `schema.sql` (cria tabelas)
++- Seeds: `data.sql` + `back-end/init/` (SQL + geração de instituições)
++- `application.yml` — datasource, jpa, flyway/seeder, multipart uploads
++
++## Configuração de ambiente
++
++`.env` na raiz (nunca versionar). Variáveis essenciais:
++
++```bash
++POSTGRES_PASSWORD=<gerado>
++JWT_SECRET=<32+ chars>
++JWT_ISSUER=fatec-repository-api
++JWT_EXPIRATION_HOURS=24
++MSAL_TENANT_ID=eabe64c5-68f5-4a76-8301-9577a679e449
++MSAL_CLIENT_ID=146c36f9-abf3-48b0-a533-5f462e5e4eed
++```
++
++## O que está funcionando (confirmados)
++
++- ✅ Login MSAL via Azure AD (rotor, roles baseados em domínio)
++- ✅ Classificação de papel por domínio de e-mail (centralizada no backend)
++- ✅ Seleção 0–4 instituições pelo professor (catálogo)
++- ✅ Postagem de projeto com estado `AGUARDANDO_APROVACAO`
++- ✅ Upload de arquivos (capa, avatar) com volume Docker
++- ✅ API Springdoc OpenAPI (Swagger) na rota `/swagger-ui.html`
++- ✅ Seed de instituições (CSV parse + SQL)
++
++## O que está em planejamento / bug registrados
++
++- 🔧 `POST /projetos → authenticated()` sem `hasRole` (security bug)
++- 🔧 Upload de imagem: retroalimentação de erro não propagada em `upload-projeto.ts:374`/`:619`
++- 🔧 Exclusão/remoção de projetos (LGPD) — mais especificado em `_bmad-output/specs/`
++- 🔜 Exclusão/anonimização de projetos (LGPD Art.18)
++
++## Regras para agentes
++
++- Nunca alterar `JWT_SECRET` para um valor pré-definido.
++- Nunca adicionar regras de role no front-end — tudo decisão do backend.
++- Quando adicionar feature, verificar se já existe SPEC no `_bmad-output/specs/`.
++- Não criar migrações específicas de banco — usar `schema.sql` + seeds.
+diff --git a/back-end/pom.xml b/back-end/pom.xml
+index 73210ef..be899c5 100644
+--- a/back-end/pom.xml
++++ b/back-end/pom.xml
+@@ -46,9 +46,17 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
+ <dependency>
+ <groupId>org.springframework.boot</groupId>
+ <artifactId>spring-boot-starter-validation</artifactId>
+-</dependency>
++    </dependency>
++
++    <!-- Transporte de e-mail sem API paga: usa SMTP puro (JavaMail).
++         Configurado via variáveis de ambiente: MAIL_HOST / MAIL_PORT /
++         MAIL_USERNAME / MAIL_PASSWORD / EMAIL_FROM. -->
++    <dependency>
++        <groupId>org.springframework.boot</groupId>
++        <artifactId>spring-boot-starter-mail</artifactId>
++    </dependency>
+ 
+-<!-- Development Tools -->
++    <!-- Development Tools -->
+ <dependency>
+ <groupId>org.springframework.boot</groupId>
+ <artifactId>spring-boot-devtools</artifactId>
+diff --git a/back-end/src/main/java/com/fatecrepository/model/ProjetoEstado.java b/back-end/src/main/java/com/fatecrepository/model/ProjetoEstado.java
+index d74bc87..667de37 100644
+--- a/back-end/src/main/java/com/fatecrepository/model/ProjetoEstado.java
++++ b/back-end/src/main/java/com/fatecrepository/model/ProjetoEstado.java
+@@ -1,7 +1,10 @@
+ package com.fatecrepository.model;
+ 
+ public enum ProjetoEstado {
++    SUBMETIDO("SUBMETIDO"),
+     AGUARDANDO_APROVACAO("AGUARDANDO_APROVACAO"),
++    ALTERACOES_SOLICITADAS("ALTERACOES_SOLICITADAS"),
++    REENVIADO("REENVIADO"),
+     APROVADO("APROVADO"),
+     REJEITADO("REJEITADO");
+ 
+diff --git a/back-end/src/main/java/com/fatecrepository/service/EmailService.java b/back-end/src/main/java/com/fatecrepository/service/EmailService.java
+new file mode 100644
+index 0000000..cc87fda
+--- /dev/null
++++ b/back-end/src/main/java/com/fatecrepository/service/EmailService.java
+@@ -0,0 +1,116 @@
++package com.fatecrepository.service;
++
++import com.fatecrepository.model.Projeto;
++import com.fatecrepository.model.User;
++import jakarta.mail.internet.MimeMessage;
++import lombok.extern.slf4j.Slf4j;
++import org.springframework.mail.javamail.JavaMailSender;
++import org.springframework.mail.javamail.MimeMessageHelper;
++import org.springframework.stereotype.Service;
++
++/**
++ * Envio de e-mails assíncrono/não crítico do back-end.
++ *
++ * <p>Envia para o professor responsável logo após a submissão de um projeto.
++ * A mensagem é "melhor-esforço": se o SMTP falhar, o erro é logado e a
++ * submissão do aluno <b>nunca</b> é bloqueada. Isso evita que um problema
++ * pontual de e-mail impeça o registro do projeto.</p>
++ *
++ * <p>Envio feito no back-end (não no front-end): o naveador não envia e-mail
++ * para destinatários arbitrários por segurança (CORS + exposição de
++ * credenciais), e o professor já está gravado no modelo {@link Projeto} via
++ * {@code emailProfessorResponsavel}, então não precisamos de mais um cadastro.</p>
++ */
++@Service
++@Slf4j
++public class EmailService {
++
++    private final JavaMailSender javaMailSender;
++
++    public EmailService(JavaMailSender javaMailSender) {
++        this.javaMailSender = javaMailSender;
++    }
++
++    /**
++     * Notifica o professor responsável logo após o aluno submeter o projeto.
++     *
++     * @param projeto   projeto recém-criado (já persistido em {@code salvo}).
++     * @param autor     autor (aluno) do projeto.
++     */
++    public void enviarNovoProjeto(Projeto projeto, User autor) {
++        String professorEmail = projeto.getEmailProfessorResponsavel();
++        if (professorEmail == null || professorEmail.isBlank()) {
++            log.warn("Projeto {} sem e-mail do professor responsável; pulando notificação", projeto.getId());
++            return;
++        }
++
++        // Prefere um endereço "oficial" do projeto; se não foi declarado, usa
++        // a conta SMTP ativa (o nome de exibição vira o endereço).
++        String from = System.getenv("EMAIL_FROM");
++        if (from == null || from.isBlank()) {
++            from = System.getenv("MAIL_USERNAME");
++        }
++        if (from == null || from.isBlank()) {
++            from = professorEmail; // fallback para não gerar mensagem de "de" inválido
++        }
++
++        try {
++            MimeMessage message = javaMailSender.createMimeMessage();
++            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
++            helper.setFrom(from);
++            helper.setTo(professorEmail);
++            helper.setSubject("[Fatec Repositório] Novo projeto submetido para avaliação");
++            helper.setText(buildHtmlBody(projeto, autor), true); // true = HTML
++            javaMailSender.send(message);
++            log.info("E-mail de notificação enviado para {} sobre o projeto {}", professorEmail, projeto.getId());
++        } catch (Exception e) {
++            log.error("Falha ao enviar e-mail de notificação para o professor {} sobre o projeto {} — a submissão continuou normalmente",
++                    professorEmail, projeto.getId(), e);
++        }
++    }
++
++    private String buildHtmlBody(Projeto projeto, User autor) {
++        StringBuilder sb = new StringBuilder();
++        sb.append("<!DOCTYPE html><html><body style=\"font-family: 'Segoe UI', Arial, sans-serif; color:#1f2937; background:#f3f4f6; margin:0; padding:24px;\">")
++                .append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.12);\">")
++                .append("<tr style=\"background:#1d4ed8; color:#ffffff;\"><td style=\"padding:18px 22px; font-size:18px; font-weight:600;\">📦 Fatec Repositório</td></tr>")
++                .append("<tr><td style=\"padding:22px;\">")
++                .append("<h2 style=\"margin:0 0 8px; color:#111827;\">Novo projeto submetido</h2>")
++                .append("<p><b>Título:</b> ").append(escapeHtml(projeto.getTitulo())).append("</p>")
++                .append("<p><b>Descrição:</b> ").append(escapeHtml(projeto.getDescricaoCurta())).append("</p>")
++                .append("<p><b>Autor:</b> ").append(escapeHtml(autor.getNome())).append(" (")
++                .append(escapeHtml(autor.getEmail())).append(")</p>")
++                .append("<p><b>Instituição:</b> ")
++                .append(projeto.getInstituicao() != null ? escapeHtml(projeto.getInstituicao().getNome()) : "—")
++                .append("</p>")
++                .append("<p><b>Palavras-chave:</b> ")
++                .append(projeto.getPalavrasChave() == null || projeto.getPalavrasChave().isEmpty()
++                        ? "—"
++                        : String.join(", ", projeto.getPalavrasChave()))
++                .append("</p>")
++                .append("<p><b>Link do repositório:</b> ")
++                .append(projeto.getLinkRepositorio() == null || projeto.getLinkRepositorio().isBlank()
++                        ? "—"
++                        : "<a href=\"").append(escapeHtml(projeto.getLinkRepositorio())).append("\" style=\"color:#2563eb; text-decoration:underline;\">link</a>")
++                .append("</p>")
++                .append("<p><b>Estado:</b> <span style=\"color:#b91c1c;\">").append(projeto.getEstado() != null ? projeto.getEstado().name() : "—").append("</span></p>")
++                .append("<p style=\"color:#6b7280; font-size:12px; margin-top:18px; border-top:1px solid #e5e7eb; padding-top:12px;\">"
++                        + "Enviado automaticamente pelo Fatec Repositório &middot; "
++                        + "Este e-mail foi gerado após a submissão do projeto.")
++                .append("</td></tr>")
++                .append("</table>")
++                .append("</body></html>");
++        return sb.toString();
++    }
++
++    /** Escapa texto bruto para uso dentro de conteúdo HTML. */
++    private static String escapeHtml(String value) {
++        if (value == null) {
++            return "";
++        }
++        return value.replace("&", "&amp;")
++                .replace("<", "&lt;")
++                .replace(">", "&gt;")
++                .replace("\"", "&quot;");
++    }
++}
+diff --git a/back-end/src/main/java/com/fatecrepository/service/ProjetoService.java b/back-end/src/main/java/com/fatecrepository/service/ProjetoService.java
+index ef11451..f480786 100644
+--- a/back-end/src/main/java/com/fatecrepository/service/ProjetoService.java
++++ b/back-end/src/main/java/com/fatecrepository/service/ProjetoService.java
+@@ -34,6 +34,7 @@ public class ProjetoService {
+     private final UserRepository userRepository;
+     private final ProfessorInstituicaoRepository vinculoRepository;
+     private final ResponseMapper responseMapper;
++    private final EmailService emailService;
+ 
+     @Transactional
+     public ProjetoResponse criar(ProjetoCreateRequest request, UUID autorId) {
+@@ -95,6 +96,13 @@ public class ProjetoService {
+ 
+         ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
+         preencherNomeProfessor(resp);
++
++        // Notificação ao professor responsável imediatamente após a submissão do
++        // projeto. Enviado fora do caminho crítico: se o SMTP falhar, o aluno
++        // ainda recebe confirmação de que o projeto foi gravado (registro já
++        // persistido com @Transactional).
++        emailService.enviarNovoProjeto(salvo, autor);
++
+         return resp;
+     }
+ 
+diff --git a/back-end/src/main/resources/application.yml b/back-end/src/main/resources/application.yml
+index 0385150..c421c63 100644
+--- a/back-end/src/main/resources/application.yml
++++ b/back-end/src/main/resources/application.yml
+@@ -49,6 +49,22 @@ spring:
+       max-file-size: 60MB
+       max-request-size: 60MB
+ 
++  mail:
++    host: ${MAIL_HOST:smtp.gmail.com}
++    port: ${MAIL_PORT:587}
++    username: ${MAIL_USERNAME}
++    password: ${MAIL_PASSWORD}
++    properties:
++      mail:
++        smtp:
++          auth: true
++          starttls:
++            enable: true
++            required: true
++          connection.timeout: 5000
++          timeout: 5000
++          write.timeout: 5000
++
+ springdoc:
+   api-docs:
+     enabled: true
+diff --git a/front-end/PATTERNS.md b/front-end/PATTERNS.md
+new file mode 100644
+index 0000000..59bb944
+--- /dev/null
++++ b/front-end/PATTERNS.md
+@@ -0,0 +1,71 @@
++# PATTERNS — Fatec-Repositorios (Front-End)
++
++> Contexto para agentes e desenvolvedores. Documenta a paleta, os padrões
++> visuais e o que **evitar** ao trabalhar no front-end.
++
++## Paleta de cores (CSS variables)
++
++Definida em `front-end/src/styles/paleta.css` (root + `.dark`).
++
++| Role | Variável | Exemplo |
++|---|---|---|
++| **Vermelho CPS** | `--vermelho-500` | `#B20000` |
++| **Azul repositório** | `--azul-500` | `#4345CB` |
++| **Amarelo primário** | `--amarelo-500` | `#DCA703` |
++| **Verde sucesso** | `--verde-500` | `#00B32A` |
++| **Branco** | `--branco-500` | `#F4F6F9` |
++| **Cinza** | `--cinza-500` | `#202124` |
++
++### Uso correto
++
++- **Amarelo** → destaque, CTA, breadcrumb, badges de papel do usuário.
++- **Vermelho** → erros, rejeições, alertas, *_removido/_rejeitado*.
++- **Azul** → links, aviso de navegação, destaque de repositório.
++- **Verde** → sucesso, aprovação, estado _ativo_.
++- **Cinza** → texto secundário, fundos de sobreposto, skeletons.
++
++### Modo escuro
++
++`paleta.css` mapeia variáveis semânticas. Exceções são listadas em
++`front-end/src/styles/tema-escuro.css` (texto escuro sobre amarelo, fundos fixos,
++cores chapadas, links azuis). **Nunca** usar cores hardcoded em componentes.
++
++## Layout e componentes
++
++- **Mobile-first**: breakpoint `--mobile-brakepoint: 768px` (paleta.css).
++- **Angular 21** (standalone), TypeScript ~5.9, Tailwind CSS 4.
++- **Editor.js** para rich text em projetos pendentes/aprovados.
++- **Azure MSAL Angular** (`@azure/msal-angular`, v5) para login.
++- **Nginx** serve o build estático (Docker `front-end`).
++
++## O que evitar
++
++- ❌ Cores com hex (ex: `#B20000`) em componentes — usar variáveis semânticas.
++- ❌ Criar novas classes de cor sem consultar `paleta.css`.
++- ❌ Usar `v-if`/`hidden` para rotas protegidas — usar `auth.guard.ts`.
++- ❌ Carregar imagens via `http://` — usar `https://` ou `/uploads`.
++- ❌ Alteração de `theme-escuro.css` sem rodar `npm run build` e testar.
++- ❌ Duplicar estilos de palette no CSS — extrar para variáveis.
++
++## Componentes essenciais (matíz)
++
++| Componente | Responsabilidade | Caminho |
++|---|---|---|
++| `header/header` | Navegação, logo, auth | `src/app/shared/components/header` |
++| `footer/footer` | Rodapé, links, branding | `src/app/shared/components/footer` |
++| `card-projeto/card-projeto` | Card de projeto no catálogo | `src/app/shared/components/card-projeto` |
++| `auth/microsoft-login-button` | Login via Azure | `src/app/shared/components/microsoft-login-button` |
++| `features/upload-projeto/upload-projeto` | Upload de projeto | `src/app/features/upload-projeto` |
++| `features/ver-projeto/ver-projeto` | Exibição de projeto | `src/app/features/ver-projeto` |
++
++## Testes
++
++- **Vitest** para unitários (`*.spec.ts`), **Puppeteer** para E2E.
++- Rodar `npm run test` (unitários) ou `npm run e2e` (E2E) antes de commitar.
++
++## Regras para agentes
++
++- Sempre usar variáveis de paleta, nunca hex.
++- Sempre proteger rotas com `auth.guard.ts`.
++- Sempre testar modo escuro ao adicionar novo estilo.
++- Ao adicionar componente, criar `spec.ts` correspondente.
+diff --git a/front-end/src/app/core/models/projeto.model.ts b/front-end/src/app/core/models/projeto.model.ts
+index 86d0809..7586621 100644
+--- a/front-end/src/app/core/models/projeto.model.ts
++++ b/front-end/src/app/core/models/projeto.model.ts
+@@ -55,7 +55,7 @@ export interface ProjetoResponseModel {
+   imagemCapaUrl: string;
+   palavrasChave: string[];
+   anoPublicado: number;
+-  estado: 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
++  estado: 'SUBMETIDO' | 'AGUARDANDO_APROVACAO' | 'ALTERACOES_SOLICITADAS' | 'REENVIADO' | 'APROVADO' | 'REJEITADO';
+   motivoRejeicao?: string;
+   emailProfessorResponsavel: string;
+   /** Nome da conta do professor responsável (visão pública/LGPD — e-mail não é mais exposto na vitrine). */
+diff --git a/front-end/src/app/features/configuracoes/configuracoes.css b/front-end/src/app/features/configuracoes/configuracoes.css
+new file mode 100644
+index 0000000..09f12a7
+--- /dev/null
++++ b/front-end/src/app/features/configuracoes/configuracoes.css
+@@ -0,0 +1,127 @@
++/* Tela de Configurações - Listas simples com marcador, sem cards */
++.configuracoes-tela {
++    max-width: 720px;
++    margin: 0 auto;
++    padding: 1.5rem;
++}
++
++.configuracao-grupo {
++    margin-bottom: 2rem;
++}
++
++.configuracao-grupo:last-child {
++    margin-bottom: 0;
++}
++
++.configuracao-grupo h3 {
++    font-size: 1rem;
++    font-weight: 700;
++    color: var(--cinza-500);
++    margin: 0 0 1rem 0;
++    padding-bottom: 0.5rem;
++    border-bottom: 2px solid var(--amarelo-500);
++    width: fit-content;
++}
++
++.configuracao-item {
++    display: flex;
++    flex-direction: column;
++    gap: 0.5rem;
++    margin-bottom: 1rem;
++}
++
++.configuracao-rolo {
++    font-size: 0.875rem;
++    color: var(--cinza-500);
++    text-transform: uppercase;
++    letter-spacing: 0.04em;
++}
++
++.configuracao-switch {
++    display: flex;
++    align-items: center;
++    gap: 0.75rem;
++    margin-top: 0.25rem;
++}
++
++.configuracao-switch input {
++    display: none;
++}
++
++.configuracao-switch .slider {
++    width: 40px;
++    height: 20px;
++    background: var(--cinza-300);
++    border-radius: 20px;
++    position: relative;
++    transition: 0.3s;
++}
++
++.configuracao-switch .slider:before {
++    content: "";
++    position: absolute;
++    width: 16px;
++    height: 16px;
++    border-radius: 50%;
++    left: 2px;
++    bottom: 2px;
++    background: var(--amarelo-500);
++    transition: 0.3s;
++}
++
++.configuracao-switch input:checked + .slider {
++    background: var(--amarelo-500);
++}
++
++.configuracao-switch input:checked + .slider:before {
++    transform: translateX(20px);
++}
++
++.configuracao-select {
++    width: 100%;
++    padding: 0.5rem;
++    background: var(--branco-50);
++    border: 1px solid #6a6a6c;
++    border-radius: 0;
++    font-size: 0.875rem;
++    color: var(--cinza-500);
++    appearance: none;
++    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%236a6a6c'/%3E%3C/svg%3E");
++    background-repeat: no-repeat;
++    background-position: right 0.75rem center;
++    padding-right: 2rem;
++    cursor: pointer;
++}
++
++.skeleton-config {
++    padding: 1.5rem;
++    display: flex;
++    flex-direction: column;
++    gap: 1rem;
++}
++
++.skeleton-linha {
++    height: 1rem;
++    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
++    background-size: 200% 100%;
++    animation: perfil-pulse 1.4s ease-in-out infinite;
++}
++
++.skeleton-linha:nth-child(odd) { width: 60%; }
++.skeleton-linha:nth-child(even) { width: 80%; }
++
++@keyframes perfil-pulse {
++    0%, 100% { opacity: 1; }
++    50% { opacity: 0.45; }
++}
++
++.texto-desativado {
++    color: var(--cinza-300);
++    font-size: 0.75rem;
++    text-transform: uppercase;
++    letter-spacing: 0.04em;
++}
++
++.full-width {
++    width: 100%;
++}
+\ No newline at end of file
+diff --git a/front-end/src/app/features/configuracoes/configuracoes.html b/front-end/src/app/features/configuracoes/configuracoes.html
+new file mode 100644
+index 0000000..2ab3865
+--- /dev/null
++++ b/front-end/src/app/features/configuracoes/configuracoes.html
+@@ -0,0 +1,43 @@
++<!-- Tela de Configurações - Layout do mockup: listas simples com marcador -->
++<section class="configuracoes-tela">
++  <!-- Personalização -->
++  <section class="configuracao-grupo">
++    <h3 class="secao-titulo">Personalização</h3>
++    <div class="configuracao-item">
++      <label class="configuracao-rolo" for="tema-switch">Modo Claro e Escuro</label>
++      <div class="configuracao-switch">
++        <input type="checkbox" id="tema-switch" [checked]="modoEscuro()" (change)="alternarTema()">
++        <span class="slider round"></span>
++      </div>
++    </div>
++    <div class="configuracao-item">
++      <label class="configuracao-rolo" for="fonte-size">Tamanho da Fonte</label>
++      <select id="fonte-size" class="configuracao-select">
++        <option value="small">Pequena</option>
++        <option value="medium" selected>Média</option>
++        <option value="large">Grande</option>
++      </select>
++    </div>
++  </section>
++
++  <!-- Conta -->
++  <section class="configuracao-grupo">
++    <h3 class="secao-titulo">Conta</h3>
++    <div class="configuracao-item">
++      <button type="button" class="btn-secundario full-width" (click)="sairDaConta()">
++        <span class="material-symbols-outlined">logout</span>
++        <span>Sair Da Conta</span>
++      </button>
++    </div>
++    <div class="configuracao-item">
++      <label class="configuracao-rolo" for="receber-email">Receber E-mail de projetos Mandados</label>
++      <input type="checkbox" id="receber-email" disabled>
++      <span class="texto-desativado">Em breve</span>
++    </div>
++    <div class="configuracao-item">
++      <label class="configuracao-rolo" for="excluir-dados">Excluir Meus Dados</label>
++      <input type="checkbox" id="excluir-dados" disabled />
++      <span class="texto-desativado">Desativado</span>
++    </div>
++  </section>
++</section>
+\ No newline at end of file
+diff --git a/front-end/src/app/features/configuracoes/configuracoes.ts b/front-end/src/app/features/configuracoes/configuracoes.ts
+new file mode 100644
+index 0000000..24484af
+--- /dev/null
++++ b/front-end/src/app/features/configuracoes/configuracoes.ts
+@@ -0,0 +1,40 @@
++import { Component, OnInit, inject, signal } from '@angular/core';
++import { CommonModule } from '@angular/common';
++import { Router } from '@angular/router';
++import { ThemeService } from '../../core/theme/theme.service';
++import { AuthService } from '../../core/auth/auth.service';
++
++@Component({
++  selector: 'app-configuracoes',
++  standalone: true,
++  imports: [CommonModule],
++  templateUrl: './configuracoes.html',
++  styleUrl: './configuracoes.css'
++})
++export class Configuracoes implements OnInit {
++  private router = inject(Router);
++  private themeService = inject(ThemeService);
++  private authService = inject(AuthService);
++
++  modoEscuro = this.themeService.modoEscuro;
++  usuario = signal<{ nome: string; email: string; role?: string } | null>(null);
++  carregando = signal(true);
++
++  ngOnInit(): void {
++    this.authService.obterUsuarioLogado().then((u) => {
++      this.usuario.set(u);
++      this.carregando.set(false);
++    }).catch(() => this.carregando.set(false));
++  }
++
++  alternarTema(): void {
++    this.themeService.alternar();
++  }
++
++  sairDaConta(): void {
++    this.authService.logout().catch((erro) => {
++      console.error('Erro ao encerrar a sessão: ', erro);
++    });
++    this.router.navigate(['/']);
++  }
++}
+\ No newline at end of file

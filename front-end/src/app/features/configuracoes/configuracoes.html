@@ -1,0 +1,43 @@
+<!-- Tela de Configurações - Layout do mockup: listas simples com marcador -->
+<section class="configuracoes-tela">
+  <!-- Personalização -->
+  <section class="configuracao-grupo">
+    <h3 class="secao-titulo">Personalização</h3>
+    <div class="configuracao-item">
+      <label class="configuracao-rolo" for="tema-switch">Modo Claro e Escuro</label>
+      <div class="configuracao-switch">
+        <input type="checkbox" id="tema-switch" [checked]="modoEscuro()" (change)="alternarTema()" aria-label="Alternar modo claro e escuro">
+        <span class="slider round"></span>
+      </div>
+    </div>
+    <div class="configuracao-item">
+      <label class="configuracao-rolo" for="fonte-size">Tamanho da Fonte</label>
+      <select id="fonte-size" class="configuracao-select" [value]="fonteTamanho()" (change)="alterarFonte($event)">
+        <option value="small">Pequena</option>
+        <option value="medium" selected>Média</option>
+        <option value="large">Grande</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Conta -->
+  <section class="configuracao-grupo">
+    <h3 class="secao-titulo">Conta</h3>
+    <div class="configuracao-item">
+      <button type="button" class="btn-secundario full-width" (click)="sairConta()">
+        <span class="material-symbols-outlined">logout</span>
+        <span>Sair Da Conta</span>
+      </button>
+    </div>
+    <div class="configuracao-item">
+      <label class="configuracao-rolo" for="receber-email">Receber E-mail de projetos Mandados</label>
+      <input type="checkbox" id="receber-email" disabled>
+      <span class="texto-desativado">Em breve</span>
+    </div>
+    <div class="configuracao-item">
+      <label class="configuracao-rolo" for="excluir-dados">Excluir Meus Dados</label>
+      <input type="checkbox" id="excluir-dados" disabled />
+      <span class="texto-desativado">Desativado</span>
+    </div>
+  </section>
+</section>
