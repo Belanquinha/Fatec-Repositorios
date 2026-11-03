@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.List;
 
 /**
  * Envio de e-mails assíncrono/não crítico do back-end.

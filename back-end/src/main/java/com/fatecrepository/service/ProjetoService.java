@@ -102,7 +102,7 @@ public class ProjetoService {
         // Notificação ao professor responsável após o commit (pós-commit), e não
         // dentro da transação. Assim, um SMTP lento ou inacessível não segura
         // a conexão do banco nem pode lançar exceção que tenha contrado o INSERT.
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter<>() {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
             @Override
             public void afterCommit() {
                 emailService.enviarNovoProjeto(salvo, autor);

@@ -39,7 +39,7 @@ export class Configuracoes implements OnInit {
   }
 
   private aplicarFonte(tamanho: string): void {
-    const mapa = { small: '12px', medium: '14px', large: '16px' };
+    const mapa: Record<string, string> = { small: '12px', medium: '14px', large: '16px' };
     const novaTamanho = mapa[tamanho] || '14px';
     document.documentElement.style.setProperty('--fx-fonte', novaTamanho);
   }

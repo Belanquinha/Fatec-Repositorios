@@ -16,5 +16,4 @@ public class FatecRepoApplication {
 		log.info("Swagger UI disponível em: http://localhost:4040/swagger-ui.html");
 		log.info("API Docs disponível em: http://localhost:4040/v3/api-docs");
 	}
-
 }
