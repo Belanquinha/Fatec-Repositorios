@@ -36,7 +36,6 @@ public class ProjetoService {
     private final UserRepository userRepository;
     private final ProfessorInstituicaoRepository vinculoRepository;
     private final ResponseMapper responseMapper;
-    private final EmailService emailService;
 
     @Transactional
     public ProjetoResponse criar(ProjetoCreateRequest request, UUID autorId) {
@@ -98,16 +97,6 @@ public class ProjetoService {
 
         ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
         preencherNomeProfessor(resp);
-
-        // Notificação ao professor responsável após o commit (pós-commit), e não
-        // dentro da transação. Assim, um SMTP lento ou inacessível não segura
-        // a conexão do banco nem pode lançar exceção que tenha contrado o INSERT.
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
-            @Override
-            public void afterCommit() {
-                emailService.enviarNovoProjeto(salvo, autor);
-            }
-        });
 
         return resp;
     }

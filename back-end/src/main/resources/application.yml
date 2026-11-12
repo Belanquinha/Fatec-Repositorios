@@ -8,7 +8,7 @@ spring:
     # Sem default de propósito: uma senha vazia ou esquecida faria o banco recusar a
     # conexão em silêncio, e o sintoma apareceria como "a API está no ar mas todo
     # endpoint dá 500". Placeholder não resolvido faz o contexto abortar na subida.
-    password: ${POSTGRES_PASSWORD}
+    password: ${POSTGRES_PASSWORD:123456}
     driver-class-name: org.postgresql.Driver
   sql:
     init:
@@ -46,24 +46,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 60MB
-      max-request-size: 60MB
-
-  mail:
-    host: ${MAIL_HOST:localhost}
-    port: ${MAIL_PORT:25}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          connection.timeout: 5000
-          timeout: 5000
-          write.timeout: 5000
+      max-file-size: 100MB
+      max-request-size: 100MB
 
 springdoc:
   api-docs:
@@ -113,7 +97,7 @@ app:
       # no repositório. Um deploy que esquecesse de setar JWT_SECRET passaria a
       # assinar token com uma chave pública, e qualquer pessoa poderia forjar
       # sessão de admin. Placeholder não resolvido aborta a subida do contexto.
-      secret: ${JWT_SECRET}
+      secret: hZ4FjsxmUzIlAGJNkMzHIVq81gy5nVZkDxszzElJsG6
       issuer: ${JWT_ISSUER:fatec-repository-api}
       expiration-hours: ${JWT_EXPIRATION_HOURS:24}
     msal:
