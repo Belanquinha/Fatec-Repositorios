@@ -2,7 +2,6 @@ package com.fatecrepository.controller;
 
 import com.fatecrepository.dto.request.MicrosoftLoginRequest;
 import com.fatecrepository.dto.response.AuthResponse;
-import com.fatecrepository.model.User;
 import com.fatecrepository.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

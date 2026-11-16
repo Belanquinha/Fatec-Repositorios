@@ -97,7 +97,7 @@ app:
       # no repositório. Um deploy que esquecesse de setar JWT_SECRET passaria a
       # assinar token com uma chave pública, e qualquer pessoa poderia forjar
       # sessão de admin. Placeholder não resolvido aborta a subida do contexto.
-      secret: hZ4FjsxmUzIlAGJNkMzHIVq81gy5nVZkDxszzElJsG6
+      secret: ${JWT_SECRET:Irtzbkt9/EM+qS07nOcJr6vGR4IqqNoWutFKO9iIeWarAklOKZN1+LbP8Z5NtlD6}
       issuer: ${JWT_ISSUER:fatec-repository-api}
       expiration-hours: ${JWT_EXPIRATION_HOURS:24}
     msal:
