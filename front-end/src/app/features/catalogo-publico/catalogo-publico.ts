@@ -1,11 +1,21 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CardProjeto } from '../../shared/components/card-projeto/card-projeto';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { ProjetoResponseModel, InstituicaoOption } from '../../core/models/projeto.model';
+import {
+  ProjetoResponseModel,
+  InstituicaoOption,
+} from '../../core/models/projeto.model';
 import { UsuarioLogado } from '../../core/auth/models/usuario-logado';
 
 @Component({
@@ -13,6 +23,7 @@ import { UsuarioLogado } from '../../core/auth/models/usuario-logado';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, CardProjeto],
   templateUrl: './catalogo-publico.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './catalogo-publico.css',
 })
 export class CatalogoPublico implements OnInit {
@@ -70,7 +81,7 @@ export class CatalogoPublico implements OnInit {
         this.instituicoes.set([]);
         this.erroCarregarInstituicoes.set(true);
         console.error('Erro ao carregar instituições:', err);
-      }
+      },
     });
 
     this.projetoService.listarProjetosPublicos().subscribe({
@@ -83,16 +94,22 @@ export class CatalogoPublico implements OnInit {
       error: (err) => {
         console.error('Erro ao carregar projetos:', err);
         this.erroCarregamento.set(
-          'Não foi possível carregar o catálogo de projetos no momento. Verifique sua conexão e tente novamente.');
+          'Não foi possível carregar o catálogo de projetos no momento. Verifique sua conexão e tente novamente.',
+        );
         this.carregando.set(false);
-      }
+      },
     });
   }
 
   private atualizarTagsDisponiveis(): void {
     const tags = new Set<string>();
-    this.todosProjetos().forEach((proj) => proj.palavrasChave?.forEach((t) => tags.add(t)));
-    const lista = ['Todas', ...Array.from(tags).sort((a, b) => a.localeCompare(b, 'pt-BR'))];
+    this.todosProjetos().forEach((proj) =>
+      proj.palavrasChave?.forEach((t) => tags.add(t)),
+    );
+    const lista = [
+      'Todas',
+      ...Array.from(tags).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    ];
     this.tagsDisponiveis.set(lista);
 
     // A tag selecionada pode não existir mais após recarregar
@@ -105,28 +122,31 @@ export class CatalogoPublico implements OnInit {
     const termo = this.termoBusca.trim().toLowerCase();
     const todos = this.todosProjetos();
 
-    this.projetosFiltrados.set(todos.filter((proj) => {
-      const bateTermo =
-        !termo ||
-        proj.titulo.toLowerCase().includes(termo) ||
-        proj.descricaoCurta.toLowerCase().includes(termo) ||
-        proj.instituicaoNome.toLowerCase().includes(termo) ||
-        (proj.palavrasChave && proj.palavrasChave.some((p) => p.toLowerCase().includes(termo)));
+    this.projetosFiltrados.set(
+      todos.filter((proj) => {
+        const bateTermo =
+          !termo ||
+          proj.titulo.toLowerCase().includes(termo) ||
+          proj.descricaoCurta.toLowerCase().includes(termo) ||
+          proj.instituicaoNome.toLowerCase().includes(termo) ||
+          (proj.palavrasChave &&
+            proj.palavrasChave.some((p) => p.toLowerCase().includes(termo)));
 
-      const bateInstituicao =
-        !this.instituicaoSelecionadaId ||
-        proj.instituicaoId === this.instituicaoSelecionadaId ||
-        proj.instituicaoNome === this.instituicaoSelecionadaId;
+        const bateInstituicao =
+          !this.instituicaoSelecionadaId ||
+          proj.instituicaoId === this.instituicaoSelecionadaId ||
+          proj.instituicaoNome === this.instituicaoSelecionadaId;
 
-      const bateTag =
-        this.tagSelecionada === 'Todas' ||
-        (proj.palavrasChave &&
-          proj.palavrasChave.some((p) =>
-            p.toLowerCase().includes(this.tagSelecionada.toLowerCase())
-          ));
+        const bateTag =
+          this.tagSelecionada === 'Todas' ||
+          (proj.palavrasChave &&
+            proj.palavrasChave.some((p) =>
+              p.toLowerCase().includes(this.tagSelecionada.toLowerCase()),
+            ));
 
-      return bateTermo && bateInstituicao && bateTag;
-    }));
+        return bateTermo && bateInstituicao && bateTag;
+      }),
+    );
   }
 
   selecionarTag(tag: string): void {

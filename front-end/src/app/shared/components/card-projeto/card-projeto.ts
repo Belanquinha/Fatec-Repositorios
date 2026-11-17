@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { environment } from '../../../../environments/environment';
@@ -9,6 +9,7 @@ import { ProjetoResponseModel } from '../../../core/models/projeto.model';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './card-projeto.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './card-projeto.css',
 })
 export class CardProjeto {

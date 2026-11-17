@@ -12,7 +12,7 @@ composto por:
 
 - **Backend** (`back-end/`): API Spring Boot 4.1 (Java 21), JPA + PostgreSQL 17,
   Spring Security com JWT (Azure AD/MSAL), Lombok, Swagger/OpenAPI (Springdoc).
-- **Frontend** (`front-end/`): aplicação Angular 21 + TypeScript + Tailwind CSS,
+- **Frontend** (`front-end/`): aplicação Angular 22 + TypeScript 6 + Tailwind CSS,
   Editor.js (rich text), Azure MSAL para login. Servida pelo Nginx em Docker.
 - **Docker** (`docker-compose.yml`): `postgres:17`, `backend:4040`, `frontend:4200`.
 
@@ -22,7 +22,7 @@ composto por:
 |---|---|
 | Backend | Java 21, Spring Boot 4.1, Spring Data JPA, Spring Security + JWT |
 | Banco | PostgreSQL 17 (via Docker, porta 5433 local) |
-| Frontend | Angular 21, TypeScript ~5.9, Tailwind CSS 4, Editor.js |
+| Frontend | Angular 22, TypeScript ~6.0, Tailwind CSS 4, Editor.js |
 | Auth | Azure AD (MSAL), tenant ID `eabe64c5-68f5-4a76-8301-9577a679e449` |
 | Infra | Docker Compose, Nginx (frontend), Maven (backend) |
 
@@ -53,7 +53,7 @@ Fatec-Repositorios/
 │   ├── src/main/java  # (pacotes: controller, service, repository, config, security)
 │   ├── src/main/resources/  # application.yml, schema.sql, seeds/
 │   └── init/          # SQL de seed (admin) + geração de instituições
-├── front-end/         # Angular 21 + Editor.js + Azure MSAL
+├── front-end/         # Angular 22 + Editor.js + Azure MSAL
 │   ├── src/app/       # Componentes, services, guards, interceptors
 │   └── environments/  # Configuração de ambiente
 ├── docker-compose.yml # Serviços: postgres, backend, frontend

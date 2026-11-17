@@ -240,6 +240,7 @@ describe('Perfil', () => {
       instituicaoNome: 'Fatec Ipiranga',
       autorNome: 'Aluno',
       estado: 'AGUARDANDO_APROVACAO',
+      criadoEm: '2026-09-11T00:00:00Z',
     };
     const mock = projetosProfessor([], [fatecA, fatecB]);
     mock.listarPendentesAprovacao.mockReturnValue(of([pendente]));
@@ -247,11 +248,13 @@ describe('Perfil', () => {
 
     expect(mock.listarPendentesAprovacao).toHaveBeenCalled();
     expect(component.pendentes()).toHaveLength(1);
-    expect(fixture.nativeElement.textContent as string).toContain('Projeto Pendente');
-    expect(fixture.nativeElement.textContent as string).toContain('Aprovar projeto');
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).toContain('Projeto Pendente');
+    expect(texto).toContain('Ver projeto');
+    expect(texto).toContain('Enviado em');
   });
 
-  it('aprovar remove da lista e mostra sucesso', async () => {
+  it('card de pendente leva ao ver-projeto em modo de avaliação', async () => {
     const pendente = {
       id: 'proj-1',
       titulo: 'Projeto Pendente',
@@ -262,14 +265,13 @@ describe('Perfil', () => {
     };
     const mock = projetosProfessor([], [fatecA, fatecB]);
     mock.listarPendentesAprovacao.mockReturnValue(of([pendente]));
-    mock.aprovarProjeto.mockReturnValue(of({ ...pendente, estado: 'APROVADO' }));
     await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+    fixture.detectChanges();
 
-    component.aprovarPendente('proj-1');
-
-    expect(mock.aprovarProjeto).toHaveBeenCalledWith('proj-1');
-    expect(component.pendentes()).toHaveLength(0);
-    expect(component.sucessoAprovacao()).toContain('aprovado');
+    const link = fixture.nativeElement.querySelector('.pendente-acoes a') as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toContain('/ver-projeto/proj-1');
+    expect(link.getAttribute('href')).toContain('avaliar=1');
   });
 
   it('rejeitar exige motivo e remove da lista', async () => {
@@ -362,16 +364,17 @@ describe('Perfil (erro HTML normalizado, item 30)', () => {
     expect(comp.erroPendentes()).not.toContain('<html>');
   });
 
-  it('aprovarPendente troca envelope com mensagem HTML por amigável', async () => {
+  it('confirmarRejeicao troca envelope com mensagem HTML por amigável', async () => {
     const mock = baseMock();
-    mock.aprovarProjeto.mockReturnValue(
+    mock.rejeitarProjeto.mockReturnValue(
       throwError(() => ({ status: 413, error: { mensagem: html413 } }))
     );
     const { comp } = await configurarProfessor(mock);
 
-    comp.aprovarPendente('proj-1');
+    comp.onMotivoRejeicao('proj-1', 'Falta referencial');
+    comp.confirmarRejeicao('proj-1');
     expect(comp.erroPendentes()).toBe(
-      'Não foi possível aprovar o projeto agora. Tente novamente.'
+      'Não foi possível rejeitar o projeto agora. Tente novamente.'
     );
     expect(comp.erroPendentes()).not.toContain('<html>');
   });
@@ -411,12 +414,13 @@ describe('Perfil (erro HTML normalizado, item 30)', () => {
 
   it('mantém mensagem JSON normal do servidor quando não é HTML', async () => {
     const mock = baseMock();
-    mock.aprovarProjeto.mockReturnValue(
+    mock.rejeitarProjeto.mockReturnValue(
       throwError(() => ({ status: 409, error: { mensagem: 'Projeto já avaliado' } }))
     );
     const { comp } = await configurarProfessor(mock);
 
-    comp.aprovarPendente('proj-1');
+    comp.onMotivoRejeicao('proj-1', 'Falta referencial');
+    comp.confirmarRejeicao('proj-1');
     expect(comp.erroPendentes()).toBe('Projeto já avaliado');
   });
 });

@@ -1,4 +1,11 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -7,35 +14,12 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
 import { UsuarioLogado } from '../../core/auth/models/usuario-logado';
 import { ProjetoService } from '../../core/services/projeto.service';
-import { InstituicaoOption, ProjetoResponseModel } from '../../core/models/projeto.model';
-
-/**
- * Normaliza erro HTTP para mensagem exibível (item 30): o nginx devolve HTML
- * (ex.: 413 `client_max_body_size`) e o `HttpClient` entrega esse corpo cru em
- * `err.error` (string começando com `<`) ou dentro de
- * `err.error.mensagem/message`. Corpo/trecho cru começando com `<` nunca vai
- * para a tela — cai no `padrao` amigável (mesmo padrão de
- * `upload-projeto.ts:enviarParaAvaliacao`).
- */
-function mensagemErroAmigavel(err: unknown, padrao: string): string {
-  const corpo = (err as { error?: unknown })?.error;
-  const bruta =
-    typeof corpo === 'string'
-      ? corpo
-      : (
-        (corpo as { mensagem?: unknown; message?: unknown } | null | undefined)?.mensagem ??
-        (corpo as { message?: unknown } | null | undefined)?.message
-      );
-  if (typeof bruta === 'string') {
-    if (bruta.trim().startsWith('<')) {
-      return padrao;
-    }
-    if (bruta.trim()) {
-      return bruta;
-    }
-  }
-  return padrao;
-}
+import {
+  InstituicaoOption,
+  ProjetoResponseModel,
+} from '../../core/models/projeto.model';
+import { mensagemErroAmigavel } from '../../core/utils/erro-http';
+import { environment } from '../../../environments/environment';
 
 /**
  * Tela de Perfil (DESIGN 4.6 + UX-SELECAO-INSTITUICOES-PROFESSOR Frame B).
@@ -52,6 +36,7 @@ function mensagemErroAmigavel(err: unknown, padrao: string): string {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './perfil.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './perfil.css',
 })
 export class Perfil implements OnInit {
@@ -96,18 +81,27 @@ export class Perfil implements OnInit {
   pendentes = signal<ProjetoResponseModel[]>([]);
   carregandoPendentes = signal(false);
   erroPendentes = signal<string | null>(null);
-  sucessoAprovacao = signal<string | null>(null);
+  sucessoAcao = signal<string | null>(null);
   processandoId = signal<string | null>(null);
   rejeicaoAbertaId = signal<string | null>(null);
   motivosRejeicao = signal<Record<string, string>>({});
+  /** Capas que falharam no <img>: o card mostra o bloco neutro no lugar. */
+  capasComErro = new Set<string>();
 
-  contadorVinculos = computed(() => `${this.selecao().length} de ${this.LIMITE_VINCULOS} unidades`);
+  contadorVinculos = computed(
+    () => `${this.selecao().length} de ${this.LIMITE_VINCULOS} unidades`,
+  );
   noTeto = computed(() => this.selecao().length >= this.LIMITE_VINCULOS);
   temAlteracoes = computed(() => {
-    const salvos = this.vinculos().map((v) => v.id).sort();
-    const atuais = this.selecao().map((v) => v.id).sort();
+    const salvos = this.vinculos()
+      .map((v) => v.id)
+      .sort();
+    const atuais = this.selecao()
+      .map((v) => v.id)
+      .sort();
     return (
-      salvos.length !== atuais.length || salvos.some((id, i) => id !== atuais[i])
+      salvos.length !== atuais.length ||
+      salvos.some((id, i) => id !== atuais[i])
     );
   });
 
@@ -157,7 +151,9 @@ export class Perfil implements OnInit {
         console.error('Erro ao carregar projetos do perfil:', err);
         // Identidade do token continua exibida: o que falhou foi o contexto,
         // não a sessão (DESIGN 4.6, estado de erro).
-        this.erroContexto.set('Não foi possível carregar seus projetos agora. Tente novamente mais tarde.');
+        this.erroContexto.set(
+          'Não foi possível carregar seus projetos agora. Tente novamente mais tarde.',
+        );
         this.carregando.set(false);
       },
     });
@@ -173,16 +169,22 @@ export class Perfil implements OnInit {
     this.carregandoVinculos.set(true);
     this.erroVinculos.set(null);
     forkJoin({
-      catalogo: this.projetoService.listarInstituicoes().pipe(catchError(() => of(null))),
-      vinculos: this.projetoService.obterMeusVinculos().pipe(catchError(() => of(null))),
+      catalogo: this.projetoService
+        .listarInstituicoes()
+        .pipe(catchError(() => of(null))),
+      vinculos: this.projetoService
+        .obterMeusVinculos()
+        .pipe(catchError(() => of(null))),
     }).subscribe(({ catalogo, vinculos }) => {
       if (vinculos === null) {
         this.erroVinculos.set(
-          'Não foi possível carregar suas instituições agora. Verifique sua conexão.'
+          'Não foi possível carregar suas instituições agora. Verifique sua conexão.',
         );
       } else {
         // Garante ordem por nome como o servidor promete.
-        const ordenados = [...(vinculos ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        const ordenados = [...(vinculos ?? [])].sort((a, b) =>
+          a.nome.localeCompare(b.nome, 'pt-BR'),
+        );
         this.vinculos.set(ordenados);
         // A seleção só é sincronizada quando os vínculos carregaram de verdade:
         // uma falha transitória do catálogo jamais zera vínculos salvos
@@ -191,7 +193,7 @@ export class Perfil implements OnInit {
       }
       if (catalogo === null) {
         this.erroVinculos.set(
-          'Não foi possível carregar suas instituições agora. Verifique sua conexão.'
+          'Não foi possível carregar suas instituições agora. Verifique sua conexão.',
         );
       } else {
         const ativas = (catalogo ?? []).filter((i) => i.ativo);
@@ -216,8 +218,8 @@ export class Perfil implements OnInit {
         this.erroPendentes.set(
           mensagemErroAmigavel(
             err,
-            'Não foi possível carregar os projetos pendentes agora. Tente novamente.'
-          )
+            'Não foi possível carregar os projetos pendentes agora. Tente novamente.',
+          ),
         );
         this.carregandoPendentes.set(false);
       },
@@ -228,35 +230,10 @@ export class Perfil implements OnInit {
     this.carregarPendentes();
   }
 
-  aprovarPendente(id: string): void {
-    if (this.processandoId()) {
-      return;
-    }
-    this.processandoId.set(id);
-    this.erroPendentes.set(null);
-    this.sucessoAprovacao.set(null);
-    this.projetoService.aprovarProjeto(id).subscribe({
-      next: (aprovado) => {
-        this.pendentes.set(this.pendentes().filter((p) => p.id !== id));
-        this.processandoId.set(null);
-        this.sucessoAprovacao.set(
-          `Projeto "${aprovado.titulo}" aprovado e publicado na vitrine.`
-        );
-      },
-      error: (err) => {
-        console.error('Erro ao aprovar projeto:', err);
-        this.processandoId.set(null);
-        this.erroPendentes.set(
-          mensagemErroAmigavel(err, 'Não foi possível aprovar o projeto agora. Tente novamente.')
-        );
-      },
-    });
-  }
-
   abrirRejeicao(id: string): void {
     this.rejeicaoAbertaId.set(id);
     this.erroPendentes.set(null);
-    this.sucessoAprovacao.set(null);
+    this.sucessoAcao.set(null);
   }
 
   fecharRejeicao(): void {
@@ -278,19 +255,24 @@ export class Perfil implements OnInit {
     }
     this.processandoId.set(id);
     this.erroPendentes.set(null);
-    this.sucessoAprovacao.set(null);
+    this.sucessoAcao.set(null);
     this.projetoService.rejeitarProjeto(id, motivo).subscribe({
       next: (rejeitado) => {
         this.pendentes.set(this.pendentes().filter((p) => p.id !== id));
         this.processandoId.set(null);
         this.rejeicaoAbertaId.set(null);
-        this.sucessoAprovacao.set(`Projeto "${rejeitado.titulo}" rejeitado com retorno ao aluno.`);
+        this.sucessoAcao.set(
+          `Projeto "${rejeitado.titulo}" rejeitado com retorno ao aluno.`,
+        );
       },
       error: (err) => {
         console.error('Erro ao rejeitar projeto:', err);
         this.processandoId.set(null);
         this.erroPendentes.set(
-          mensagemErroAmigavel(err, 'Não foi possível rejeitar o projeto agora. Tente novamente.')
+          mensagemErroAmigavel(
+            err,
+            'Não foi possível rejeitar o projeto agora. Tente novamente.',
+          ),
         );
       },
     });
@@ -401,7 +383,7 @@ export class Perfil implements OnInit {
     this.projetoService.salvarMeusVinculos(ids).subscribe({
       next: (persistidos) => {
         const ordenados = [...(persistidos ?? [])].sort((a, b) =>
-          a.nome.localeCompare(b.nome, 'pt-BR')
+          a.nome.localeCompare(b.nome, 'pt-BR'),
         );
         this.vinculos.set(ordenados);
         this.selecao.set([...ordenados]);
@@ -409,7 +391,7 @@ export class Perfil implements OnInit {
         this.sucessoVinculos.set(
           ordenados.length === 0
             ? 'Vínculos atualizados. Você está sem instituições vinculadas.'
-            : `Vínculos atualizados: ${ordenados.length} de ${this.LIMITE_VINCULOS} unidades.`
+            : `Vínculos atualizados: ${ordenados.length} de ${this.LIMITE_VINCULOS} unidades.`,
         );
       },
       error: (err) => {
@@ -417,7 +399,10 @@ export class Perfil implements OnInit {
         this.salvandoVinculos.set(false);
         // Mantém chips e contagem; mostra o envelope do servidor em painel neutro.
         this.erroSalvarVinculos.set(
-          mensagemErroAmigavel(err, 'Não foi possível salvar os vínculos agora. Tente novamente.')
+          mensagemErroAmigavel(
+            err,
+            'Não foi possível salvar os vínculos agora. Tente novamente.',
+          ),
         );
       },
     });
@@ -452,7 +437,8 @@ export class Perfil implements OnInit {
       case 'Enter': {
         event.preventDefault();
         const alvo =
-          this.sugestoesVinculo[this.destaqueVinculo] ?? this.sugestoesVinculo[0];
+          this.sugestoesVinculo[this.destaqueVinculo] ??
+          this.sugestoesVinculo[0];
         if (alvo) {
           this.adicionarVinculo(alvo);
         }
@@ -483,6 +469,33 @@ export class Perfil implements OnInit {
 
   temLogoValida(codigoUnidade: string): boolean {
     return !this.logosComErro.has(codigoUnidade);
+  }
+
+  // --- Card de pendente (mesma geometria do card do catálogo) ---
+
+  /** Capa do projeto: absolutas/data/blob passam direto; "/uploads/x" vai para a API. */
+  capaUrl(p: ProjetoResponseModel): string {
+    const raw = p?.imagemCapaUrl ?? '';
+    if (!raw || this.capasComErro.has(p.id)) return '';
+    if (/^(https?:\/\/|data:|blob:)/i.test(raw)) return raw;
+    if (raw.startsWith('/uploads/')) return `${environment.apiUrl}${raw}`;
+    return raw;
+  }
+
+  onCapaErro(id: string): void {
+    this.capasComErro.add(id);
+  }
+
+  /** "11/09/2026" a partir do ISO do `criadoEm`; string vazia quando inválido. */
+  dataFormatada(iso?: string): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   }
 
   private normalizar(texto: string): string {

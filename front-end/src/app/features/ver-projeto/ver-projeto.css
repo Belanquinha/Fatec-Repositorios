@@ -406,3 +406,148 @@
 
 .link-linkedin:hover { text-decoration: underline; }
 .icone-linkedin { font-size: 1rem; }
+
+/* ---------- Painel de avaliação (professor responsável) ---------- */
+.avaliacao-painel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background-color: var(--branco-50);
+    border: 1px solid var(--cinza-100);
+    border-top: 4px solid var(--amarelo-500);
+    padding: 1.75rem;
+    border-radius: 0 !important;
+}
+
+.avaliacao-titulo {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--cinza-600);
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--amarelo-500);
+    width: fit-content;
+}
+
+.avaliacao-nota {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--cinza-300);
+    margin: 0;
+    max-width: 60ch;
+}
+
+.avaliacao-erro {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 6px solid #d97706;
+    color: #92400e;
+    font-size: 0.875rem;
+    border-radius: 0 !important;
+}
+
+.avaliacao-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.btn-aprovar,
+.btn-rejeitar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0 !important;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.btn-aprovar { background-color: var(--amarelo-500); color: var(--cinza-600); }
+.btn-aprovar:hover { background-color: var(--amarelo-600); }
+
+.btn-rejeitar {
+    background-color: transparent;
+    color: var(--cinza-500);
+    border-color: #6a6a6c;
+}
+.btn-rejeitar:hover { background-color: var(--branco-600); }
+
+.btn-aprovar:disabled,
+.btn-rejeitar:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.avaliacao-rejeicao {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.avaliacao-rotulo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cinza-500);
+}
+
+.avaliacao-campo {
+    width: 100%;
+    border: 1px solid #6a6a6c;
+    border-radius: 0 !important;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: var(--cinza-500);
+    background-color: var(--branco-50);
+    resize: vertical;
+}
+
+.avaliacao-campo:focus {
+    outline: 2px solid var(--amarelo-500);
+    border-color: var(--amarelo-500);
+}
+
+.avaliacao-sucesso {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background-color: var(--branco-50);
+    border: 1px solid var(--verde-500);
+    border-radius: 0 !important;
+}
+
+.avaliacao-sucesso .material-symbols-outlined {
+    color: var(--verde-600);
+    font-size: 1.75rem;
+}
+
+.avaliacao-sucesso strong { color: var(--cinza-600); }
+.avaliacao-sucesso p { margin: 0.15rem 0 0; font-size: 0.9375rem; color: var(--cinza-500); }
+
+.btn-voltar-perfil {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--amarelo-500);
+    color: var(--cinza-600);
+    font-size: 0.875rem;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    text-decoration: none;
+    border-radius: 0 !important;
+}
+
+.btn-voltar-perfil:hover { background-color: var(--amarelo-600); }

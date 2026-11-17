@@ -252,10 +252,10 @@
             <span>Tentar novamente</span>
           </button>
         } @else {
-          @if (sucessoAprovacao()) {
+          @if (sucessoAcao()) {
             <p class="painel-sucesso" role="status">
               <span class="material-symbols-outlined">check_circle</span>
-              <span>{{ sucessoAprovacao() }}</span>
+              <span>{{ sucessoAcao() }}</span>
             </p>
           }
           @if (pendentes().length === 0) {
@@ -268,32 +268,66 @@
             <ul class="pendente-lista">
               @for (p of pendentes(); track p.id) {
                 <li class="pendente-item">
-                  <div class="pendente-info">
-                    <strong class="pendente-titulo">{{ p.titulo }}</strong>
-                    <span class="pendente-meta">{{ p.instituicaoNome }} · {{ p.autorNome }}</span>
-                    <span class="pendente-desc">{{ p.descricaoCurta }}</span>
+                  <div class="pendente-capa">
+                    @if (capaUrl(p)) {
+                      <img
+                        [src]="capaUrl(p)"
+                        [alt]="p.titulo || 'Capa do projeto'"
+                        class="pendente-imagem"
+                        (error)="onCapaErro(p.id)"
+                      />
+                    } @else {
+                      <div class="pendente-capa-vazia">
+                        <span class="material-symbols-outlined icone-capa-vazia">image_not_supported</span>
+                      </div>
+                    }
                   </div>
+
+                  <div class="pendente-corpo">
+                    <h3 class="pendente-titulo" [title]="p.titulo">
+                      {{ p.titulo || 'Projeto sem título' }}
+                    </h3>
+                    @if (p.descricaoCurta) {
+                      <p class="pendente-desc">{{ p.descricaoCurta }}</p>
+                    }
+                    @if (dataFormatada(p.criadoEm)) {
+                      <p class="pendente-data">Enviado em {{ dataFormatada(p.criadoEm) }}</p>
+                    }
+                    <div class="pendente-local">
+                      <span class="pendente-instituicao">
+                        <span class="material-symbols-outlined icone-instituicao" aria-hidden="true">school</span>
+                        <span class="nome-instituicao">
+                          {{ p.instituicaoNome || 'Instituição não informada' }}
+                        </span>
+                      </span>
+                      @if (p.anoPublicado) {
+                        <span class="pendente-ano">{{ p.anoPublicado }}</span>
+                      }
+                    </div>
+                  </div>
+
                   <div class="pendente-acoes">
+                    <a
+                      class="btn-primario"
+                      [routerLink]="['/ver-projeto', p.id]"
+                      [queryParams]="{ avaliar: '1' }"
+                      [attr.aria-label]="'Ver projeto ' + (p.titulo || '')"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                      <span>Ver projeto</span>
+                    </a>
                     <button
                       type="button"
-                      class="btn-primario"
+                      class="btn-secundario"
                       [disabled]="processandoId() === p.id"
-                      (click)="aprovarPendente(p.id)"
-                      [attr.aria-label]="'Aprovar projeto ' + p.titulo"
+                      (click)="abrirRejeicao(p.id)"
                     >
-                      <span class="material-symbols-outlined">check_circle</span>
-                      <span>{{ processandoId() === p.id ? 'Aprovando…' : 'Aprovar projeto' }}</span>
+                      <span>Rejeitar</span>
                     </button>
-                    @if (rejeicaoAbertaId() !== p.id) {
-                      <button
-                        type="button"
-                        class="btn-secundario"
-                        [disabled]="processandoId() === p.id"
-                        (click)="abrirRejeicao(p.id)"
-                      >
-                        <span>Rejeitar</span>
-                      </button>
-                    } @else {
+                  </div>
+
+                  @if (rejeicaoAbertaId() === p.id) {
+                    <div class="rejeicao-form">
                       <label class="rejeicao-rotulo" [for]="'motivo-' + p.id">Motivo da rejeição</label>
                       <textarea
                         [id]="'motivo-' + p.id"
@@ -304,11 +338,7 @@
                         (input)="onMotivoRejeicao(p.id, $any($event.target).value)"
                       ></textarea>
                       <span class="pendente-acoes-linha">
-                        <button
-                          type="button"
-                          class="btn-secundario"
-                          (click)="fecharRejeicao()"
-                        >
+                        <button type="button" class="btn-secundario" (click)="fecharRejeicao()">
                           <span>Cancelar</span>
                         </button>
                         <button
@@ -317,11 +347,11 @@
                           [disabled]="processandoId() === p.id"
                           (click)="confirmarRejeicao(p.id)"
                         >
-                          <span>Confirmar rejeição</span>
+                          <span>{{ processandoId() === p.id ? 'Rejeitando…' : 'Confirmar rejeição' }}</span>
                         </button>
                       </span>
-                    }
-                  </div>
+                    </div>
+                  }
                 </li>
               }
             </ul>

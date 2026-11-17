@@ -1,9 +1,19 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { ProjetoResponseModel } from '../../core/models/projeto.model';
+import { AuthService } from '../../core/auth/auth.service';
+import { UsuarioLogado } from '../../core/auth/models/usuario-logado';
+import { mensagemErroAmigavel } from '../../core/utils/erro-http';
 
 /** Bloco mínimo do OutputData do Editor.js — só o que a tela precisa renderizar. */
 export interface BlocoConteudo {
@@ -16,17 +26,29 @@ export interface BlocoConteudo {
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './ver-projeto.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './ver-projeto.css',
 })
 export class VerProjeto implements OnInit {
   private route = inject(ActivatedRoute);
   private projetoService = inject(ProjetoService);
+  private authService = inject(AuthService);
 
   projeto = signal<ProjetoResponseModel | null>(null);
   carregando = signal(true);
   erroCarregamento = signal<string | null>(null);
   projetoNaoEncontrado = signal(false);
   capaComErro = signal(false);
+
+  // --- Avaliação (professor responsável abrindo pelo card do /perfil) ---
+  usuario = signal<UsuarioLogado | null>(null);
+  /** Ligado pelo `?avaliar=1` do card de pendente; sem ele o painel não aparece. */
+  modoAvaliacao = signal(false);
+  erroAvaliacao = signal<string | null>(null);
+  sucessoAvaliacao = signal<string | null>(null);
+  processandoAcao = signal(false);
+  rejeicaoAberta = signal(false);
+  motivoRejeicaoCampo = signal('');
 
   capaUrl = computed(() => {
     const raw = this.projeto()?.imagemCapaUrl ?? '';
@@ -43,7 +65,22 @@ export class VerProjeto implements OnInit {
   motivoRejeicao = computed(() => this.projeto()?.motivoRejeicao?.trim() ?? '');
 
   mostraMotivoRejeicao = computed(
-    () => this.projeto()?.estado === 'REJEITADO' && this.motivoRejeicao().length > 0
+    () =>
+      this.projeto()?.estado === 'REJEITADO' &&
+      this.motivoRejeicao().length > 0,
+  );
+
+  /**
+   * O card de pendente do /perfil abre esta tela com `?avaliar=1`. Só nesse modo,
+   * para um professor logado e com o projeto ainda pendente, o painel de decisão
+   * aparece no fim da página. O backend continua sendo a autoridade: PATCH recusa
+   * com 403 quem não for o professor responsável indicado.
+   */
+  podeAvaliar = computed(
+    () =>
+      this.modoAvaliacao() &&
+      this.usuario()?.role === 'PROFESSOR' &&
+      this.projeto()?.estado === 'AGUARDANDO_APROVACAO',
   );
 
   blocos = computed<BlocoConteudo[]>(() => {
@@ -68,6 +105,10 @@ export class VerProjeto implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
+    this.modoAvaliacao.set(
+      this.route.snapshot.queryParamMap.get('avaliar') === '1',
+    );
+    this.carregarUsuario();
     if (!id) {
       this.carregando.set(false);
       this.projetoNaoEncontrado.set(true);
@@ -94,7 +135,8 @@ export class VerProjeto implements OnInit {
           this.projetoNaoEncontrado.set(true);
         } else {
           this.erroCarregamento.set(
-            'Não foi possível carregar os detalhes do projeto no momento. Verifique sua conexão e tente novamente.');
+            'Não foi possível carregar os detalhes do projeto no momento. Verifique sua conexão e tente novamente.',
+          );
         }
       },
     });
@@ -107,6 +149,90 @@ export class VerProjeto implements OnInit {
 
   onCapaError(): void {
     this.capaComErro.set(true);
+  }
+
+  private carregarUsuario(): void {
+    this.authService
+      .obterUsuarioLogado()
+      .then((u) => this.usuario.set(u))
+      .catch(() => this.usuario.set(null));
+  }
+
+  aprovar(): void {
+    const id = this.projeto()?.id;
+    if (!id || this.processandoAcao()) {
+      return;
+    }
+    this.processandoAcao.set(true);
+    this.erroAvaliacao.set(null);
+    this.sucessoAvaliacao.set(null);
+    this.projetoService.aprovarProjeto(id).subscribe({
+      next: (aprovado) => {
+        this.projeto.set(aprovado);
+        this.processandoAcao.set(false);
+        this.rejeicaoAberta.set(false);
+        this.sucessoAvaliacao.set(
+          `Projeto "${aprovado.titulo}" aprovado e publicado na vitrine.`,
+        );
+      },
+      error: (err) => {
+        console.error('Erro ao aprovar projeto:', err);
+        this.processandoAcao.set(false);
+        this.erroAvaliacao.set(
+          mensagemErroAmigavel(
+            err,
+            'Não foi possível aprovar o projeto agora. Tente novamente.',
+          ),
+        );
+      },
+    });
+  }
+
+  abrirRejeicao(): void {
+    this.rejeicaoAberta.set(true);
+    this.erroAvaliacao.set(null);
+    this.sucessoAvaliacao.set(null);
+  }
+
+  fecharRejeicao(): void {
+    this.rejeicaoAberta.set(false);
+    this.motivoRejeicaoCampo.set('');
+  }
+
+  confirmarRejeicao(): void {
+    const id = this.projeto()?.id;
+    const motivo = this.motivoRejeicaoCampo().trim();
+    if (!id || this.processandoAcao()) {
+      return;
+    }
+    if (!motivo) {
+      this.erroAvaliacao.set('Informe o motivo da rejeição para o aluno.');
+      return;
+    }
+    this.processandoAcao.set(true);
+    this.erroAvaliacao.set(null);
+    this.sucessoAvaliacao.set(null);
+    this.projetoService.rejeitarProjeto(id, motivo).subscribe({
+      next: (rejeitado) => {
+        this.projeto.set(rejeitado);
+        this.processandoAcao.set(false);
+        this.rejeicaoAberta.set(false);
+        this.motivoRejeicaoCampo.set('');
+        this.sucessoAvaliacao.set(
+          `Projeto "${rejeitado.titulo}" rejeitado com retorno ao aluno.`,
+        );
+      },
+      error: (err) => {
+        console.error('Erro ao rejeitar projeto:', err);
+        this.processandoAcao.set(false);
+        this.erroAvaliacao.set(
+          mensagemErroAmigavel(
+            err,
+            'Não foi possível rejeitar o projeto agora. Tente novamente.',
+          ),
+        );
+      },
+    });
   }
 
   /** Itens de um bloco `list` — o Editor.js pode entregar strings ou objetos. */
@@ -142,6 +268,10 @@ export class VerProjeto implements OnInit {
     if (!iso) return '';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 }

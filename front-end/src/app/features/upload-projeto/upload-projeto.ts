@@ -9,6 +9,7 @@ import {
   ViewChild,
   inject,
   signal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -43,7 +44,12 @@ interface IntegranteLocal {
  * 413 do nginx / 400 genérico depois do upload.
  */
 const MAX_IMAGEM_BYTES = 10 * 1024 * 1024;
-const TIPOS_IMAGEM_PERMITIDOS = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+const TIPOS_IMAGEM_PERMITIDOS = [
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+];
 /** Guarda do POST /projetos: abaixo do `client_max_body_size 12m` do nginx. */
 const MAX_PAYLOAD_BYTES = 11 * 1024 * 1024;
 
@@ -62,6 +68,7 @@ function validarArquivoImagem(file: File): string | null {
   standalone: true,
   imports: [ReactiveFormsModule, FormsModule, CommonModule],
   templateUrl: './upload-projeto.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './upload-projeto.css',
 })
 export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
@@ -81,7 +88,8 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   imagemCapaUrl: string | null = null;
 
   // Seção 2: Instituição & Validação Acadêmica
-  @ViewChild('inputInstituicao') private inputInstituicao?: ElementRef<HTMLInputElement>;
+  @ViewChild('inputInstituicao')
+  private inputInstituicao?: ElementRef<HTMLInputElement>;
   private readonly limiteSugestoes = 50;
   instituicaoId = '';
   instituicaoSelecionadaObjeto = signal<InstituicaoOption | null>(null);
@@ -106,7 +114,8 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   palavrasChave = '';
 
   // Seção 3: Editor.js
-  @ViewChild('editorjsContainer') private editorjsContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('editorjsContainer')
+  private editorjsContainer?: ElementRef<HTMLDivElement>;
   private editor: EditorJS | null = null;
   private editorInicializacaoPendente = false;
   private editorFila: Promise<void> = Promise.resolve();
@@ -129,12 +138,14 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     // takeUntilDestroyed: a navegação (`atualizarQueryParamInstituicao`, merge)
     // reusa este componente sem destruí-lo, então take(1) perderia trocas de
     // `instituicaoId` vindas da URL depois do primeiro emit.
-    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      if (params['instituicaoId']) {
-        this.instituicaoId = params['instituicaoId'];
-        this.sincronizarInstituicaoSelecionada();
-      }
-    });
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        if (params['instituicaoId']) {
+          this.instituicaoId = params['instituicaoId'];
+          this.sincronizarInstituicaoSelecionada();
+        }
+      });
   }
 
   ngAfterViewInit() {
@@ -176,7 +187,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
 
   sincronizarInstituicaoSelecionada() {
     if (this.instituicaoId && this.instituicoes().length > 0) {
-      const encontrada = this.instituicoes().find((i) => i.id === this.instituicaoId);
+      const encontrada = this.instituicoes().find(
+        (i) => i.id === this.instituicaoId,
+      );
       if (encontrada) {
         this.instituicaoSelecionadaObjeto.set(encontrada);
       }
@@ -220,7 +233,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
             this.normalizarTexto(inst.nome).includes(termo) ||
             this.normalizarTexto(inst.cidade || '').includes(termo) ||
             this.normalizarTexto(inst.codigoUnidade || '').includes(termo) ||
-            this.normalizarTexto(inst.endereco || '').includes(termo)
+            this.normalizarTexto(inst.endereco || '').includes(termo),
         );
 
     this.instituicoesEncontradas = encontradas.length;
@@ -263,11 +276,14 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         break;
       case 'ArrowUp':
         event.preventDefault();
-        this.instituicaoDestaque = (this.instituicaoDestaque - 1 + total) % total;
+        this.instituicaoDestaque =
+          (this.instituicaoDestaque - 1 + total) % total;
         break;
       case 'Enter': {
         event.preventDefault();
-        const alvo = this.instituicoesFiltradas[this.instituicaoDestaque] ?? this.instituicoesFiltradas[0];
+        const alvo =
+          this.instituicoesFiltradas[this.instituicaoDestaque] ??
+          this.instituicoesFiltradas[0];
         if (alvo) {
           this.selecionarInstituicao(alvo);
         }
@@ -318,7 +334,11 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   // renderizado). Se não estiver pronto, a flag permanece e ngAfterViewChecked
   // tenta de novo no próximo ciclo de detecção.
   private tentarIniciarEditor() {
-    if (!this.editorInicializacaoPendente || this.editor || !this.editorjsContainer) {
+    if (
+      !this.editorInicializacaoPendente ||
+      this.editor ||
+      !this.editorjsContainer
+    ) {
       return;
     }
     this.editorInicializacaoPendente = false;
@@ -334,7 +354,8 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     try {
       const editor = new EditorJS({
         holder,
-        placeholder: 'Escreva a documentação do projeto ou insira imagens e blocos de código...',
+        placeholder:
+          'Escreva a documentação do projeto ou insira imagens e blocos de código...',
         tools: {
           header: {
             class: Header,
@@ -372,7 +393,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
                     throw new Error(invalido);
                   }
                   try {
-                    const res = await firstValueFrom(this.projetoService.uploadImagem(file));
+                    const res = await firstValueFrom(
+                      this.projetoService.uploadImagem(file),
+                    );
                     const fullUrl = res.url.startsWith('http')
                       ? res.url
                       : `${environment.apiUrl}${res.url}`;
@@ -389,9 +412,12 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
                     // submit por `temBase64Embutido`, então gerar base64 aqui
                     // seria caminho morto que só adia o erro para um 413 do
                     // nginx. Falha vira mensagem acionável na hora.
-                    console.warn('Upload de imagem falhou (sem fallback base64):', err);
+                    console.warn(
+                      'Upload de imagem falhou (sem fallback base64):',
+                      err,
+                    );
                     throw new Error(
-                      'Não foi possível enviar a imagem ao servidor. Use uma imagem menor (até 10MB) e tente de novo.'
+                      'Não foi possível enviar a imagem ao servidor. Use uma imagem menor (até 10MB) e tente de novo.',
                     );
                   }
                 },
@@ -558,13 +584,17 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (!this.descricaoCurta.trim()) {
-      this.erroMensagem.set('Por favor, informe uma descrição curta para o projeto.');
+      this.erroMensagem.set(
+        'Por favor, informe uma descrição curta para o projeto.',
+      );
       this.irParaSecao(1);
       return;
     }
 
     if (this.descricaoCurta.trim().length > 144) {
-      this.erroMensagem.set('A descrição curta não pode exceder 144 caracteres.');
+      this.erroMensagem.set(
+        'A descrição curta não pode exceder 144 caracteres.',
+      );
       this.irParaSecao(1);
       return;
     }
@@ -582,21 +612,29 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (!this.professorEmail.trim()) {
-      this.erroMensagem.set('Informe o e-mail do professor responsável pela validação acadêmica.');
+      this.erroMensagem.set(
+        'Informe o e-mail do professor responsável pela validação acadêmica.',
+      );
       this.irParaSecao(2);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.professorEmail.trim())) {
-      this.erroMensagem.set('Informe um e-mail válido para o professor responsável.');
+      this.erroMensagem.set(
+        'Informe um e-mail válido para o professor responsável.',
+      );
       this.irParaSecao(2);
       return;
     }
 
-    const integrantesValidos = this.integrantes.filter((i) => i.nome.trim().length > 0);
+    const integrantesValidos = this.integrantes.filter(
+      (i) => i.nome.trim().length > 0,
+    );
     if (integrantesValidos.length === 0) {
-      this.erroMensagem.set('Informe ao menos um integrante com o nome completo preenchido.');
+      this.erroMensagem.set(
+        'Informe ao menos um integrante com o nome completo preenchido.',
+      );
       this.irParaSecao(4);
       return;
     }
@@ -618,13 +656,17 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
         try {
-          const uploadRes = await firstValueFrom(this.projetoService.uploadImagem(this.capaArquivo));
+          const uploadRes = await firstValueFrom(
+            this.projetoService.uploadImagem(this.capaArquivo),
+          );
           capaFinalUrl = uploadRes.url;
         } catch (uploadErr: any) {
           console.error('Falha no upload da capa:', uploadErr);
           // Nunca envia o preview base64 como imagemCapaUrl: ele infla o JSON
           // e o POST cai com 413. Só reaproveita URL que já veio do servidor.
-          const jaEhUrl = (capaFinalUrl ?? '').startsWith('/') || (capaFinalUrl ?? '').startsWith('http');
+          const jaEhUrl =
+            (capaFinalUrl ?? '').startsWith('/') ||
+            (capaFinalUrl ?? '').startsWith('http');
           if (!jaEhUrl) {
             this.enviando.set(false);
             const msgUpload =
@@ -650,7 +692,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       const payload: ProjetoCreatePayload = {
         titulo: this.titulo.trim(),
         descricaoCurta: this.descricaoCurta.trim(),
-        conteudoEditorJs: this.editorData ? JSON.stringify(this.editorData) : '',
+        conteudoEditorJs: this.editorData
+          ? JSON.stringify(this.editorData)
+          : '',
         linkRepositorio: this.linkRepositorio.trim() || undefined,
         imagemCapaUrl: capaFinalUrl || undefined,
         palavrasChave: tags,
@@ -666,7 +710,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       // 6. Guarda de tamanho: barra antes do 413 do nginx com mensagem acionável.
       // Mede em bytes UTF-8 (não em UTF-16 `.length`): acentos/emoji contam
       // mais de 1 byte no fio e o limite do nginx é em bytes.
-      const tamanhoPayload = new TextEncoder().encode(JSON.stringify(payload)).length;
+      const tamanhoPayload = new TextEncoder().encode(
+        JSON.stringify(payload),
+      ).length;
       const temBase64Embutido =
         (payload.conteudoEditorJs ?? '').includes('data:image') ||
         (payload.imagemCapaUrl ?? '').startsWith('data:');
@@ -675,13 +721,15 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         this.erroMensagem.set(
           temBase64Embutido
             ? 'Há imagens embutidas no conteúdo (não enviadas ao servidor). Remova-as e reinsira por upload, com arquivos até 10MB.'
-            : `Projeto muito grande (${(tamanhoPayload / 1024 / 1024).toFixed(1)}MB). Reduza as imagens (até 10MB cada) e tente de novo.`
+            : `Projeto muito grande (${(tamanhoPayload / 1024 / 1024).toFixed(1)}MB). Reduza as imagens (até 10MB cada) e tente de novo.`,
         );
         return;
       }
 
       // 7. Chamada de criação do projeto
-      const projetoCriado = await firstValueFrom(this.projetoService.criarProjeto(payload));
+      const projetoCriado = await firstValueFrom(
+        this.projetoService.criarProjeto(payload),
+      );
       console.log('Projeto submetido com sucesso:', projetoCriado);
 
       this.enviando.set(false);
@@ -691,7 +739,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       this.enviando.set(false);
       if (err?.status === 413) {
         this.erroMensagem.set(
-          'Projeto muito grande para o servidor (limite 10MB por imagem). Comprima as imagens e tente de novo.'
+          'Projeto muito grande para o servidor (limite 10MB por imagem). Comprima as imagens e tente de novo.',
         );
         return;
       }
@@ -699,9 +747,11 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         err?.error?.mensagem ||
         err?.error?.message ||
         'Não foi possível enviar o projeto para avaliação. Verifique sua conexão e tente novamente.';
-      this.erroMensagem.set(typeof msgErro === 'string' && msgErro.trim().startsWith('<')
-        ? 'O servidor recusou o envio pelo tamanho. Comprima as imagens (até 10MB) e tente de novo.'
-        : msgErro);
+      this.erroMensagem.set(
+        typeof msgErro === 'string' && msgErro.trim().startsWith('<')
+          ? 'O servidor recusou o envio pelo tamanho. Comprima as imagens (até 10MB) e tente de novo.'
+          : msgErro,
+      );
     }
   }
 

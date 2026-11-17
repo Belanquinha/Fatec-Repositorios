@@ -1,4 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
 
@@ -6,6 +11,7 @@ import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
   selector: 'app-microsoft-login-button',
   imports: [],
   templateUrl: './microsoft-login-button.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './microsoft-login-button.css',
 })
 export class MicrosoftLoginButton implements OnInit {

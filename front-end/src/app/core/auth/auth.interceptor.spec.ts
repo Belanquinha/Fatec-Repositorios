@@ -1,12 +1,23 @@
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpClient,
+  provideHttpClient,
+  withInterceptors,
+  withXhr,
+} from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
 import { authInterceptor } from './auth.interceptor';
 
 function criarContexto() {
   TestBed.configureTestingModule({
-    providers: [provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()],
+    providers: [
+      provideHttpClient(withXhr(), withInterceptors([authInterceptor])),
+      provideHttpClientTesting(),
+    ],
   });
   return {
     http: TestBed.inject(HttpClient),
@@ -33,7 +44,9 @@ describe('authInterceptor', () => {
     http.get('/api/projetos/meus').subscribe();
 
     const req = backend.expectOne('/api/projetos/meus');
-    expect(req.request.headers.get('Authorization')).toBe('Bearer jwt-da-sessao');
+    expect(req.request.headers.get('Authorization')).toBe(
+      'Bearer jwt-da-sessao',
+    );
     req.flush([]);
   });
 
@@ -64,7 +77,9 @@ describe('authInterceptor', () => {
       const { http, backend } = criarContexto();
 
       http.get('/api/projetos/meus').subscribe({ error: () => undefined });
-      backend.expectOne('/api/projetos/meus').flush('nope', { status: 401, statusText: 'Unauthorized' });
+      backend
+        .expectOne('/api/projetos/meus')
+        .flush('nope', { status: 401, statusText: 'Unauthorized' });
 
       // Manter a sessão faria a UI continuar anunciando login cujas chamadas só falham.
       expect(localStorage.getItem('accessToken')).toBeNull();
@@ -77,8 +92,12 @@ describe('authInterceptor', () => {
       const { http, backend } = criarContexto();
       let recebido: unknown;
 
-      http.get('/api/projetos/meus').subscribe({ error: (erro) => (recebido = erro) });
-      backend.expectOne('/api/projetos/meus').flush('nope', { status: 401, statusText: 'Unauthorized' });
+      http
+        .get('/api/projetos/meus')
+        .subscribe({ error: (erro) => (recebido = erro) });
+      backend
+        .expectOne('/api/projetos/meus')
+        .flush('nope', { status: 401, statusText: 'Unauthorized' });
 
       // O tratamento de erro de quem chamou precisa continuar funcionando: engolir o erro
       // deixaria a tela em estado de carregamento eterno.
@@ -91,7 +110,9 @@ describe('authInterceptor', () => {
       const { http, backend } = criarContexto();
 
       http.get('/api/projetos/meus').subscribe({ error: () => undefined });
-      backend.expectOne('/api/projetos/meus').flush('nope', { status: 401, statusText: 'Unauthorized' });
+      backend
+        .expectOne('/api/projetos/meus')
+        .flush('nope', { status: 401, statusText: 'Unauthorized' });
 
       // Apagar o cache do MSAL expulsaria a pessoa da Microsoft e custaria um MFA no próximo login.
       expect(localStorage.getItem('msal.cache-id-token')).toBe('cache do MSAL');
@@ -104,7 +125,9 @@ describe('authInterceptor', () => {
       const { http, backend } = criarContexto();
 
       http.get('/api/projetos/meus').subscribe({ error: () => undefined });
-      backend.expectOne('/api/projetos/meus').flush('proibido', { status: 403, statusText: 'Forbidden' });
+      backend
+        .expectOne('/api/projetos/meus')
+        .flush('proibido', { status: 403, statusText: 'Forbidden' });
 
       // 403 é "autenticado, mas não autorizado": um professor tentando aprovar projeto de outra
       // instituição. Expulsar a pessoa por um erro que ela mesma pode corrigir seria errado.
@@ -117,7 +140,9 @@ describe('authInterceptor', () => {
       const { http, backend } = criarContexto();
 
       http.get('/api/projetos/meus').subscribe({ error: () => undefined });
-      backend.expectOne('/api/projetos/meus').flush('erro', { status: 500, statusText: 'Server Error' });
+      backend
+        .expectOne('/api/projetos/meus')
+        .flush('erro', { status: 500, statusText: 'Server Error' });
 
       // O back-end está fora do ar, não a sessão inválida.
       expect(localStorage.getItem('accessToken')).toBe('jwt-da-sessao');
@@ -128,7 +153,9 @@ describe('authInterceptor', () => {
       const { http, backend } = criarContexto();
 
       http.get('/api/projetos/meus').subscribe({ error: () => undefined });
-      backend.expectOne('/api/projetos/meus').error(new ProgressEvent('erro de rede'));
+      backend
+        .expectOne('/api/projetos/meus')
+        .error(new ProgressEvent('erro de rede'));
 
       // Um 401 não se resolve repetindo a requisição; uma queda de rede se resolve. Descartar a
       // sessão aqui transformaria uma falha passageira em perda de login.

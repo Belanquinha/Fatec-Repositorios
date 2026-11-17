@@ -1,10 +1,20 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  provideHttpClient,
+  withInterceptors,
+  withXhr,
+} from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { ProjetoService } from './projeto.service';
 import { environment } from '../../../environments/environment';
 import { authInterceptor } from '../auth/auth.interceptor';
-import type { InstituicaoOption, ProjetoCreatePayload } from '../models/projeto.model';
+import type {
+  InstituicaoOption,
+  ProjetoCreatePayload,
+} from '../models/projeto.model';
 
 /**
  * Contrato HTTP do front-end com a API.
@@ -24,7 +34,7 @@ describe('ProjetoService (contrato HTTP)', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(withXhr()), provideHttpClientTesting()],
     });
     service = TestBed.inject(ProjetoService);
     http = TestBed.inject(HttpTestingController);
@@ -56,9 +66,16 @@ describe('ProjetoService (contrato HTTP)', () => {
       let recebido: InstituicaoOption[] = [];
       service.listarInstituicoes().subscribe((r) => (recebido = r));
 
-      http.expectOne(`${base}/instituicoes`).flush([
-        { codigoUnidade: '004', nome: 'Fatec Americana', cidade: 'Americana', ativo: true },
-      ]);
+      http
+        .expectOne(`${base}/instituicoes`)
+        .flush([
+          {
+            codigoUnidade: '004',
+            nome: 'Fatec Americana',
+            cidade: 'Americana',
+            ativo: true,
+          },
+        ]);
 
       expect(recebido[0].codigoUnidade).toBe('004');
       expect(recebido[0].nome).toBe('Fatec Americana');
@@ -76,7 +93,9 @@ describe('ProjetoService (contrato HTTP)', () => {
       let recebido: Array<{ id: string; nome: string }> = [];
       service.buscarProfessores('maria').subscribe((r) => (recebido = r));
 
-      http.expectOne(`${base}/professores?q=maria`).flush([{ id: 'p1', nome: 'Maria Silva' }]);
+      http
+        .expectOne(`${base}/professores?q=maria`)
+        .flush([{ id: 'p1', nome: 'Maria Silva' }]);
 
       expect(recebido[0]).toEqual({ id: 'p1', nome: 'Maria Silva' });
     });
@@ -94,7 +113,11 @@ describe('ProjetoService (contrato HTTP)', () => {
 
       const req = http.expectOne(`${base}/professores/p1`);
       expect(req.request.method).toBe('GET');
-      req.flush({ id: 'p1', nome: 'Maria Silva', email: 'maria@cps.sp.gov.br' });
+      req.flush({
+        id: 'p1',
+        nome: 'Maria Silva',
+        email: 'maria@cps.sp.gov.br',
+      });
     });
   });
 
@@ -133,7 +156,10 @@ describe('ProjetoService (contrato HTTP)', () => {
 
       http
         .expectOne(`${base}/instituicoes`)
-        .error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
+        .error(new ProgressEvent('error'), {
+          status: 0,
+          statusText: 'Unknown Error',
+        });
 
       expect(erro).toBeTruthy();
       expect(emitido).toBeUndefined();
@@ -159,7 +185,9 @@ describe('ProjetoService (contrato HTTP)', () => {
       anoPublicado: 2026,
       instituicaoId: 'inst-001',
       emailProfessorResponsavel: 'professor@cps.sp.gov.br',
-      integrantes: [{ nome: 'Ana', linkLinkedin: 'https://linkedin.com/in/ana' }],
+      integrantes: [
+        { nome: 'Ana', linkLinkedin: 'https://linkedin.com/in/ana' },
+      ],
     };
 
     it('deve criar o projeto em POST /projetos', () => {
@@ -176,7 +204,9 @@ describe('ProjetoService (contrato HTTP)', () => {
       service.criarProjeto(payload).subscribe();
 
       const req = http.expectOne(`${base}/projetos`);
-      expect(req.request.body.emailProfessorResponsavel).toBe('professor@cps.sp.gov.br');
+      expect(req.request.body.emailProfessorResponsavel).toBe(
+        'professor@cps.sp.gov.br',
+      );
       req.flush({});
     });
 
@@ -196,7 +226,9 @@ describe('ProjetoService (contrato HTTP)', () => {
 
       const req = http.expectOne(`${base}/projetos`);
       expect(typeof req.request.body.conteudoEditorJs).toBe('string');
-      expect(() => JSON.parse(req.request.body.conteudoEditorJs as string)).not.toThrow();
+      expect(() =>
+        JSON.parse(req.request.body.conteudoEditorJs as string),
+      ).not.toThrow();
       req.flush({});
     });
   });
@@ -230,10 +262,12 @@ describe('ProjetoService (contrato HTTP)', () => {
       let erro: unknown;
       service.obterMeusProjetos().subscribe({ error: (e) => (erro = e) });
 
-      http.expectOne(`${base}/projetos/meus`).flush(
-        { codigo: 401, mensagem: 'Não autorizado' },
-        { status: 401, statusText: 'Unauthorized' }
-      );
+      http
+        .expectOne(`${base}/projetos/meus`)
+        .flush(
+          { codigo: 401, mensagem: 'Não autorizado' },
+          { status: 401, statusText: 'Unauthorized' },
+        );
 
       // Um catálogo de fallback silencioso aqui esconderia sessão expirada.
       expect(erro).toBeTruthy();
@@ -269,12 +303,16 @@ describe('ProjetoService (contrato HTTP)', () => {
 
     it('deve propagar 403 quando o professor não é o responsável/vinculado', () => {
       let erro: unknown;
-      service.aprovarProjeto('proj-outra').subscribe({ error: (e) => (erro = e) });
+      service
+        .aprovarProjeto('proj-outra')
+        .subscribe({ error: (e) => (erro = e) });
 
-      http.expectOne(`${base}/projetos/proj-outra/aprovar`).flush(
-        { codigo: 403, mensagem: 'Acesso negado' },
-        { status: 403, statusText: 'Forbidden' }
-      );
+      http
+        .expectOne(`${base}/projetos/proj-outra/aprovar`)
+        .flush(
+          { codigo: 403, mensagem: 'Acesso negado' },
+          { status: 403, statusText: 'Forbidden' },
+        );
 
       expect(erro).toBeTruthy();
       expect((erro as { status: number }).status).toBe(403);
@@ -287,7 +325,10 @@ describe('authInterceptor (NFR2 — o front-end não decide papel, só anexa o t
 
   function criarContexto() {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(withXhr(), withInterceptors([authInterceptor])),
+        provideHttpClientTesting(),
+      ],
     });
     http = TestBed.inject(HttpTestingController);
     return TestBed.inject(ProjetoService);
@@ -305,7 +346,9 @@ describe('authInterceptor (NFR2 — o front-end não decide papel, só anexa o t
     service.obterMeusProjetos().subscribe();
 
     const req = http.expectOne((r) => r.url.includes('/projetos/meus'));
-    expect(req.request.headers.get('Authorization')).toBe('Bearer jwt-da-sessao');
+    expect(req.request.headers.get('Authorization')).toBe(
+      'Bearer jwt-da-sessao',
+    );
     req.flush([]);
   });
 

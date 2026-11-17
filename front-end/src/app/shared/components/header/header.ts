@@ -1,4 +1,15 @@
-import { Component, HostListener, ElementRef, ViewChild, OnInit, OnDestroy, computed, signal, inject } from '@angular/core';
+import {
+  Component,
+  HostListener,
+  ElementRef,
+  ViewChild,
+  OnInit,
+  OnDestroy,
+  computed,
+  signal,
+  inject,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MicrosoftLoginButton } from '../microsoft-login-button/microsoft-login-button';
@@ -12,6 +23,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-header',
   imports: [CommonModule, RouterModule, MicrosoftLoginButton],
   templateUrl: './header.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './header.css',
 })
 export class Header implements OnInit, OnDestroy {
@@ -38,22 +50,29 @@ export class Header implements OnInit, OnDestroy {
   /** `overflow` do body antes da trava — restaurado ao fechar (não zerado). */
   private overflowAnteriorDoBody: string | null = null;
 
-  constructor(private elementRef: ElementRef, private authService: AuthService, private router: Router) {}
+  constructor(
+    private elementRef: ElementRef,
+    private authService: AuthService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.iniciarSessao();
-    this.routerSubscription = this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe(() => {
-      this.fecharMenu();
-    });
+    this.routerSubscription = this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.fecharMenu();
+      });
   }
 
   ngOnDestroy(): void {
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
     }
-    if (typeof document !== 'undefined' && this.overflowAnteriorDoBody !== null) {
+    if (
+      typeof document !== 'undefined' &&
+      this.overflowAnteriorDoBody !== null
+    ) {
       document.body.style.overflow = this.overflowAnteriorDoBody;
       this.overflowAnteriorDoBody = null;
     }
@@ -83,7 +102,10 @@ export class Header implements OnInit, OnDestroy {
   mudarMenu(): void {
     this.estadoDoMenuAberto = !this.estadoDoMenuAberto;
     if (this.estadoDoMenuAberto) {
-      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      if (
+        typeof document !== 'undefined' &&
+        document.activeElement instanceof HTMLElement
+      ) {
         this.ultimoFocoAntesDoMenu = document.activeElement;
       }
       this.aplicarTravaDeRolagem();

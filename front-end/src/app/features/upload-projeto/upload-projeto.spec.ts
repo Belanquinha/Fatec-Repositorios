@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { UploadProjeto } from './upload-projeto';
 
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { Router, provideRouter } from '@angular/router';
@@ -22,7 +22,7 @@ describe('UploadProjeto', () => {
     await TestBed.configureTestingModule({
       imports: [UploadProjeto],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideRouter([]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
@@ -58,7 +58,7 @@ describe('UploadProjeto (Enter não navega nem envia, item 1)', () => {
     await TestBed.configureTestingModule({
       imports: [UploadProjeto],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideRouter([]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
@@ -80,7 +80,9 @@ describe('UploadProjeto (Enter não navega nem envia, item 1)', () => {
 
   function submeterFormulario() {
     const form: HTMLFormElement = fixture.nativeElement.querySelector('form');
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    form.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
   }
 
   it('submit do form (Enter) não avança de seção em nenhuma tela e não envia', async () => {
@@ -99,8 +101,12 @@ describe('UploadProjeto (Enter não navega nem envia, item 1)', () => {
   it('clique em "Enviar para Avaliação Acadêmica" dispara o envio real', async () => {
     fixture.detectChanges();
 
-    const botoes = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
-    const botaoEnviar = botoes.find((b) => b.textContent?.includes('Enviar para Avaliação Acadêmica'));
+    const botoes = Array.from(
+      fixture.nativeElement.querySelectorAll('button'),
+    ) as HTMLButtonElement[];
+    const botaoEnviar = botoes.find((b) =>
+      b.textContent?.includes('Enviar para Avaliação Acadêmica'),
+    );
     expect(botaoEnviar).toBeTruthy();
 
     botaoEnviar!.click();
@@ -122,7 +128,9 @@ describe('UploadProjeto (campo do professor só e-mail, itens 3 e 4)', () => {
   const mockProjetoService = {
     listarInstituicoes: () => of([]),
     buscarProfessores: vi.fn(() => of([])),
-    obterProfessorPorId: vi.fn(() => of({ id: 'p1', nome: 'Maria', email: 'maria@cps.sp.gov.br' })),
+    obterProfessorPorId: vi.fn(() =>
+      of({ id: 'p1', nome: 'Maria', email: 'maria@cps.sp.gov.br' }),
+    ),
     uploadImagem: () => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' }),
     criarProjeto: vi.fn(() => of({ id: '123', titulo: 'Teste' })),
   };
@@ -132,7 +140,7 @@ describe('UploadProjeto (campo do professor só e-mail, itens 3 e 4)', () => {
     await TestBed.configureTestingModule({
       imports: [UploadProjeto],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideRouter([]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
@@ -215,7 +223,7 @@ describe('UploadProjeto (tela de sucesso, item 5)', () => {
     await TestBed.configureTestingModule({
       imports: [UploadProjeto],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideRouter([]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
@@ -230,7 +238,9 @@ describe('UploadProjeto (tela de sucesso, item 5)', () => {
   });
 
   function botaoPorTexto(texto: string): HTMLButtonElement | undefined {
-    const botoes = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    const botoes = Array.from(
+      fixture.nativeElement.querySelectorAll('button'),
+    ) as HTMLButtonElement[];
     return botoes.find((b) => b.textContent?.includes(texto));
   }
 
@@ -266,7 +276,9 @@ describe('UploadProjeto (limites de imagem)', () => {
 
   const mockProjetoService = {
     listarInstituicoes: () => of([]),
-    uploadImagem: vi.fn(() => of({ url: '/uploads/img.png', nomeArquivo: 'img.png' })),
+    uploadImagem: vi.fn(() =>
+      of({ url: '/uploads/img.png', nomeArquivo: 'img.png' }),
+    ),
     criarProjeto: vi.fn(() => of({ id: '123', titulo: 'Teste' })),
   };
 
@@ -279,7 +291,7 @@ describe('UploadProjeto (limites de imagem)', () => {
     await TestBed.configureTestingModule({
       imports: [UploadProjeto],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideRouter([]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
@@ -291,7 +303,9 @@ describe('UploadProjeto (limites de imagem)', () => {
   });
 
   it('deve recusar capa com tipo não permitido (ex.: GIF)', () => {
-    const gif = new File([new ArrayBuffer(1024)], 'capa.gif', { type: 'image/gif' });
+    const gif = new File([new ArrayBuffer(1024)], 'capa.gif', {
+      type: 'image/gif',
+    });
 
     component.onCapaSelecionada(eventoComArquivo(gif));
 
@@ -311,7 +325,9 @@ describe('UploadProjeto (limites de imagem)', () => {
   });
 
   it('deve aceitar capa válida e limpar o erro', () => {
-    const ok = new File([new ArrayBuffer(1024)], 'capa.png', { type: 'image/png' });
+    const ok = new File([new ArrayBuffer(1024)], 'capa.png', {
+      type: 'image/png',
+    });
 
     component.onCapaSelecionada(eventoComArquivo(ok));
 
@@ -325,9 +341,13 @@ describe('UploadProjeto (limites de imagem)', () => {
     component.instituicaoId = 'inst-1';
     component.professorEmail = 'prof@cps.sp.gov.br';
     component.integrantes = [{ id: 1, nome: 'Aluno', linkedin: '' }];
-    component.capaArquivo = new File([new ArrayBuffer(11 * 1024 * 1024)], 'capa.png', {
-      type: 'image/png',
-    });
+    component.capaArquivo = new File(
+      [new ArrayBuffer(11 * 1024 * 1024)],
+      'capa.png',
+      {
+        type: 'image/png',
+      },
+    );
 
     await component.enviarParaAvaliacao();
 
