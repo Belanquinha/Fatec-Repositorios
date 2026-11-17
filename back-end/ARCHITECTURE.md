@@ -33,7 +33,12 @@ banco PostgreSQL, contador de uploads gerenciados por arquivo.
 1. Aluno envia `ProjetoCreateRequest` (e-mail do professor responsável, instituição, integrantes).
 2. `ProjetoService.criar()` salva com estado `AGUARDANDO_APROVACAO`.
 3. `ProjetoRepository.save()` → trigger/DAO insere `data.sql`.
-4. Resposta `ProjetoResponse` com `id`, `titulo`, `estado`.
+4. **Pós-commit**: `afterCommit` agenda notificação ao professor responsável
+   (`NotificacaoProjetoService`, assíncrona, uma tentativa, sem retry). Falha de
+   e-mail é logada e não desfaz a submissão. Entrega via Resend
+   (`ResendEmailSender`), destino `emailProfessorResponsavel`; override de
+   destinatário só em dev (`RESEND_OVERRIDE_DESTINATARIO`) — bloqueado em `prod*`.
+5. Resposta `ProjetoResponse` com `id`, `titulo`, `estado`.
 
 ### Upload de arquivo (capa, avatar, etc.)
 1. `UploadController` recibe multipart → `FileStorageService`.
@@ -69,6 +74,9 @@ JWT_ISSUER=fatec-repository-api
 JWT_EXPIRATION_HOURS=24
 MSAL_TENANT_ID=eabe64c5-68f5-4a76-8301-9577a679e449
 MSAL_CLIENT_ID=146c36f9-abf3-48b0-a533-5f462e5e4eed
+RESEND_API_KEY=<opcional; vazio = sem alerta por e-mail>
+RESEND_REMETENTE=naoresponda@cps.sp.gov.br
+RESEND_OVERRIDE_DESTINATARIO=<só dev>
 ```
 
 ## O que está funcionando (confirmados)
@@ -77,6 +85,7 @@ MSAL_CLIENT_ID=146c36f9-abf3-48b0-a533-5f462e5e4eed
 - ✅ Classificação de papel por domínio de e-mail (centralizada no backend)
 - ✅ Seleção 0–4 instituições pelo professor (catálogo)
 - ✅ Postagem de projeto com estado `AGUARDANDO_APROVACAO`
+- ✅ Notificação de submissão ao professor (Resend, pós-commit, best-effort)
 - ✅ Upload de arquivos (capa, avatar) com volume Docker
 - ✅ API Springdoc OpenAPI (Swagger) na rota `/swagger-ui.html`
 - ✅ Seed de instituições (CSV parse + SQL)

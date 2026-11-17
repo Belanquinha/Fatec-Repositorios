@@ -48,6 +48,18 @@ services:
       # Diretório físico das capas (FileStorageService + seed). Precisa apontar
       # para dentro do volume uploads_data montado abaixo.
       APP_UPLOAD_DIR: /app/uploads
+      # Profile da aplicação. Sem isto o backend roda sem perfil ativo e a trava do
+      # override de destinatário (ResendEmailConfig) é fail-closed: para usar o
+      # override em desenvolvimento mantenha `dev`; para subir em produção defina
+      # SPRING_PROFILES_ACTIVE=prod e remova RESEND_OVERRIDE_DESTINATARIO.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      # Notificação de submissão por e-mail (Resend). Com a key vazia a integração
+      # se autodesliga e o stack sobe sem credencial; em desenvolvimento, o
+      # override redireciona a entrega para a caixa do desenvolvedor.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_REMETENTE: ${RESEND_REMETENTE:-naoresponda@cps.sp.gov.br}
+      RESEND_URL_BASE_FRONT_END: ${RESEND_URL_BASE_FRONT_END:-http://localhost:4200}
+      RESEND_OVERRIDE_DESTINATARIO: ${RESEND_OVERRIDE_DESTINATARIO:-}
     ports:
       - "4040:4040"
     volumes:

@@ -43,3 +43,17 @@
 - source_spec: sessão e login de desenvolvimento (sem spec; decisão registrada na conversa)
   summary: `/auth/dev-login` accepts any e-mail, so whoever reaches the port becomes whoever they type — including the seeded admin.
   evidence: Inherent to the feature, and the reason it requires two default-off switches (Spring profile `dev` plus `app.security.dev-auth.enabled=true`) and prints a startup banner. `DevAuthService` deliberately does not accept a role from the client: role comes from `UserProvisioningService.classificarPapel` on both login paths, so the endpoint cannot elevate anyone beyond what the domain rules grant. The one account it can reach that the domain rules never grant is the `ADMIN` semeado by `init/01-create-admin.sql` — but that same account was already reachable by anyone who can authenticate as it through Microsoft. Not patched because closing this fully means removing the capability; the residual risk is documented in both READMEs and `.env.example`.
+
+## Deferred from: code review of brainstorming-session-2026-11-16-1948 (2026-11-16)
+
+- source_spec: `_bmad-output/brainstorming/brainstorming-session-2026-11-16-1948.md`
+  summary: The spec's manual E2E steps 4-6 (assigned `professor.teste@cps.sp.gov.br` approves; a different professor is denied) have no automated coverage.
+  evidence: The only new E2E suite is `NotificacaoProjetoE2ETest` (trigger + provider failure). The approval rule is exercised solely by the pre-existing `AvaliacaoProjetoE2ETest`, which uses `prof.responsavel@cps.sp.gov.br` — not the fixed allowlisted identity used by `scripts/gerar-sessao.py` and the notification tests. The spec itself defers this journey to `AvaliacaoProjetoE2ETest`, so it is a coverage gap rather than a hard failure. The Success indicators mention both cases, so a future change should add the missing identity to that suite.
+
+- source_spec: `_bmad-output/brainstorming/brainstorming-session-2026-11-16-1948.md`
+  summary: The responsible professor's personal e-mail is written to application logs at INFO and ERROR.
+  evidence: `ResendEmailSender` logs `destinatario` on success and again on failure; `ProjetoSubmetidoNotificacao` carries `emailProfessorResponsavel`. The rest of the API deliberately scrubs this field from public responses (`ProjetoService.obterPorId`/`listarPublicos`). Informational/LGPD — keeping the recipient is useful for debugging, so this is a policy call, not a clear defect.
+
+- source_spec: `_bmad-output/brainstorming/brainstorming-session-2026-11-16-1948.md`
+  summary: `NotificacaoEmailSenderDesligado.enviar` is unreachable and startup without a key emits two WARN lines.
+  evidence: The service checks `habilitado()` before calling `enviar`, so the no-op's `enviar` body (commented "Nunca chamado") never runs. The constructor WARN plus the `NotificacaoEmailConfig` WARN both fire on every boot when `app.resend.api-key` is empty, which is the normal dev/test state. Cosmetic log noise; the spec explicitly makes the no-key state a supported mode.

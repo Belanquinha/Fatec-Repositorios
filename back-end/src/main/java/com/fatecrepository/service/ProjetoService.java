@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
@@ -36,6 +36,7 @@ public class ProjetoService {
     private final UserRepository userRepository;
     private final ProfessorInstituicaoRepository vinculoRepository;
     private final ResponseMapper responseMapper;
+    private final NotificacaoProjetoService notificacaoProjetoService;
 
     @Transactional
     public ProjetoResponse criar(ProjetoCreateRequest request, UUID autorId) {
@@ -94,6 +95,8 @@ public class ProjetoService {
 
         Projeto salvo = projetoRepository.save(projeto);
         log.info("Projeto criado com sucesso! ID: {}, Estado: {}", salvo.getId(), salvo.getEstado());
+
+        registrarNotificacaoPosCommit(salvo);
 
         ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
         preencherNomeProfessor(resp);
@@ -247,9 +250,38 @@ public class ProjetoService {
      * O front exibe aviso para revisar a instituição quando não vinculado.
      */
     private void verificarPermissaoAvaliacao(Projeto projeto, User professor) {
-        if (projeto.getEmailProfessorResponsavel() == null
-            || !projeto.getEmailProfessorResponsavel().equalsIgnoreCase(professor.getEmail())) {
-            throw new AccessDeniedException("Somente o professor responsável indicado na submissão pode avaliar este projeto");
+            if (projeto.getEmailProfessorResponsavel() == null
+                || !projeto.getEmailProfessorResponsavel().equalsIgnoreCase(professor.getEmail())) {
+                throw new AccessDeniedException("Somente o professor responsável indicado na submissão pode avaliar este projeto");
+            }
+        }
+
+        /**
+         * Agenda a notificação de submissão para depois do commit.
+         *
+         * <p>Pós-commit é o que garante a regra de ouro: se o provedor de e-mail cair,
+         * o projeto permanece {@code AGUARDANDO_APROVACAO}. Um rollback por falha de
+         * envio nunca pode desfazer uma submissão válida. Os valores são copiados da
+         * entidade aqui, ainda dentro da transação, porque a entrega é assíncrona e
+         * não haverá mais sessão JPA aberta quando ela rodar.
+         */
+        private void registrarNotificacaoPosCommit(Projeto projeto) {
+            if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+                log.warn("Sem sincronização de transação ativa: notificação do projeto {} não será disparada",
+                    projeto.getId());
+                return;
+            }
+            ProjetoSubmetidoNotificacao dados = new ProjetoSubmetidoNotificacao(
+                projeto.getId(),
+                projeto.getTitulo(),
+                projeto.getInstituicao() != null ? projeto.getInstituicao().getNome() : null,
+                projeto.getEmailProfessorResponsavel(),
+                projeto.getCriadoEm() != null ? projeto.getCriadoEm().toLocalDate() : LocalDate.now());
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    notificacaoProjetoService.notificarProjetoSubmetido(dados);
+                }
+            });
         }
     }
-}

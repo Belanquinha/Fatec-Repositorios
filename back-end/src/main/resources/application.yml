@@ -40,10 +40,6 @@ spring:
     resources:
       add-mappings: true
 
-  task:
-    execution:
-      thread-name-prefix: fatec-
-
   servlet:
     multipart:
       max-file-size: 100MB
@@ -77,6 +73,25 @@ app:
     # relativo resolve para ./uploads a partir do WORKDIR; no compose o
     # APP_UPLOAD_DIR aponta para o volume uploads_data (/app/uploads).
     dir: ${APP_UPLOAD_DIR:uploads}
+  resend:
+    # Integração de e-mail (notificação de projeto submetido ao professor).
+    # A key NÃO vai para o front-end: só o back-end envia.
+    #
+    # Default vazio de propósito: sem key a integração se autodesliga e a
+    # submissão segue normal (sem alerta). Assim dev local e os testes E2E sobem
+    # sem credencial — ao contrário das chaves obrigatórias acima, aqui a ausência
+    # é um modo de operação, não um erro de configuração.
+    api-key: ${RESEND_API_KEY:}
+    # Remetente verificado no Resend ("from"). Domínio não verificado = 403 do
+    # provedor, e a notificação falha (best-effort) sem desfazer a submissão.
+    remetente: ${RESEND_REMETENTE:naoresponda@cps.sp.gov.br}
+    # Base usada no corpo do e-mail como orientação para abrir a plataforma.
+    url-base-front-end: ${RESEND_URL_BASE_FRONT_END:http://localhost:4200}
+    # Somente desenvolvimento: redireciona a entrega para a caixa do desenvolvedor,
+    # porque a conta de teste do professor (professor.teste@cps.sp.gov.br) não tem
+    # caixa acessível. Com profile prod* ativo, o contexto ABORTA na subida se este
+    # campo estiver preenchido (ResendEmailConfig).
+    override-destinatario: ${RESEND_OVERRIDE_DESTINATARIO:}
   cors:
     # Origens liberadas no CORS, separadas por vírgula.
     #
