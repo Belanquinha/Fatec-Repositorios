@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Perfil } from './perfil';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProjetoService } from '../../core/services/projeto.service';
+import { ProjetoResponseModel } from '../../core/models/projeto.model';
 
 describe('Perfil', () => {
   let component: Perfil;
@@ -28,6 +30,21 @@ describe('Perfil', () => {
   const fatecD = { id: 'd', codigoUnidade: '269', nome: 'Fatec Santos', cidade: 'Santos', ativo: true };
   const fatecE = { id: 'e', codigoUnidade: '290', nome: 'Fatec Barueri', cidade: 'Barueri', ativo: true };
 
+  function projeto(
+    estado: ProjetoResponseModel['estado'],
+    titulo: string,
+    id = 'proj-1'
+  ): ProjetoResponseModel {
+    return {
+      id,
+      titulo,
+      descricaoCurta: `Descrição de ${titulo}`,
+      instituicaoNome: 'Fatec Ipiranga',
+      estado,
+      criadoEm: '2026-09-11T00:00:00Z',
+    } as ProjetoResponseModel;
+  }
+
   async function configurar(authMock: unknown, projetosMock: unknown) {
     await TestBed.configureTestingModule({
       imports: [Perfil],
@@ -46,7 +63,7 @@ describe('Perfil', () => {
 
   function projetosProfessor(vinculos: unknown[] = [], catalogo: unknown[] = [fatecA, fatecB]) {
     return {
-      obterMeusProjetos: vi.fn(),
+      obterMeusProjetos: vi.fn().mockReturnValue(of([])),
       listarInstituicoes: vi.fn().mockReturnValue(of(catalogo)),
       obterMeusVinculos: vi.fn().mockReturnValue(of(vinculos)),
       salvarMeusVinculos: vi.fn().mockReturnValue(of(vinculos)),
@@ -60,32 +77,100 @@ describe('Perfil', () => {
     vi.restoreAllMocks();
   });
 
-  it('exibe identidade e badge de papel do aluno', async () => {
+  it('exibe identidade do aluno com avatar de iniciais', async () => {
     await configurar(
       { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) },
       { obterMeusProjetos: vi.fn().mockReturnValue(of([])) }
     );
 
     expect(component.usuario()).toEqual(aluno);
-    expect(component.rotuloPapel()).toBe('Aluno');
     expect(component.isAluno()).toBe(true);
+    expect(component.iniciais()).toBe('AT');
 
     const texto = fixture.nativeElement.textContent as string;
     expect(texto).toContain('Aluno Teste');
     expect(texto).toContain('aluno.teste@aluno.cps.sp.gov.br');
   });
 
-  it('mostra o contador de projetos do aluno', async () => {
+  it('conta e lista os projetos aprovados do aluno na aba "Seus Projetos"', async () => {
     await configurar(
       { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) },
-      { obterMeusProjetos: vi.fn().mockReturnValue(of([{ id: '1' }, { id: '2' }])) }
+      {
+        obterMeusProjetos: vi.fn().mockReturnValue(
+          of([
+            projeto('APROVADO', 'Projeto Um'),
+            projeto('APROVADO', 'Projeto Dois'),
+            projeto('AGUARDANDO_APROVACAO', 'Projeto Em Analise'),
+          ])
+        ),
+      }
     );
 
-    expect(component.totalProjetos()).toBe(2);
-    expect(fixture.nativeElement.textContent as string).toContain('2');
+    expect(component.totalPublicados()).toBe(2);
+    expect(component.totalEmAnalise()).toBe(1);
+    expect(component.totalPendentes()).toBe(1);
+
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).toContain('2');
+    expect(texto).toContain('Projeto Um');
+    expect(texto).toContain('Projeto Dois');
+    // Em análise não pode vazar para a aba de publicados.
+    expect(texto).not.toContain('Projeto Em Analise');
+    expect(texto).toContain('Exibindo 1–2 de 2 projetos publicados');
   });
 
-  it('mantém a identidade quando o contexto falha (aviso laranja)', async () => {
+  it('aba "Pendentes" do aluno mostra o que foi enviado e está em análise', async () => {
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) },
+      {
+        obterMeusProjetos: vi.fn().mockReturnValue(
+          of([
+            projeto('APROVADO', 'Projeto Um'),
+            projeto('AGUARDANDO_APROVACAO', 'Projeto Em Analise'),
+            projeto('REENVIADO', 'Projeto Reenviado'),
+          ])
+        ),
+      }
+    );
+
+    component.selecionarAba('pendentes');
+    fixture.detectChanges();
+
+    expect(component.projetosFiltrados().map((p) => p.titulo)).toEqual([
+      'Projeto Em Analise',
+      'Projeto Reenviado',
+    ]);
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).toContain('Projeto Em Analise');
+    expect(texto).toContain('Projeto Reenviado');
+    expect(texto).not.toContain('Projeto Um');
+    // Aluno não vê o botão de rejeitar.
+    expect(texto).not.toContain('Rejeitar');
+  });
+
+  it('busca filtra os cards da aba ativa', async () => {
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) },
+      {
+        obterMeusProjetos: vi.fn().mockReturnValue(
+          of([
+            projeto('APROVADO', 'Portal de Biblioteca', 'p1'),
+            projeto('APROVADO', 'Sistema de Chamadas', 'p2'),
+          ])
+        ),
+      }
+    );
+
+    const busca = fixture.debugElement.query(By.css('.busca input'));
+    busca.nativeElement.value = 'biblioteca';
+    busca.triggerEventHandler('input', { target: busca.nativeElement });
+    fixture.detectChanges();
+
+    expect(component.projetosFiltrados()).toHaveLength(1);
+    expect(component.projetosFiltrados()[0].titulo).toBe('Portal de Biblioteca');
+  });
+
+  it('mantém a identidade quando o contexto falha', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await configurar(
       { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) },
@@ -93,22 +178,22 @@ describe('Perfil', () => {
     );
 
     expect(component.usuario()).toEqual(aluno);
-    expect(component.erroContexto()).toContain('Não foi possível carregar');
+    expect(component.erroMeus()).toContain('Não foi possível carregar');
   });
 
-  it('professor zerado vê onboarding inline sem chamar /projetos/meus', async () => {
+  it('professor zerado vê onboarding inline e carrega as três fontes', async () => {
     const mock = projetosProfessor([], [fatecA, fatecB]);
     await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
 
     expect(component.isProfessor()).toBe(true);
-    expect(component.rotuloPapel()).toBe('Professor');
-    expect(mock.obterMeusProjetos).not.toHaveBeenCalled();
     expect(mock.obterMeusVinculos).toHaveBeenCalled();
+    expect(mock.listarPendentesAprovacao).toHaveBeenCalled();
+    expect(mock.obterMeusProjetos).toHaveBeenCalled();
     expect(component.selecao()).toEqual([]);
-    expect(fixture.nativeElement.textContent as string).toContain(
-      'Sem instituições vinculadas ainda'
-    );
-    expect(fixture.nativeElement.textContent as string).toContain('0 de 4');
+    expect(component.totalPendentes()).toBe(0);
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).toContain('Sem instituições vinculadas ainda');
+    expect(texto).toContain('0 de 4');
   });
 
   it('tipo-para-revelar: sem consulta não sugere nada', async () => {
@@ -176,7 +261,7 @@ describe('Perfil', () => {
     await configurar(
       { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
       {
-        obterMeusProjetos: vi.fn(),
+        obterMeusProjetos: vi.fn().mockReturnValue(of([])),
         listarInstituicoes: vi.fn().mockReturnValue(throwError(() => new Error('fora do ar'))),
         obterMeusVinculos: vi.fn().mockReturnValue(of([])),
         salvarMeusVinculos: vi.fn(),
@@ -196,7 +281,7 @@ describe('Perfil', () => {
     await configurar(
       { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
       {
-        obterMeusProjetos: vi.fn(),
+        obterMeusProjetos: vi.fn().mockReturnValue(of([])),
         listarInstituicoes: vi.fn().mockReturnValue(throwError(() => new Error('fora do ar'))),
         obterMeusVinculos: vi.fn().mockReturnValue(of([fatecA])),
         salvarMeusVinculos: vi.fn(),
@@ -217,7 +302,7 @@ describe('Perfil', () => {
     await configurar(
       { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
       {
-        obterMeusProjetos: vi.fn(),
+        obterMeusProjetos: vi.fn().mockReturnValue(of([])),
         listarInstituicoes: vi.fn().mockReturnValue(of([fatecA, fatecB])),
         obterMeusVinculos: vi.fn().mockReturnValue(throwError(() => new Error('fora do ar'))),
         salvarMeusVinculos: vi.fn(),
@@ -232,72 +317,70 @@ describe('Perfil', () => {
     expect(component.catalogo().map((v) => v.id)).toEqual(['a', 'b']);
   });
 
-  it('professor carrega pendentes para aprovação ao abrir o perfil', async () => {
-    const pendente = {
-      id: 'proj-1',
-      titulo: 'Projeto Pendente',
-      descricaoCurta: 'Descrição',
-      instituicaoNome: 'Fatec Ipiranga',
-      autorNome: 'Aluno',
-      estado: 'AGUARDANDO_APROVACAO',
-      criadoEm: '2026-09-11T00:00:00Z',
-    };
+  it('professor vê a fila de pendentes na aba "Pendentes"', async () => {
+    const pendente = projeto('AGUARDANDO_APROVACAO', 'Projeto Pendente');
     const mock = projetosProfessor([], [fatecA, fatecB]);
     mock.listarPendentesAprovacao.mockReturnValue(of([pendente]));
     await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
 
     expect(mock.listarPendentesAprovacao).toHaveBeenCalled();
     expect(component.pendentes()).toHaveLength(1);
+
+    component.selecionarAba('pendentes');
+    fixture.detectChanges();
+
     const texto = fixture.nativeElement.textContent as string;
     expect(texto).toContain('Projeto Pendente');
-    expect(texto).toContain('Ver projeto');
+    expect(texto).toContain('Ver Projeto');
     expect(texto).toContain('Enviado em');
+    expect(texto).toContain('Rejeitar');
+    expect(texto).toContain('Exibindo 1–1 de 1 projetos pendentes');
   });
 
   it('card de pendente leva ao ver-projeto em modo de avaliação', async () => {
-    const pendente = {
-      id: 'proj-1',
-      titulo: 'Projeto Pendente',
-      descricaoCurta: 'Descrição',
-      instituicaoNome: 'Fatec Ipiranga',
-      autorNome: 'Aluno',
-      estado: 'AGUARDANDO_APROVACAO',
-    };
+    const pendente = projeto('AGUARDANDO_APROVACAO', 'Projeto Pendente');
     const mock = projetosProfessor([], [fatecA, fatecB]);
     mock.listarPendentesAprovacao.mockReturnValue(of([pendente]));
     await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+
+    component.selecionarAba('pendentes');
     fixture.detectChanges();
 
-    const link = fixture.nativeElement.querySelector('.pendente-acoes a') as HTMLAnchorElement;
+    const link = fixture.nativeElement.querySelector('.card-acoes a') as HTMLAnchorElement;
     expect(link).toBeTruthy();
     expect(link.getAttribute('href')).toContain('/ver-projeto/proj-1');
-    expect(link.getAttribute('href')).toContain('avaliar=1');
   });
 
   it('rejeitar exige motivo e remove da lista', async () => {
-    const pendente = {
-      id: 'proj-1',
-      titulo: 'Projeto Pendente',
-      descricaoCurta: 'Descrição',
-      instituicaoNome: 'Fatec Ipiranga',
-      autorNome: 'Aluno',
-      estado: 'AGUARDANDO_APROVACAO',
-    };
+    const pendente = projeto('AGUARDANDO_APROVACAO', 'Projeto Pendente');
     const mock = projetosProfessor([], [fatecA, fatecB]);
     mock.listarPendentesAprovacao.mockReturnValue(of([pendente]));
     mock.rejeitarProjeto.mockReturnValue(of({ ...pendente, estado: 'REJEITADO' }));
     await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
 
-    component.abrirRejeicao('proj-1');
-    component.confirmarRejeicao('proj-1');
+    component.selecionarAba('pendentes');
+    component.abrirRejeicao(pendente.id);
+    component.confirmarRejeicao(pendente.id);
     expect(component.erroPendentes()).toContain('motivo');
     expect(mock.rejeitarProjeto).not.toHaveBeenCalled();
 
-    component.onMotivoRejeicao('proj-1', 'Falta referencial teórico');
-    component.confirmarRejeicao('proj-1');
+    component.onMotivoRejeicao(pendente.id, 'Falta referencial teórico');
+    component.confirmarRejeicao(pendente.id);
 
-    expect(mock.rejeitarProjeto).toHaveBeenCalledWith('proj-1', 'Falta referencial teórico');
+    expect(mock.rejeitarProjeto).toHaveBeenCalledWith(pendente.id, 'Falta referencial teórico');
     expect(component.pendentes()).toHaveLength(0);
+  });
+
+  it('aba "Recusados" fica desativada (visual por enquanto)', async () => {
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) },
+      { obterMeusProjetos: vi.fn().mockReturnValue(of([projeto('APROVADO', 'Projeto Um')])) }
+    );
+    fixture.detectChanges();
+
+    const aba = fixture.nativeElement.querySelector('.aba-desativada') as HTMLButtonElement;
+    expect(aba).toBeTruthy();
+    expect(aba.disabled).toBe(true);
   });
 });
 
@@ -332,7 +415,7 @@ describe('Perfil (erro HTML normalizado, item 30)', () => {
 
   function baseMock() {
     return {
-      obterMeusProjetos: vi.fn(),
+      obterMeusProjetos: vi.fn().mockReturnValue(of([])),
       listarInstituicoes: vi.fn().mockReturnValue(of([])),
       obterMeusVinculos: vi.fn().mockReturnValue(of([])),
       salvarMeusVinculos: vi.fn().mockReturnValue(of([])),

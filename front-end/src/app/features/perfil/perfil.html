@@ -1,57 +1,252 @@
-<div class="perfil-container">
-  @if (carregando() && !isProfessor()) {
-    <section class="perfil-card" aria-busy="true" aria-label="Carregando perfil">
+<div class="perfil-tela">
+  @if (carregando() && !usuario()) {
+    <section class="perfil-card perfil-card-larga" aria-busy="true" aria-label="Carregando perfil">
       <div class="skeleton-linha skeleton-avatar"></div>
       <div class="skeleton-linha skeleton-nome"></div>
       <div class="skeleton-linha skeleton-email"></div>
     </section>
-  } @else if (usuario()) {
-    @let u = usuario()!;
-    <!-- Bloco de identidade: dados somente leitura vindos da sessão (MSAL via back-end) -->
-    <section class="perfil-card">
+  } @else if (usuario(); as u) {
+    <!-- Identidade: somente leitura, vinda da sessão (MSAL via back-end) -->
+    <section class="perfil-card perfil-card-larga">
       <div class="identidade">
         @if (u.foto) {
           <img [src]="u.foto" alt="Foto de perfil" class="avatar" />
         } @else {
-          <span class="avatar avatar-inicial" aria-hidden="true">{{ inicial() }}</span>
+          <span class="avatar avatar-inicial" aria-hidden="true">{{ iniciais() }}</span>
         }
         <div class="identidade-texto">
           <h1 class="perfil-nome">{{ u.nome }}</h1>
           <p class="perfil-email">{{ u.email }}</p>
-          <span class="badge-papel" [class.badge-aluno]="isAluno()" [class.badge-professor]="isProfessor()">
-            {{ rotuloPapel() }}
-          </span>
+          @if (isProfessor() && instituicoesResumo(); as resumo) {
+            <p class="perfil-instituicao">{{ resumo }}</p>
+          }
+          <ul class="perfil-stats" aria-label="Resumo da atividade">
+            <li>
+              <strong>{{ totalPublicados() }}</strong>
+              <span>{{ totalPublicados() === 1 ? 'projeto publicado' : 'projetos publicados' }}</span>
+            </li>
+            <li>
+              <strong>{{ totalPendentes() }}</strong>
+              <span>{{ totalPendentes() === 1 ? 'em análise' : 'em análise' }}</span>
+            </li>
+            @if (isProfessor()) {
+              <li>
+                <strong>{{ vinculos().length }}</strong>
+                <span>{{ vinculos().length === 1 ? 'unidade vinculada' : 'unidades vinculadas' }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <div class="identidade-acoes">
+          <a routerLink="/projeto-forms" class="btn btn-outline">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            <span>Submeter Projeto</span>
+          </a>
+          <button type="button" class="btn btn-outline" (click)="irParaInstituicoes()">
+            <span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
+            <span>Mudar Instituição</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-icone"
+            (click)="anunciarEmBreve('Configurações')"
+            aria-label="Configurações"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">settings</span>
+          </button>
         </div>
       </div>
     </section>
 
     @if (erroContexto()) {
       <p class="alerta-contexto" role="alert">
-        <span class="material-symbols-outlined">info</span>
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
         <span>{{ erroContexto() }}</span>
       </p>
     }
-
-    <!-- Contexto do papel: aluno acompanha os próprios projetos -->
-    @if (isAluno()) {
-      <section class="perfil-card">
-        <h2 class="secao-titulo">Meus projetos</h2>
-        @if (totalProjetos() !== null) {
-          <p class="contador">
-            Você publicou <strong>{{ totalProjetos() }}</strong>
-            {{ totalProjetos() === 1 ? 'projeto' : 'projetos' }}.
-          </p>
-        }
-        <a routerLink="/projeto-forms" class="btn-primario">
-          <span class="material-symbols-outlined">add_circle</span>
-          <span>Novo Projeto</span>
-        </a>
-      </section>
+    @if (avisoGeral()) {
+      <p class="alerta-contexto" role="status">
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
+        <span>{{ avisoGeral() }}</span>
+      </p>
     }
 
-    <!-- Contexto do papel: professor e suas instituições (Frame B · mode=multi) -->
+    <!-- Abas + busca -->
+    <section class="perfil-card perfil-card-larga">
+      <div class="abas-barra">
+        <div class="abas" role="tablist" aria-label="Projetos do perfil">
+          <button
+            type="button"
+            role="tab"
+            class="aba"
+            [class.aba-ativa]="abaAtiva() === 'publicados'"
+            [attr.aria-selected]="abaAtiva() === 'publicados'"
+            [attr.tabindex]="abaAtiva() === 'publicados' ? 0 : -1"
+            (click)="selecionarAba('publicados')"
+          >
+            <span>{{ isProfessor() ? 'Aprovados' : 'Seus Projetos' }}</span>
+            <span class="aba-contador">{{ totalPublicados() }}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="aba"
+            [class.aba-ativa]="abaAtiva() === 'pendentes'"
+            [attr.aria-selected]="abaAtiva() === 'pendentes'"
+            [attr.tabindex]="abaAtiva() === 'pendentes' ? 0 : -1"
+            (click)="selecionarAba('pendentes')"
+          >
+            <span>Pendentes</span>
+            <span class="aba-contador aba-contador-vermelho">{{ totalPendentes() }}</span>
+          </button>
+          <button type="button" class="aba aba-desativada" disabled title="Em breve">
+            <span>Recusados</span>
+          </button>
+        </div>
+
+        <div class="busca">
+          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+          <input
+            type="search"
+            name="buscaPerfil"
+            [ngModel]="buscaPerfil()"
+            (ngModelChange)="buscaPerfil.set($event)"
+            placeholder="Pesquisar..."
+            aria-label="Pesquisar nos projetos"
+          />
+        </div>
+      </div>
+
+      @if (sucessoAcao()) {
+        <p class="painel-sucesso" role="status">
+          <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+          <span>{{ sucessoAcao() }}</span>
+        </p>
+      }
+
+      @if (carregandoAba()) {
+        <div aria-busy="true" aria-label="Carregando projetos">
+          <div class="skeleton-linha skeleton-nome"></div>
+          <div class="skeleton-linha skeleton-email"></div>
+        </div>
+      } @else if (erroAba(); as erro) {
+        <div class="painel-neutro" role="alert">
+          <span class="material-symbols-outlined" aria-hidden="true">info</span>
+          <span>{{ erro }}</span>
+        </div>
+        <button type="button" class="btn btn-outline btn-compacto" (click)="recarregarAba()">
+          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+          <span>Tentar novamente</span>
+        </button>
+      } @else if (projetosFiltrados().length === 0) {
+        <div class="estado-vazio">
+          <span class="material-symbols-outlined icone-vazio" aria-hidden="true">inventory_2</span>
+          <p class="vazio-mensagem">{{ mensagemVazia() }}</p>
+          <p class="vazio-nota">{{ notaVazia() }}</p>
+        </div>
+      } @else {
+        <ul class="grade-projetos">
+          @for (p of projetosFiltrados(); track p.id) {
+            <li class="card-projeto">
+              <div class="card-capa">
+                @if (capaUrl(p); as capa) {
+                  <img [src]="capa" [alt]="p.titulo || 'Capa do projeto'" (error)="onCapaErro(p.id)" />
+                } @else {
+                  <div class="card-capa-vazia">
+                    <span class="material-symbols-outlined icone-capa-vazia" aria-hidden="true">image_not_supported</span>
+                  </div>
+                }
+              </div>
+
+              <div class="card-corpo">
+                <h3 class="card-titulo" [title]="p.titulo">{{ p.titulo || 'Projeto sem título' }}</h3>
+                @if (p.descricaoCurta) {
+                  <p class="card-descricao">{{ p.descricaoCurta }}</p>
+                }
+                @if (dataFormatada(p.criadoEm); as data) {
+                  <p class="card-data">
+                    {{ abaAtiva() === 'pendentes' && isProfessor() ? 'Enviado em' : 'Publicado em' }} {{ data }}
+                  </p>
+                }
+                <div class="card-local">
+                  <span class="card-instituicao">
+                    <span class="material-symbols-outlined icone-instituicao" aria-hidden="true">school</span>
+                    <span class="nome-instituicao">{{ p.instituicaoNome || 'Instituição não informada' }}</span>
+                  </span>
+                  @if (p.anoPublicado) {
+                    <span class="card-ano">{{ p.anoPublicado }}</span>
+                  }
+                </div>
+              </div>
+
+              <div class="card-acoes">
+                <a
+                  class="btn btn-primario"
+                  [routerLink]="['/ver-projeto', p.id]"
+                  [queryParams]="abaAtiva() === 'pendentes' && isProfessor() ? { avaliar: '1' } : null"
+                  [attr.aria-label]="'Ver projeto ' + (p.titulo || '')"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">star</span>
+                  <span>Ver Projeto</span>
+                </a>
+                @if (abaAtiva() === 'pendentes' && isProfessor()) {
+                  <button
+                    type="button"
+                    class="btn btn-outline"
+                    [disabled]="processandoId() === p.id"
+                    (click)="abrirRejeicao(p.id)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">remove</span>
+                    <span>Rejeitar</span>
+                  </button>
+                }
+              </div>
+
+              @if (rejeicaoAbertaId() === p.id) {
+                <div class="rejeicao-form">
+                  <label class="rejeicao-rotulo" [for]="'motivo-' + p.id">Motivo da rejeição</label>
+                  <textarea
+                    [id]="'motivo-' + p.id"
+                    rows="2"
+                    placeholder="Explique ao aluno o que ajustar"
+                    [value]="motivosRejeicao()[p.id] || ''"
+                    (input)="onMotivoRejeicao(p.id, $any($event.target).value)"
+                  ></textarea>
+                  <span class="rejeicao-linha">
+                    <button type="button" class="btn btn-outline" (click)="fecharRejeicao()">
+                      <span>Cancelar</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-primario"
+                      [disabled]="processandoId() === p.id"
+                      (click)="confirmarRejeicao(p.id)"
+                    >
+                      <span>{{ processandoId() === p.id ? 'Rejeitando…' : 'Confirmar rejeição' }}</span>
+                    </button>
+                  </span>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+
+        <div class="paginacao">
+          <p class="paginacao-texto">{{ textoPaginacao() }}</p>
+          <div class="paginacao-controles">
+            <span class="pagina-btn">Anterior</span>
+            <span class="pagina-num pagina-ativa">1</span>
+            <span class="pagina-num">2</span>
+            <span class="pagina-btn">Próximo</span>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- Professor: instituições vinculadas (Frame B · mode=multi) -->
     @if (isProfessor()) {
-      <section class="perfil-card" aria-labelledby="vinculos-titulo">
+      <section class="perfil-card perfil-card-larga" aria-labelledby="vinculos-titulo">
         <h2 class="secao-titulo" id="vinculos-titulo">Minhas instituições</h2>
         <h3 class="vinculo-subtitulo">Vincule as unidades onde você atua</h3>
 
@@ -60,25 +255,25 @@
             <div class="skeleton-linha skeleton-nome"></div>
             <div class="skeleton-linha skeleton-email"></div>
           </div>
-        } @else if (erroVinculos()) {
+        } @else if (erroVinculos(); as erroVinculos) {
           <div class="painel-neutro" role="alert">
-            <span class="material-symbols-outlined">info</span>
-            <span>{{ erroVinculos() }}</span>
+            <span class="material-symbols-outlined" aria-hidden="true">info</span>
+            <span>{{ erroVinculos }}</span>
           </div>
-          <button type="button" class="btn-secundario" (click)="tentarNovamenteVinculos()">
-            <span class="material-symbols-outlined">refresh</span>
+          <button type="button" class="btn btn-outline btn-compacto" (click)="tentarNovamenteVinculos()">
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
             <span>Tentar novamente</span>
           </button>
         } @else {
           @if (erroSalvarVinculos()) {
             <div class="painel-neutro" role="alert">
-              <span class="material-symbols-outlined">info</span>
+              <span class="material-symbols-outlined" aria-hidden="true">info</span>
               <span>{{ erroSalvarVinculos() }}</span>
             </div>
           }
           @if (sucessoVinculos()) {
             <p class="painel-sucesso" role="status">
-              <span class="material-symbols-outlined">check_circle</span>
+              <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
               <span>{{ sucessoVinculos() }}</span>
             </p>
           }
@@ -87,7 +282,6 @@
             <p class="vazio-mensagem">Sem instituições vinculadas ainda — escolha até 4 unidades.</p>
           }
 
-          <!-- Campo institution-autocomplete mode=multi -->
           <div class="vinculo-campo">
             <label class="vinculo-rotulo" for="vinculo-busca">Adicionar instituição</label>
             <div class="combo">
@@ -161,7 +355,7 @@
                   } @else {
                     <div class="combo-vazio">
                       <p><strong>Nada encontrado por nome, cidade, código ou região.</strong></p>
-                      <button type="button" class="btn-secundario" (click)="limparBuscaVinculo()">
+                      <button type="button" class="btn btn-outline btn-compacto" (click)="limparBuscaVinculo()">
                         Limpar busca
                       </button>
                     </div>
@@ -180,7 +374,6 @@
             }
           </div>
 
-          <!-- Fileira de chips -->
           @if (selecao().length > 0) {
             <ul class="chip-lista" aria-label="Instituições selecionadas">
               @for (chip of selecao(); track chip.id) {
@@ -206,156 +399,26 @@
             <span class="vinculo-acoes">
               @if (temAlteracoes()) {
                 <span class="vinculo-pendente">alterações não salvas</span>
-                <button type="button" class="btn-secundario" (click)="cancelarEdicaoVinculos()">
+                <button type="button" class="btn btn-outline btn-compacto" (click)="cancelarEdicaoVinculos()">
                   Cancelar
                 </button>
               }
               <button
                 type="button"
-                class="btn-primario"
+                class="btn btn-primario btn-compacto"
                 [disabled]="!temAlteracoes() || salvandoVinculos()"
                 (click)="salvarVinculos()"
               >
                 @if (salvandoVinculos()) {
                   <span>Salvando…</span>
                 } @else {
-                  <span class="material-symbols-outlined">save</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">save</span>
                   <span>Salvar vínculos</span>
                 }
               </button>
             </span>
           </div>
           <p class="vazio-nota">Você pode alterar a qualquer momento (0 a 4).</p>
-        }
-      </section>
-
-      <section class="perfil-card" aria-labelledby="pendentes-titulo">
-        <h2 class="secao-titulo" id="pendentes-titulo">Projetos aguardando sua aprovação</h2>
-        <p class="vazio-nota">
-          Aparecem aqui somente os projetos com estado pendente em que você foi indicado como
-          professor responsável. Revise com atenção a instituição do projeto antes de aprovar,
-          inclusive quando não for uma das suas vinculadas.
-        </p>
-
-        @if (carregandoPendentes()) {
-          <div aria-busy="true" aria-label="Carregando projetos pendentes">
-            <div class="skeleton-linha skeleton-nome"></div>
-            <div class="skeleton-linha skeleton-email"></div>
-          </div>
-        } @else if (erroPendentes()) {
-          <div class="painel-neutro" role="alert">
-            <span class="material-symbols-outlined">info</span>
-            <span>{{ erroPendentes() }}</span>
-          </div>
-          <button type="button" class="btn-secundario" (click)="tentarNovamentePendentes()">
-            <span class="material-symbols-outlined">refresh</span>
-            <span>Tentar novamente</span>
-          </button>
-        } @else {
-          @if (sucessoAcao()) {
-            <p class="painel-sucesso" role="status">
-              <span class="material-symbols-outlined">check_circle</span>
-              <span>{{ sucessoAcao() }}</span>
-            </p>
-          }
-          @if (pendentes().length === 0) {
-            <p class="vazio-mensagem">Nenhum projeto pendente para você agora.</p>
-            <p class="vazio-nota">
-              Quando um aluno enviar um projeto indicando seu e-mail e sua unidade, ele aparece aqui
-              para aprovação e depois na vitrine pública.
-            </p>
-          } @else {
-            <ul class="pendente-lista">
-              @for (p of pendentes(); track p.id) {
-                <li class="pendente-item">
-                  <div class="pendente-capa">
-                    @if (capaUrl(p)) {
-                      <img
-                        [src]="capaUrl(p)"
-                        [alt]="p.titulo || 'Capa do projeto'"
-                        class="pendente-imagem"
-                        (error)="onCapaErro(p.id)"
-                      />
-                    } @else {
-                      <div class="pendente-capa-vazia">
-                        <span class="material-symbols-outlined icone-capa-vazia">image_not_supported</span>
-                      </div>
-                    }
-                  </div>
-
-                  <div class="pendente-corpo">
-                    <h3 class="pendente-titulo" [title]="p.titulo">
-                      {{ p.titulo || 'Projeto sem título' }}
-                    </h3>
-                    @if (p.descricaoCurta) {
-                      <p class="pendente-desc">{{ p.descricaoCurta }}</p>
-                    }
-                    @if (dataFormatada(p.criadoEm)) {
-                      <p class="pendente-data">Enviado em {{ dataFormatada(p.criadoEm) }}</p>
-                    }
-                    <div class="pendente-local">
-                      <span class="pendente-instituicao">
-                        <span class="material-symbols-outlined icone-instituicao" aria-hidden="true">school</span>
-                        <span class="nome-instituicao">
-                          {{ p.instituicaoNome || 'Instituição não informada' }}
-                        </span>
-                      </span>
-                      @if (p.anoPublicado) {
-                        <span class="pendente-ano">{{ p.anoPublicado }}</span>
-                      }
-                    </div>
-                  </div>
-
-                  <div class="pendente-acoes">
-                    <a
-                      class="btn-primario"
-                      [routerLink]="['/ver-projeto', p.id]"
-                      [queryParams]="{ avaliar: '1' }"
-                      [attr.aria-label]="'Ver projeto ' + (p.titulo || '')"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-                      <span>Ver projeto</span>
-                    </a>
-                    <button
-                      type="button"
-                      class="btn-secundario"
-                      [disabled]="processandoId() === p.id"
-                      (click)="abrirRejeicao(p.id)"
-                    >
-                      <span>Rejeitar</span>
-                    </button>
-                  </div>
-
-                  @if (rejeicaoAbertaId() === p.id) {
-                    <div class="rejeicao-form">
-                      <label class="rejeicao-rotulo" [for]="'motivo-' + p.id">Motivo da rejeição</label>
-                      <textarea
-                        [id]="'motivo-' + p.id"
-                        class="rejeicao-campo"
-                        rows="2"
-                        placeholder="Explique ao aluno o que ajustar"
-                        [value]="motivosRejeicao()[p.id] || ''"
-                        (input)="onMotivoRejeicao(p.id, $any($event.target).value)"
-                      ></textarea>
-                      <span class="pendente-acoes-linha">
-                        <button type="button" class="btn-secundario" (click)="fecharRejeicao()">
-                          <span>Cancelar</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="btn-primario"
-                          [disabled]="processandoId() === p.id"
-                          (click)="confirmarRejeicao(p.id)"
-                        >
-                          <span>{{ processandoId() === p.id ? 'Rejeitando…' : 'Confirmar rejeição' }}</span>
-                        </button>
-                      </span>
-                    </div>
-                  }
-                </li>
-              }
-            </ul>
-          }
         }
       </section>
     }

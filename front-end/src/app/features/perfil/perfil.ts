@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
@@ -22,15 +22,29 @@ import { mensagemErroAmigavel } from '../../core/utils/erro-http';
 import { environment } from '../../../environments/environment';
 
 /**
- * Tela de Perfil (DESIGN 4.6 + UX-SELECAO-INSTITUICOES-PROFESSOR Frame B).
+ * Tela de Perfil (layout do mock "LuePad" · cor de ação #D32F2F).
  *
- * Identidade (nome, e-mail, foto, papel) é somente leitura, vinda da sessão.
- * Contexto do papel vem da API: aluno → contador de `GET /projetos/meus`;
- * professor → aba "Instituições (0–4)" com `institution-autocomplete
- * mode=multi`: digita-para-revelar, chips locais, contador por extenso,
- * recusa inline da 5ª em cinza (nunca vermelho CPS) e Save explícito via
- * `PUT /professores/me/instituicoes` (0–4, idempotente).
+ * Aluno e professor compartilham o mesmo layout: identidade + abas + grade de
+ * cards. A aba "Seus Projetos" lista o que o próprio usuário submeteu e já está
+ * aprovado (`GET /projetos/meus` fatiado no cliente). A aba "Pendentes" muda de
+ * significado por papel: para o aluno, os projetos enviados que ainda estão em
+ * análise; para o professor, a fila aguardando a sua aprovação
+ * (`GET /projetos/pendentes`). A aba "Recusados" é visual por enquanto.
+ *
+ * O fatiamento por estado é feito no cliente porque `/projetos/meus` devolve
+ * todos os estados de uma vez; o backend continua sendo a autoridade nas
+ * aprovações/rejeições.
  */
+
+type AbaPerfil = 'publicados' | 'pendentes';
+
+/** Estados que, para o aluno, significam "enviado e ainda não avaliado". */
+const ESTADOS_EM_ANALISE: readonly ProjetoResponseModel['estado'][] = [
+  'AGUARDANDO_APROVACAO',
+  'REENVIADO',
+  'ALTERACOES_SOLICITADAS',
+];
+
 @Component({
   selector: 'app-perfil',
   standalone: true,
@@ -43,11 +57,21 @@ export class Perfil implements OnInit {
   private authService = inject(AuthService);
   private projetoService = inject(ProjetoService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   usuario = signal<UsuarioLogado | null>(null);
   carregando = signal(true);
   erroContexto = signal<string | null>(null);
-  totalProjetos = signal<number | null>(null);
+  /** Aviso de ação ainda não implementada ("Em breve"), some sozinho. */
+  avisoGeral = signal<string | null>(null);
+
+  // --- Abas / grade ---
+  abaAtiva = signal<AbaPerfil>('publicados');
+  /** Signal (não campo solto): o computed da busca precisa ser invalidado. */
+  buscaPerfil = signal('');
+  meusProjetos = signal<ProjetoResponseModel[]>([]);
+  carregandoMeus = signal(false);
+  erroMeus = signal<string | null>(null);
 
   isAluno = computed(() => this.usuario()?.role === 'ALUNO');
   isProfessor = computed(() => this.usuario()?.role === 'PROFESSOR');
@@ -88,6 +112,101 @@ export class Perfil implements OnInit {
   /** Capas que falharam no <img>: o card mostra o bloco neutro no lugar. */
   capasComErro = new Set<string>();
 
+  // --- Derivados das abas ---
+
+  /** Aprovados que o próprio usuário submeteu (aba "Seus Projetos"). */
+  totalPublicados = computed(
+    () => this.meusProjetos().filter((p) => p.estado === 'APROVADO').length,
+  );
+
+  /** Enviados pelo aluno e ainda em análise. */
+  totalEmAnalise = computed(
+    () =>
+      this.meusProjetos().filter((p) =>
+        ESTADOS_EM_ANALISE.includes(p.estado),
+      ).length,
+  );
+
+  /**
+   * "Pendentes" é papel-dependente: aluno vê o que mandou e está em análise;
+   * professor vê a fila de aprovação (`/projetos/pendentes`).
+   */
+  totalPendentes = computed(() =>
+    this.isProfessor() ? this.pendentes().length : this.totalEmAnalise(),
+  );
+
+  projetosAba = computed<ProjetoResponseModel[]>(() => {
+    if (this.abaAtiva() === 'publicados') {
+      return this.meusProjetos().filter((p) => p.estado === 'APROVADO');
+    }
+    if (this.isProfessor()) {
+      return this.pendentes();
+    }
+    return this.meusProjetos().filter((p) =>
+      ESTADOS_EM_ANALISE.includes(p.estado),
+    );
+  });
+
+  carregandoAba = computed(() =>
+    this.abaAtiva() === 'pendentes' && this.isProfessor()
+      ? this.carregandoPendentes()
+      : this.carregandoMeus(),
+  );
+
+  erroAba = computed(() =>
+    this.abaAtiva() === 'pendentes' && this.isProfessor()
+      ? this.erroPendentes()
+      : this.erroMeus(),
+  );
+
+  /** Busca local por título, descrição ou instituição (a aba já vem fatiada). */
+  projetosFiltrados = computed(() => {
+    const lista = this.projetosAba();
+    const termo = this.normalizar(this.buscaPerfil());
+    if (!termo) {
+      return lista;
+    }
+    return lista.filter(
+      (p) =>
+        this.normalizar(p.titulo).includes(termo) ||
+        this.normalizar(p.descricaoCurta).includes(termo) ||
+        this.normalizar(p.instituicaoNome).includes(termo),
+    );
+  });
+
+  textoPaginacao = computed(() => {
+    const total = this.projetosFiltrados().length;
+    const rotulo =
+      this.abaAtiva() === 'publicados'
+        ? this.isProfessor()
+          ? 'projetos aprovados'
+          : 'projetos publicados'
+        : 'projetos pendentes';
+    return `Exibindo 1–${total} de ${total} ${rotulo}`;
+  });
+
+  mensagemVazia = computed(() => {
+    if (this.abaAtiva() === 'publicados') {
+      return this.isProfessor()
+        ? 'Nenhum projeto aprovado por você ainda.'
+        : 'Você ainda não publicou nenhum projeto.';
+    }
+    return this.isProfessor()
+      ? 'Nenhum projeto aguardando sua aprovação.'
+      : 'Nenhum projeto enviado em análise.';
+  });
+
+  notaVazia = computed(() => {
+    if (this.abaAtiva() === 'publicados') {
+      return this.isProfessor()
+        ? 'Quando você aprovar um projeto, ele aparece aqui.'
+        : 'Projetos aprovados pelo professor aparecem aqui.';
+    }
+    return this.isProfessor()
+      ? 'Projetos indicados ao seu e-mail institucional aparecem aqui para revisão.'
+      : 'Projetos enviados aparecem aqui até o professor responsável avaliar.';
+  });
+
   contadorVinculos = computed(
     () => `${this.selecao().length} de ${this.LIMITE_VINCULOS} unidades`,
   );
@@ -105,22 +224,25 @@ export class Perfil implements OnInit {
     );
   });
 
-  inicial = computed(() => {
-    const nome = this.usuario()?.nome?.trim();
-    return nome ? nome.charAt(0).toUpperCase() : '?';
+  /** Avatar quadrado com duas iniciais, como no mock. */
+  iniciais = computed(() => {
+    const nome = (this.usuario()?.nome ?? '').trim();
+    if (!nome) {
+      return '?';
+    }
+    const partes = nome.split(/\s+/);
+    const primeira = partes[0].charAt(0);
+    const segunda = partes.length > 1 ? partes[partes.length - 1].charAt(0) : '';
+    return (primeira + segunda).toUpperCase();
   });
 
-  rotuloPapel = computed(() => {
-    switch (this.usuario()?.role) {
-      case 'ALUNO':
-        return 'Aluno';
-      case 'PROFESSOR':
-        return 'Professor';
-      case 'ADMIN':
-        return 'Administrador';
-      default:
-        return 'Usuário';
+  /** "Fatec Ipiranga / Fatec São Paulo" a partir dos vínculos do professor. */
+  instituicoesResumo = computed(() => {
+    const lista = this.vinculos();
+    if (lista.length === 0) {
+      return '';
     }
+    return lista.map((i) => i.nome).join(' / ');
   });
 
   async ngOnInit(): Promise<void> {
@@ -132,36 +254,39 @@ export class Perfil implements OnInit {
     }
     this.usuario.set(logado);
 
-    if (logado.role === 'ALUNO') {
-      this.carregarContextoAluno();
-    } else if (logado.role === 'PROFESSOR') {
-      this.carregarContextoProfessor();
-    } else {
-      this.carregando.set(false);
+    // Deep link opcional: /perfil?instituicoes=1 rola até a seção de vínculos.
+    if (this.route.snapshot.queryParamMap.get('instituicoes') === '1') {
+      setTimeout(() => this.irParaInstituicoes(), 200);
     }
+
+    if (logado.role === 'PROFESSOR') {
+      this.carregarVinculos();
+      this.carregarPendentes();
+    }
+    this.carregarMeusProjetos();
   }
 
-  private carregarContextoAluno(): void {
+  /** "Seus Projetos" em todos os estados; as abas fatiam no cliente. */
+  carregarMeusProjetos(): void {
+    this.carregandoMeus.set(true);
+    this.erroMeus.set(null);
     this.projetoService.obterMeusProjetos().subscribe({
       next: (projetos) => {
-        this.totalProjetos.set((projetos ?? []).length);
+        this.meusProjetos.set(projetos ?? []);
+        this.carregandoMeus.set(false);
         this.carregando.set(false);
       },
       error: (err) => {
         console.error('Erro ao carregar projetos do perfil:', err);
         // Identidade do token continua exibida: o que falhou foi o contexto,
         // não a sessão (DESIGN 4.6, estado de erro).
-        this.erroContexto.set(
+        this.erroMeus.set(
           'Não foi possível carregar seus projetos agora. Tente novamente mais tarde.',
         );
+        this.carregandoMeus.set(false);
         this.carregando.set(false);
       },
     });
-  }
-
-  private carregarContextoProfessor(): void {
-    this.carregarVinculos();
-    this.carregarPendentes();
   }
 
   /** Vínculos + catálogo com falhas independentes: um lado bom nunca é apagado pelo outro. */
@@ -228,6 +353,25 @@ export class Perfil implements OnInit {
 
   tentarNovamentePendentes(): void {
     this.carregarPendentes();
+  }
+
+  recarregarAba(): void {
+    if (this.abaAtiva() === 'pendentes' && this.isProfessor()) {
+      this.carregarPendentes();
+    } else {
+      this.carregarMeusProjetos();
+    }
+  }
+
+  selecionarAba(aba: AbaPerfil): void {
+    if (this.abaAtiva() === aba) {
+      return;
+    }
+    this.abaAtiva.set(aba);
+    // Erros e sucessos são da aba: trocar de aba não arrasta o aviso da outra.
+    this.erroPendentes.set(null);
+    this.sucessoAcao.set(null);
+    this.rejeicaoAbertaId.set(null);
   }
 
   abrirRejeicao(id: string): void {
@@ -471,7 +615,25 @@ export class Perfil implements OnInit {
     return !this.logosComErro.has(codigoUnidade);
   }
 
-  // --- Card de pendente (mesma geometria do card do catálogo) ---
+  // --- Ações de identidade ---
+
+  /** "Mudar Instituição": professor rola até os vínculos; aluno recebe aviso. */
+  irParaInstituicoes(): void {
+    if (!this.isProfessor()) {
+      this.anunciarEmBreve('Mudar instituição');
+      return;
+    }
+    document
+      .getElementById('vinculos-titulo')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  anunciarEmBreve(rotulo: string): void {
+    this.avisoGeral.set(`${rotulo} estará disponível em breve.`);
+    setTimeout(() => this.avisoGeral.set(null), 4000);
+  }
+
+  // --- Card ---
 
   /** Capa do projeto: absolutas/data/blob passam direto; "/uploads/x" vai para a API. */
   capaUrl(p: ProjetoResponseModel): string {
