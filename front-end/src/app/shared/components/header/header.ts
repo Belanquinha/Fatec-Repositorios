@@ -44,6 +44,15 @@ export class Header implements OnInit, OnDestroy {
     return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
   });
 
+  /**
+   * Submissão é de aluno e professor. Controla só a apresentação: o guard da
+   * rota (`submissaoGuard`) e o `POST /projetos` no back-end continuam sendo a
+   * autoridade — sem isto o ADMIN veria um link que o levaria a um redirect.
+   */
+  podeSubmeter = computed(
+    () => this.usuario()?.role === 'ALUNO' || this.usuario()?.role === 'PROFESSOR',
+  );
+
   @ViewChild('menuNav') menuNav!: ElementRef<HTMLElement>;
   /** Foco a restaurar ao fechar o drawer (a11y: o Tab volta para o toggle). */
   private ultimoFocoAntesDoMenu: HTMLElement | null = null;

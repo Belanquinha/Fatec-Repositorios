@@ -12,6 +12,7 @@ import com.fatecrepository.repository.InstituicaoRepository;
 import com.fatecrepository.repository.ProfessorInstituicaoRepository;
 import com.fatecrepository.repository.ProjetoRepository;
 import com.fatecrepository.repository.UserRepository;
+import com.fatecrepository.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -104,20 +105,64 @@ public class ProjetoService {
         return resp;
     }
 
+    /**
+     * Detalhe de um projeto.
+     *
+     * <p>O endpoint é {@code permitAll} (a vitrine pública linka o detalhe de
+     * aprovados sem sessão), então a visibilidade é decidida aqui, pelo estado
+     * do projeto e por quem chama:
+     *
+     * <ul>
+     *   <li>{@code APROVADO} → público, como antes;
+     *   <li>qualquer outro estado → só o autor (acompanhamento) ou o professor
+     *       responsável indicado na submissão (revisão/avaliação). ADMIN não é
+     *       autor nem avaliador e não enxerga o projeto.
+     * </ul>
+     *
+     * <p>Quem não pode ver recebe 404 e não 403 de propósito: um 403 confirmaria
+     * que o UUID existe, e a simples existência de um projeto pendente de
+     * aprovação não é informação pública.
+     */
     @Transactional(readOnly = true)
-    public ProjetoResponse obterPorId(UUID id) {
+    public ProjetoResponse obterPorId(UUID id, CustomUserDetails usuario) {
         log.info("Buscando projeto por ID: {}", id);
         Projeto projeto = projetoRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado"));
+
+        if (projeto.getEstado() != ProjetoEstado.APROVADO && !podeVerNaoAprovado(projeto, usuario)) {
+            log.info("GET /projetos/{} negado para {}: projeto {} não está aprovado",
+                id, usuario == null ? "anônimo" : usuario.getUsername(), projeto.getEstado());
+            throw new ResourceNotFoundException("Projeto não encontrado");
+        }
+
         ProjetoResponse resp = responseMapper.toProjetoResponse(projeto);
         preencherNomeProfessor(resp);
-        // Visão pública (GET /projetos/{id} é permitAll): nunca expõe e-mail (LGPD).
-        // Fluxos autenticados (meus/pendentes) mantêm o e-mail para operação.
-        resp.setEmailProfessorResponsavel(null);
-        if (projeto.getEstado() != ProjetoEstado.APROVADO) {
+        if (projeto.getEstado() == ProjetoEstado.APROVADO) {
+            // Vitrine pública: nome da conta, nunca e-mail, e motivo de rejeição
+            // nenhum — projeto aprovado não tem rejeição para exibir.
+            resp.setEmailProfessorResponsavel(null);
             resp.setMotivoRejeicao(null);
         }
+        // Visão interna (autor/professor responsável): mantém o e-mail operacional
+        // e o motivo da rejeição, que é o retorno que o autor precisa ler.
         return resp;
+    }
+
+    /**
+     * Autor ou professor responsável. A regra é a mesma da avaliação
+     * ({@code emailProfessorResponsavel}): quem indica o responsável é quem
+     * revisa, e quem submeteu é quem acompanha. ADMIN fica de fora — é papel de
+     * gestão do catálogo, sem fluxo de submissão nem de revisão.
+     */
+    private boolean podeVerNaoAprovado(Projeto projeto, CustomUserDetails usuario) {
+        if (usuario == null) {
+            return false;
+        }
+        if (projeto.getAutor() != null && projeto.getAutor().getId().equals(usuario.getId())) {
+            return true;
+        }
+        return projeto.getEmailProfessorResponsavel() != null
+            && projeto.getEmailProfessorResponsavel().equalsIgnoreCase(usuario.getUsername());
     }
 
     @Transactional(readOnly = true)

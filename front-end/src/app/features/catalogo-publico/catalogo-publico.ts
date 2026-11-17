@@ -57,6 +57,13 @@ export class CatalogoPublico implements OnInit {
     return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
   });
 
+  /** Submissão é de aluno e professor — o guard da rota e o back-end decidem; isto é só o link. */
+  podeSubmeter = computed(
+    () =>
+      this.usuarioLogado()?.role === 'ALUNO' ||
+      this.usuarioLogado()?.role === 'PROFESSOR',
+  );
+
   ngOnInit(): void {
     this.carregarDados();
     this.verificarUsuarioLogado();

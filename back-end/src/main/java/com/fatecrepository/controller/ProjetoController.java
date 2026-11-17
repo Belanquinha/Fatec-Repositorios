@@ -93,9 +93,12 @@ public class ProjetoController {
         @ApiResponse(responseCode = "200", description = "Projeto encontrado"),
         @ApiResponse(responseCode = "404", description = "Projeto não encontrado")
     })
-    public ResponseEntity<ProjetoResponse> obterPorId(@Parameter(description = "ID do projeto") @PathVariable UUID id) {
+    public ResponseEntity<ProjetoResponse> obterPorId(
+        @Parameter(description = "ID do projeto") @PathVariable UUID id,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
         log.info("GET /projetos/{}", id);
-        ProjetoResponse response = projetoService.obterPorId(id);
+        ProjetoResponse response = projetoService.obterPorId(id, userDetails);
         return ResponseEntity.ok(response);
     }
 

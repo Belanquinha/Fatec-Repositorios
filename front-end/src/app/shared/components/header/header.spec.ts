@@ -145,6 +145,47 @@ describe('Header', () => {
     expect(component.usuario()).toBeNull();
     expect(erroSpy).toHaveBeenCalled();
   });
+
+  /**
+   * A tela de submissão é de aluno e professor. O drawer não deve oferecer o
+   * link para quem não pode usá-lo (visitante e ADMIN) — o guard barra a rota,
+   * mas o link não deve nem aparecer.
+   */
+  it('visitante não vê o link "Upload de projeto" no drawer', async () => {
+    criarHeader();
+    await renderizar();
+
+    const nav = fixture.nativeElement.querySelector('#menu-lateral') as HTMLElement;
+    expect(nav.querySelector('a[href="/projeto-forms"]')).toBeNull();
+  });
+
+  it('aluno vê o link "Upload de projeto" no drawer', async () => {
+    authServiceDouble.obterUsuarioLogado.mockResolvedValue({
+      nome: 'Aluno da CPS',
+      email: 'aluno@aluno.cps.sp.gov.br',
+      role: 'ALUNO',
+    });
+
+    criarHeader();
+    await renderizar();
+
+    const nav = fixture.nativeElement.querySelector('#menu-lateral') as HTMLElement;
+    expect(nav.querySelector('a[href="/projeto-forms"]')).not.toBeNull();
+  });
+
+  it('ADMIN não vê o link "Upload de projeto" no drawer', async () => {
+    authServiceDouble.obterUsuarioLogado.mockResolvedValue({
+      nome: 'Admin da CPS',
+      email: 'admin@cps.sp.gov.br',
+      role: 'ADMIN',
+    });
+
+    criarHeader();
+    await renderizar();
+
+    const nav = fixture.nativeElement.querySelector('#menu-lateral') as HTMLElement;
+    expect(nav.querySelector('a[href="/projeto-forms"]')).toBeNull();
+  });
 });
 
 /**

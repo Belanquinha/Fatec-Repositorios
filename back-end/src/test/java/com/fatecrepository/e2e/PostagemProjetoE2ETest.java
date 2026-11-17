@@ -111,7 +111,8 @@ class PostagemProjetoE2ETest extends ApiE2ETestSupport {
         void integrantesPersistidos() {
             String id = json(post("/projetos", payloadValido(), tokenAluno)).path("id").asText();
 
-            ResponseEntity<String> consulta = get("/projetos/" + id);
+            // Projeto pendente não é mais público: consulta como o autor.
+            ResponseEntity<String> consulta = get("/projetos/" + id, tokenAluno);
             JsonNode integrantes = json(consulta).path("integrantes");
 
             assertThat(integrantes).hasSize(2);
@@ -128,7 +129,7 @@ class PostagemProjetoE2ETest extends ApiE2ETestSupport {
 
             String id = json(post("/projetos", body, tokenAluno)).path("id").asText();
 
-            JsonNode integrantes = json(get("/projetos/" + id)).path("integrantes");
+            JsonNode integrantes = json(get("/projetos/" + id, tokenAluno)).path("integrantes");
             assertThat(integrantes).hasSize(1);
             assertThat(integrantes.get(0).path("nome").asText()).isEqualTo("Carla Sem LinkedIn");
             assertThat(integrantes.get(0).path("linkLinkedin").isNull()).isTrue();
@@ -203,10 +204,19 @@ class PostagemProjetoE2ETest extends ApiE2ETestSupport {
             String id = json(criado).path("id").asText();
 
             // A resposta de criação (autenticada) mantém o e-mail normalizado;
-            // a visão pública (GET /projetos/{id}) expõe só o nome (LGPD).
+            // o detalhe só é público quando o projeto está aprovado — e essa
+            // visão pública expõe só o nome (LGPD).
             assertThat(json(criado).path("emailProfessorResponsavel").asText())
                 .isEqualTo("professor.convidado@cps.sp.gov.br");
-            assertThat(json(get("/projetos/" + id)).path("emailProfessorResponsavel").isNull()).isTrue();
+
+            User professor = criarUsuario("Prof LGPD", "professor.convidado@cps.sp.gov.br", UserRole.PROFESSOR);
+            assertThat(patch("/projetos/" + id + "/aprovar", Map.of(), tokenDe(professor)).getStatusCode().value())
+                .isEqualTo(200);
+
+            ResponseEntity<String> publico = get("/projetos/" + id);
+            assertThat(publico.getStatusCode().value()).isEqualTo(200);
+            assertThat(json(publico).path("emailProfessorResponsavel").isNull()).isTrue();
+            assertThat(json(publico).path("nomeProfessorResponsavel").asText()).isEqualTo("Prof LGPD");
         }
 
         @Test

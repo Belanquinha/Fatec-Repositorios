@@ -66,6 +66,7 @@ export class VerProjeto implements OnInit {
 
   mostraMotivoRejeicao = computed(
     () =>
+      this.visaoAvaliacao() &&
       this.projeto()?.estado === 'REJEITADO' &&
       this.motivoRejeicao().length > 0,
   );
@@ -82,6 +83,16 @@ export class VerProjeto implements OnInit {
       this.usuario()?.role === 'PROFESSOR' &&
       this.projeto()?.estado === 'AGUARDANDO_APROVACAO',
   );
+
+  /**
+   * Visão de avaliação: professor logado lendo um projeto pendente/rejeitado.
+   *
+   * <p>É o que separa "aluno acompanhando o próprio envio" de "professor revisando".
+   * O back-end já nega o detalhe de não-aprovado para quem não é autor nem professor
+   * responsável (404), então este computed é a contraparte de apresentação: o motivo
+   * da rejeição só é exibido para o professor, nunca para o autor nem para visitante.
+   */
+  visaoAvaliacao = computed(() => this.usuario()?.role === 'PROFESSOR');
 
   blocos = computed<BlocoConteudo[]>(() => {
     const raw = this.projeto()?.conteudoEditorJs?.trim() ?? '';

@@ -190,6 +190,38 @@ class AutorizacaoPorPapelE2ETest extends ApiE2ETestSupport {
     }
 
     @Nested
+    @DisplayName("Submissão de projeto é de ALUNO e PROFESSOR")
+    class SubmissaoPorPapel {
+
+        @Test
+        @DisplayName("ADMIN recebe 403 ao submeter projeto (não tem fluxo de publicação)")
+        void adminRecebe403AoSubmeter() {
+            String tokenAdmin = tokenPara("Admin Submissao", "admin.submissao@cps.sp.gov.br", UserRole.ADMIN);
+
+            assertAcessoNegado(post("/projetos", Map.of(), tokenAdmin));
+        }
+
+        @Test
+        @DisplayName("ALUNO submete (201) — caminho feliz continua")
+        void alunoSubmete() {
+            String tokenAluno = tokenPara("Aluno Submissao", "aluno.submissao@aluno.cps.sp.gov.br", UserRole.ALUNO);
+
+            assertThat(post("/projetos", Map.of(), tokenAluno).getStatusCode().value())
+                .as("ADMIN barrado, mas o corpo vazio do aluno deve ser 400 — não 403")
+                .isEqualTo(400);
+        }
+
+        @Test
+        @DisplayName("PROFESSOR submete (201) — professor também publica projeto")
+        void professorSubmete() {
+            String tokenProf = tokenPara("Prof Submissao", "prof.submissao@cps.sp.gov.br", UserRole.PROFESSOR);
+
+            assertThat(post("/projetos", Map.of(), tokenProf).getStatusCode().value())
+                .isEqualTo(400);
+        }
+    }
+
+    @Nested
     @DisplayName("Leitura pública não exige sessão (FR12)")
     class LeituraPublicaNaoExigeSessao {
 

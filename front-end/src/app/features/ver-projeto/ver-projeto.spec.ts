@@ -138,6 +138,13 @@ describe('VerProjeto (avaliação do professor responsável)', () => {
     role: 'PROFESSOR',
   };
 
+  const pendenteRejeitado: ProjetoResponseModel = {
+    ...pendente,
+    id: 'p-rejeitado',
+    estado: 'REJEITADO',
+    motivoRejeicao: 'Fora do escopo do curso',
+  };
+
   let fixture: ComponentFixture<VerProjeto>;
   let component: VerProjeto;
   let aprovarProjeto: ReturnType<typeof vi.fn>;
@@ -194,6 +201,39 @@ describe('VerProjeto (avaliação do professor responsável)', () => {
   it('não mostra o painel para quem não é professor', async () => {
     await configurar({ avaliar: '1', usuario: { nome: 'Aluno', email: 'a@x', role: 'ALUNO' } });
     expect(component.podeAvaliar()).toBe(false);
+  });
+
+  it('professor logado é tratado como dono da visão de avaliação', async () => {
+    await configurar({ avaliar: null, usuario: professor });
+    expect(component.visaoAvaliacao()).toBe(true);
+  });
+
+  it('visitante anônimo (ou sessão vencida) não entra em visão de avaliação', async () => {
+    await configurar({ avaliar: null, usuario: null });
+    expect(component.visaoAvaliacao()).toBe(false);
+  });
+
+  it('aluno logado nunca entra em visão de avaliação, mesmo com ?avaliar=1', async () => {
+    await configurar({ avaliar: '1', usuario: { nome: 'Aluno', email: 'a@x', role: 'ALUNO' } });
+    expect(component.visaoAvaliacao()).toBe(false);
+  });
+
+  it('ADMIN não entra em visão de avaliação', async () => {
+    await configurar({ avaliar: null, usuario: { nome: 'Admin', email: 'admin@cps.sp.gov.br', role: 'ADMIN' } });
+    expect(component.visaoAvaliacao()).toBe(false);
+  });
+
+  it('professor vê o motivo da rejeição de projeto rejeitado', async () => {
+    await configurar({ avaliar: null, usuario: professor, resposta: pendenteRejeitado });
+    expect(component.projeto()).toBeTruthy();
+    expect(component.mostraMotivoRejeicao()).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Fora do escopo do curso');
+  });
+
+  it('fora da visão de avaliação o motivo da rejeição some ( LGPD / retorno só ao avaliador )', async () => {
+    await configurar({ avaliar: null, usuario: null, resposta: pendenteRejeitado });
+    expect(component.mostraMotivoRejeicao()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Fora do escopo do curso');
   });
 
   it('professor com ?avaliar=1 e projeto pendente vê o painel de decisão', async () => {

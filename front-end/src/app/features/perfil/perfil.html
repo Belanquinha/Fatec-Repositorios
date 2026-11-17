@@ -39,10 +39,12 @@
         </div>
 
         <div class="identidade-acoes">
+          @if (isAluno() || isProfessor()) {
           <a routerLink="/projeto-forms" class="btn btn-outline">
             <span class="material-symbols-outlined" aria-hidden="true">add</span>
             <span>Submeter Projeto</span>
           </a>
+          }
           <button type="button" class="btn btn-outline" (click)="irParaInstituicoes()">
             <span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
             <span>Mudar Instituição</span>

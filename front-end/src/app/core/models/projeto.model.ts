@@ -57,8 +57,13 @@ export interface ProjetoResponseModel {
   anoPublicado: number;
   estado: 'SUBMETIDO' | 'AGUARDANDO_APROVACAO' | 'ALTERACOES_SOLICITADAS' | 'REENVIADO' | 'APROVADO' | 'REJEITADO';
   motivoRejeicao?: string;
+  /**
+   * E-mail do professor responsável. Na vitrine (projeto APROVADO) o back-end
+   * entrega null por LGPD; a visão interna (autor/professor responsável lendo
+   * pendente ou rejeitado) mantém o valor operacional.
+   */
   emailProfessorResponsavel: string;
-  /** E-mail da conta do professor responsável (visão pública/LGPD — e-mail não é mais exposto na vitrine). */
+  /** Nome da conta do professor responsável — o que a vitrine exibe (nunca o e-mail). */
   nomeProfessorResponsavel?: string | null;
   instituicaoId: string;
   instituicaoNome: string;

@@ -351,6 +351,36 @@ describe('Perfil', () => {
     expect(link.getAttribute('href')).toContain('/ver-projeto/proj-1');
   });
 
+  it('projetos aprovados não pedem avaliação (?avaliar=1)', async () => {
+    const aprovado = projeto('APROVADO', 'Projeto Aprovado');
+    const mock = projetosProfessor([], [fatecA, fatecB]);
+    mock.obterMeusProjetos.mockReturnValue(of([aprovado]));
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+
+    const link = fixture.nativeElement.querySelector('.card-acoes a') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).not.toContain('avaliar');
+  });
+
+  it('ADMIN não vê o botão "Submeter Projeto"', async () => {
+    const admin = {
+      nome: 'Admin Teste',
+      email: 'admin.teste@cps.sp.gov.br',
+      role: 'ADMIN',
+    };
+    const mock = projetosProfessor([], [fatecA, fatecB]);
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(admin) }, mock);
+
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).not.toContain('Submeter Projeto');
+    expect(fixture.nativeElement.querySelector('a[href="/projeto-forms"]')).toBeNull();
+  });
+
+  it('aluno e professor veem o botão "Submeter Projeto"', async () => {
+    const mock = projetosProfessor([], [fatecA, fatecB]);
+    await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
+    expect(fixture.nativeElement.querySelector('a[href="/projeto-forms"]')).toBeTruthy();
+  });
+
   it('rejeitar exige motivo e remove da lista', async () => {
     const pendente = projeto('AGUARDANDO_APROVACAO', 'Projeto Pendente');
     const mock = projetosProfessor([], [fatecA, fatecB]);

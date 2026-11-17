@@ -62,7 +62,10 @@ public class SecurityConfig {
                 // LGPD: autocomplete de professor exige sessão (lista só id+nome via ?q,
                 // e-mail só no detalhe do selecionado) — nunca dump público em massa.
                 .requestMatchers(HttpMethod.GET, "/professores/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/projetos").authenticated()
+                // Submissão é de aluno e professor. ADMIN é gestão do catálogo
+                // (CRUD de instituições) e não tem fluxo de publicação — barra
+                // aqui e não só no front (NFR2: o papel nunca vem do cliente).
+                .requestMatchers(HttpMethod.POST, "/projetos").hasAnyRole("ALUNO", "PROFESSOR")
                 .requestMatchers(HttpMethod.GET, "/projetos/pendentes").hasRole("PROFESSOR")
                 .requestMatchers(HttpMethod.GET, "/projetos/meus").authenticated()
                 .requestMatchers(HttpMethod.PATCH, "/projetos/**").hasRole("PROFESSOR")
