@@ -1,6 +1,10 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
+  ViewChild,
+  ElementRef,
+  HostListener,
   computed,
   inject,
   signal,
@@ -53,7 +57,7 @@ const ESTADOS_EM_ANALISE: readonly ProjetoResponseModel['estado'][] = [
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './perfil.css',
 })
-export class Perfil implements OnInit {
+export class Perfil implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private projetoService = inject(ProjetoService);
   private router = inject(Router);
@@ -100,6 +104,14 @@ export class Perfil implements OnInit {
   /** Recusa inline da 5ª (AD-4): cinza neutro + aria-live, sem modal. */
   tetoRecusado = signal(false);
   logosComErro = new Set<string>();
+
+  /** Modal "Mudar instituições": a edição dos vínculos sai do fim da página. */
+  modalVinculosAberto = signal(false);
+  @ViewChild('modalVinculos') modalVinculos!: ElementRef<HTMLElement>;
+  /** Foco a restaurar ao fechar o modal (o Tab volta para o botão). */
+  private ultimoFocoAntesDoModal: HTMLElement | null = null;
+  /** `overflow` do body antes da trava — restaurado ao fechar (não zerado). */
+  private overflowAnteriorDoBodyModal: string | null = null;
 
   // --- Pendentes para aprovação (professor responsável indicado) ---
   pendentes = signal<ProjetoResponseModel[]>([]);
@@ -264,6 +276,16 @@ export class Perfil implements OnInit {
       this.carregarPendentes();
     }
     this.carregarMeusProjetos();
+  }
+
+  ngOnDestroy(): void {
+    if (
+      typeof document !== 'undefined' &&
+      this.overflowAnteriorDoBodyModal !== null
+    ) {
+      document.body.style.overflow = this.overflowAnteriorDoBodyModal;
+      this.overflowAnteriorDoBodyModal = null;
+    }
   }
 
   /** "Seus Projetos" em todos os estados; as abas fatiam no cliente. */
@@ -589,6 +611,8 @@ export class Perfil implements OnInit {
         break;
       }
       case 'Escape':
+        event.preventDefault();
+        event.stopPropagation();
         this.mostrarDropdownVinculo.set(false);
         this.destaqueVinculo = -1;
         break;
@@ -617,15 +641,63 @@ export class Perfil implements OnInit {
 
   // --- Ações de identidade ---
 
-  /** "Mudar Instituição": professor rola até os vínculos; aluno recebe aviso. */
+  /** "Mudar Instituição": professor abre o modal de vínculos; aluno recebe aviso. */
   irParaInstituicoes(): void {
     if (!this.isProfessor()) {
       this.anunciarEmBreve('Mudar instituição');
       return;
     }
-    document
-      .getElementById('vinculos-titulo')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.abrirModalVinculos();
+  }
+
+  /** Abre o modal: foco entra no diálogo e o body perde a rolagem. */
+  abrirModalVinculos(): void {
+    this.modalVinculosAberto.set(true);
+    if (
+      typeof document !== 'undefined' &&
+      document.activeElement instanceof HTMLElement
+    ) {
+      this.ultimoFocoAntesDoModal = document.activeElement;
+    }
+    this.aplicarTravaDeRolagemModal();
+    // O @if só cria o nó na próxima detecção de mudanças: foco depois dela.
+    setTimeout(() => this.modalVinculos?.nativeElement.focus(), 0);
+  }
+
+  /** Fecha sem salvar: a seleção local fica intacta para a próxima abertura. */
+  fecharModalVinculos(): void {
+    if (!this.modalVinculosAberto()) {
+      return;
+    }
+    this.modalVinculosAberto.set(false);
+    this.aplicarTravaDeRolagemModal();
+    this.restaurarFocoModal();
+  }
+
+  private restaurarFocoModal(): void {
+    const alvo = this.ultimoFocoAntesDoModal;
+    this.ultimoFocoAntesDoModal = null;
+    if (alvo && typeof document !== 'undefined' && document.contains(alvo)) {
+      alvo.focus();
+    }
+  }
+
+  private aplicarTravaDeRolagemModal(): void {
+    if (typeof document === 'undefined') return;
+    if (this.modalVinculosAberto()) {
+      if (this.overflowAnteriorDoBodyModal === null) {
+        this.overflowAnteriorDoBodyModal = document.body.style.overflow;
+      }
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = this.overflowAnteriorDoBodyModal ?? '';
+      this.overflowAnteriorDoBodyModal = null;
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.fecharModalVinculos();
   }
 
   anunciarEmBreve(rotulo: string): void {

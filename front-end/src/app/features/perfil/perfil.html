@@ -246,11 +246,12 @@
       }
     </section>
 
-    <!-- Professor: instituições vinculadas (Frame B · mode=multi) -->
+    <!-- Professor: instituições vinculadas (Frame B · mode=multi).
+         A página mostra o resumo; a edição fica no modal "Mudar instituições". -->
     @if (isProfessor()) {
       <section class="perfil-card perfil-card-larga" aria-labelledby="vinculos-titulo">
         <h2 class="secao-titulo" id="vinculos-titulo">Minhas instituições</h2>
-        <h3 class="vinculo-subtitulo">Vincule as unidades onde você atua</h3>
+        <h3 class="vinculo-subtitulo">Unidades onde você atua</h3>
 
         @if (carregandoVinculos()) {
           <div aria-busy="true" aria-label="Carregando instituições">
@@ -267,162 +268,220 @@
             <span>Tentar novamente</span>
           </button>
         } @else {
-          @if (erroSalvarVinculos()) {
-            <div class="painel-neutro" role="alert">
-              <span class="material-symbols-outlined" aria-hidden="true">info</span>
-              <span>{{ erroSalvarVinculos() }}</span>
-            </div>
-          }
-          @if (sucessoVinculos()) {
-            <p class="painel-sucesso" role="status">
-              <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
-              <span>{{ sucessoVinculos() }}</span>
-            </p>
-          }
-
-          @if (selecao().length === 0) {
+          @if (vinculos().length === 0) {
             <p class="vazio-mensagem">Sem instituições vinculadas ainda — escolha até 4 unidades.</p>
-          }
-
-          <div class="vinculo-campo">
-            <label class="vinculo-rotulo" for="vinculo-busca">Adicionar instituição</label>
-            <div class="combo">
-              <div class="combo-campo" [class.combo-teto]="noTeto()">
-                <span class="material-symbols-outlined combo-icone" aria-hidden="true">search</span>
-                <input
-                  id="vinculo-busca"
-                  type="text"
-                  name="vinculoBusca"
-                  [(ngModel)]="buscaVinculo"
-                  (ngModelChange)="onBuscaVinculo($event)"
-                  (focus)="abrirDropdownVinculo()"
-                  (blur)="ocultarDropdownVinculoComDelay()"
-                  (keydown)="onVinculoKeydown($event)"
-                  placeholder="Busque por nome, cidade, código ou região"
-                  autocomplete="off"
-                  role="combobox"
-                  aria-autocomplete="list"
-                  aria-controls="vinculo-lista"
-                  [attr.aria-expanded]="mostrarDropdownVinculo()"
-                  aria-describedby="vinculo-ajuda vinculo-contagem"
-                />
-                <span class="combo-contador" id="vinculo-contagem">{{ selecao().length }} de 4</span>
-              </div>
-
-              @if (mostrarDropdownVinculo() && buscaVinculo.trim()) {
-                <div class="combo-popup">
-                  <p class="combo-status">
-                    <span>Catálogo oficial CPS</span>
-                    <span aria-live="polite">{{ totalEncontradas }} unidades para “{{ buscaVinculo.trim() }}”</span>
-                  </p>
-                  @if (sugestoesVinculo.length > 0) {
-                    <ul id="vinculo-lista" role="listbox" aria-label="Instituições do catálogo">
-                      @for (inst of sugestoesVinculo; track inst.id; let i = $index) {
-                        <li
-                          role="option"
-                          [id]="'vinculo-opt-' + i"
-                          [attr.aria-selected]="i === destaqueVinculo"
-                          (mousedown)="adicionarVinculo(inst); $event.preventDefault()"
-                          (mouseenter)="destaqueVinculo = i"
-                          class="combo-opcao"
-                          [class.combo-opcao-ativa]="i === destaqueVinculo"
-                        >
-                          @if (temLogoValida(inst.codigoUnidade)) {
-                            <img
-                              [src]="getLogoUrl(inst.codigoUnidade)"
-                              (error)="onLogoError(inst.codigoUnidade)"
-                              [alt]=""
-                              class="combo-logo"
-                            />
-                          } @else {
-                            <span class="combo-logo-fb" aria-hidden="true">
-                              <span class="material-symbols-outlined">school</span>
-                            </span>
-                          }
-                          <span class="combo-texto">
-                            <span class="combo-titulo">{{ inst.nome }}</span>
-                            <span class="combo-meta">Cód. {{ inst.codigoUnidade }} · {{ inst.cidade }}</span>
-                          </span>
-                          @if (i === destaqueVinculo) {
-                            <span class="material-symbols-outlined combo-check" aria-hidden="true">keyboard_return</span>
-                          }
-                        </li>
-                      }
-                    </ul>
-                    @if (totalEncontradas > sugestoesVinculo.length) {
-                      <p class="combo-mais">
-                        … e mais {{ totalEncontradas - sugestoesVinculo.length }} unidades. Refine a busca.
-                      </p>
-                    }
-                  } @else {
-                    <div class="combo-vazio">
-                      <p><strong>Nada encontrado por nome, cidade, código ou região.</strong></p>
-                      <button type="button" class="btn btn-outline btn-compacto" (click)="limparBuscaVinculo()">
-                        Limpar busca
-                      </button>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-            <p class="vinculo-ajuda" id="vinculo-ajuda">
-              Buscamos no catálogo oficial do Centro Paula Souza. Nada aparece antes de digitar.
-            </p>
-            @if (tetoRecusado()) {
-              <p class="vinculo-recusa" role="alert" aria-live="polite">
-                <strong>Máximo de 4 instituições por professor.</strong>
-                Para trocar uma unidade, remova um vínculo da lista.
-              </p>
-            }
-          </div>
-
-          @if (selecao().length > 0) {
-            <ul class="chip-lista" aria-label="Instituições selecionadas">
-              @for (chip of selecao(); track chip.id) {
+          } @else {
+            <ul class="chip-lista" aria-label="Instituições vinculadas">
+              @for (vinculo of vinculos(); track vinculo.id) {
                 <li class="chip">
-                  <span class="chip-nome">{{ chip.nome }}</span>
-                  <button
-                    type="button"
-                    class="chip-remover"
-                    (click)="removerVinculo(chip.id)"
-                    [attr.aria-label]="'Remover ' + chip.nome"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                  </button>
+                  <span class="chip-nome">{{ vinculo.nome }}</span>
                 </li>
               }
             </ul>
           }
 
           <div class="vinculo-rodape">
-            <span class="vinculo-contador" [class.vinculo-contador-teto]="noTeto()">
-              <strong>{{ selecao().length }}</strong> de 4 unidades
+            <span class="vinculo-contador">
+              <strong>{{ vinculos().length }}</strong> de 4 unidades
             </span>
             <span class="vinculo-acoes">
-              @if (temAlteracoes()) {
-                <span class="vinculo-pendente">alterações não salvas</span>
-                <button type="button" class="btn btn-outline btn-compacto" (click)="cancelarEdicaoVinculos()">
-                  Cancelar
-                </button>
-              }
               <button
                 type="button"
-                class="btn btn-primario btn-compacto"
-                [disabled]="!temAlteracoes() || salvandoVinculos()"
-                (click)="salvarVinculos()"
+                class="btn btn-outline btn-compacto"
+                (click)="abrirModalVinculos()"
               >
-                @if (salvandoVinculos()) {
-                  <span>Salvando…</span>
-                } @else {
-                  <span class="material-symbols-outlined" aria-hidden="true">save</span>
-                  <span>Salvar vínculos</span>
-                }
+                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                <span>Mudar instituições</span>
               </button>
             </span>
           </div>
           <p class="vazio-nota">Você pode alterar a qualquer momento (0 a 4).</p>
         }
       </section>
+
+      @if (modalVinculosAberto()) {
+        <div
+          class="modal-overlay"
+          (click)="fecharModalVinculos()"
+          aria-hidden="true"
+        ></div>
+
+        <div
+          #modalVinculos
+          class="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-vinculos-titulo"
+          tabindex="-1"
+        >
+          <div class="modal-cabecalho">
+            <div>
+              <h2 class="modal-titulo" id="modal-vinculos-titulo">Mudar instituições</h2>
+              <p class="modal-subtitulo">Vincule as unidades onde você atua (até 4).</p>
+            </div>
+            <button
+              type="button"
+              class="modal-fechar"
+              (click)="fecharModalVinculos()"
+              aria-label="Fechar"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+
+          <div class="modal-corpo">
+            @if (erroSalvarVinculos()) {
+              <div class="painel-neutro" role="alert">
+                <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                <span>{{ erroSalvarVinculos() }}</span>
+              </div>
+            }
+            @if (sucessoVinculos()) {
+              <p class="painel-sucesso" role="status">
+                <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+                <span>{{ sucessoVinculos() }}</span>
+              </p>
+            }
+
+            <div class="vinculo-campo">
+              <label class="vinculo-rotulo" for="vinculo-busca">Adicionar instituição</label>
+              <div class="combo">
+                <div class="combo-campo" [class.combo-teto]="noTeto()">
+                  <span class="material-symbols-outlined combo-icone" aria-hidden="true">search</span>
+                  <input
+                    id="vinculo-busca"
+                    type="text"
+                    name="vinculoBusca"
+                    [(ngModel)]="buscaVinculo"
+                    (ngModelChange)="onBuscaVinculo($event)"
+                    (focus)="abrirDropdownVinculo()"
+                    (blur)="ocultarDropdownVinculoComDelay()"
+                    (keydown)="onVinculoKeydown($event)"
+                    placeholder="Busque por nome, cidade, código ou região"
+                    autocomplete="off"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-controls="vinculo-lista"
+                    [attr.aria-expanded]="mostrarDropdownVinculo()"
+                    aria-describedby="vinculo-ajuda vinculo-contagem"
+                  />
+                  <span class="combo-contador" id="vinculo-contagem">{{ selecao().length }} de 4</span>
+                </div>
+
+                @if (mostrarDropdownVinculo() && buscaVinculo.trim()) {
+                  <div class="combo-popup">
+                    <p class="combo-status">
+                      <span>Catálogo oficial CPS</span>
+                      <span aria-live="polite">{{ totalEncontradas }} unidades para “{{ buscaVinculo.trim() }}”</span>
+                    </p>
+                    @if (sugestoesVinculo.length > 0) {
+                      <ul id="vinculo-lista" role="listbox" aria-label="Instituições do catálogo">
+                        @for (inst of sugestoesVinculo; track inst.id; let i = $index) {
+                          <li
+                            role="option"
+                            [id]="'vinculo-opt-' + i"
+                            [attr.aria-selected]="i === destaqueVinculo"
+                            (mousedown)="adicionarVinculo(inst); $event.preventDefault()"
+                            (mouseenter)="destaqueVinculo = i"
+                            class="combo-opcao"
+                            [class.combo-opcao-ativa]="i === destaqueVinculo"
+                          >
+                            @if (temLogoValida(inst.codigoUnidade)) {
+                              <img
+                                [src]="getLogoUrl(inst.codigoUnidade)"
+                                (error)="onLogoError(inst.codigoUnidade)"
+                                [alt]=""
+                                class="combo-logo"
+                              />
+                            } @else {
+                              <span class="combo-logo-fb" aria-hidden="true">
+                                <span class="material-symbols-outlined">school</span>
+                              </span>
+                            }
+                            <span class="combo-texto">
+                              <span class="combo-titulo">{{ inst.nome }}</span>
+                              <span class="combo-meta">Cód. {{ inst.codigoUnidade }} · {{ inst.cidade }}</span>
+                            </span>
+                            @if (i === destaqueVinculo) {
+                              <span class="material-symbols-outlined combo-check" aria-hidden="true">keyboard_return</span>
+                            }
+                          </li>
+                        }
+                      </ul>
+                      @if (totalEncontradas > sugestoesVinculo.length) {
+                        <p class="combo-mais">
+                          … e mais {{ totalEncontradas - sugestoesVinculo.length }} unidades. Refine a busca.
+                        </p>
+                      }
+                    } @else {
+                      <div class="combo-vazio">
+                        <p><strong>Nada encontrado por nome, cidade, código ou região.</strong></p>
+                        <button type="button" class="btn btn-outline btn-compacto" (click)="limparBuscaVinculo()">
+                          Limpar busca
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+              <p class="vinculo-ajuda" id="vinculo-ajuda">
+                Buscamos no catálogo oficial do Centro Paula Souza. Nada aparece antes de digitar.
+              </p>
+              @if (tetoRecusado()) {
+                <p class="vinculo-recusa" role="alert" aria-live="polite">
+                  <strong>Máximo de 4 instituições por professor.</strong>
+                  Para trocar uma unidade, remova um vínculo da lista.
+                </p>
+              }
+            </div>
+
+            @if (selecao().length > 0) {
+              <ul class="chip-lista" aria-label="Instituições selecionadas">
+                @for (chip of selecao(); track chip.id) {
+                  <li class="chip">
+                    <span class="chip-nome">{{ chip.nome }}</span>
+                    <button
+                      type="button"
+                      class="chip-remover"
+                      (click)="removerVinculo(chip.id)"
+                      [attr.aria-label]="'Remover ' + chip.nome"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+
+            <div class="vinculo-rodape">
+              <span class="vinculo-contador" [class.vinculo-contador-teto]="noTeto()">
+                <strong>{{ selecao().length }}</strong> de 4 unidades
+              </span>
+              <span class="vinculo-acoes">
+                @if (temAlteracoes()) {
+                  <span class="vinculo-pendente">alterações não salvas</span>
+                  <button type="button" class="btn btn-outline btn-compacto" (click)="cancelarEdicaoVinculos()">
+                    Cancelar
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="btn btn-primario btn-compacto"
+                  [disabled]="!temAlteracoes() || salvandoVinculos()"
+                  (click)="salvarVinculos()"
+                >
+                  @if (salvandoVinculos()) {
+                    <span>Salvando…</span>
+                  } @else {
+                    <span class="material-symbols-outlined" aria-hidden="true">save</span>
+                    <span>Salvar vínculos</span>
+                  }
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
+      }
     }
   }
 </div>

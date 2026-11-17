@@ -909,6 +909,97 @@
   color: var(--cinza-300);
 }
 
+/* --- Modal "Mudar instituições" --- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgba(13, 14, 15, 0.5);
+  animation: modal-fade 0.15s ease;
+}
+
+.modal {
+  width: 100%;
+  max-width: 640px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+  background: var(--branco-50);
+  border: 1px solid var(--cinza-500);
+  box-shadow: 0 12px 32px rgba(13, 14, 15, 0.25);
+}
+
+.modal:focus {
+  outline: none;
+}
+
+.modal-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--branco-600);
+}
+
+.modal-titulo {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--cinza-500);
+}
+
+.modal-subtitulo {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--cinza-300);
+}
+
+.modal-fechar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cinza-300);
+  cursor: pointer;
+}
+
+.modal-fechar:hover {
+  color: var(--cinza-500);
+}
+
+.modal-corpo {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay {
+    animation: none;
+  }
+}
+
 /* --- Responsivo --- */
 
 @media (max-width: 900px) {
@@ -955,5 +1046,10 @@
 
   .card-acoes .btn {
     flex: 1 1 100%;
+  }
+
+  .modal-cabecalho,
+  .modal-corpo {
+    padding: 1rem;
   }
 }

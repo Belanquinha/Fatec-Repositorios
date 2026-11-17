@@ -213,6 +213,7 @@ describe('Perfil', () => {
       projetosProfessor([], [fatecA, fatecB])
     );
 
+    component.abrirModalVinculos();
     component.adicionarVinculo(fatecA as never);
     fixture.detectChanges();
 
@@ -230,6 +231,7 @@ describe('Perfil', () => {
     fixture.detectChanges();
 
     expect(component.selecao()).toHaveLength(4);
+    component.abrirModalVinculos();
     component.adicionarVinculo(fatecE as never);
     fixture.detectChanges();
 
@@ -411,6 +413,67 @@ describe('Perfil', () => {
     const aba = fixture.nativeElement.querySelector('.aba-desativada') as HTMLButtonElement;
     expect(aba).toBeTruthy();
     expect(aba.disabled).toBe(true);
+  });
+
+  it('"Mudar Instituição" abre o modal com o campo de instituições', async () => {
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
+      projetosProfessor([], [fatecA, fatecB])
+    );
+
+    expect(component.modalVinculosAberto()).toBe(false);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+
+    component.irParaInstituicoes();
+    fixture.detectChanges();
+
+    expect(component.modalVinculosAberto()).toBe(true);
+    const dialog = fixture.nativeElement.querySelector('[role="dialog"]');
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.querySelector('#vinculo-busca')).toBeTruthy();
+    expect(dialog.textContent).toContain('Mudar instituições');
+
+    component.fecharModalVinculos();
+    fixture.detectChanges();
+
+    expect(component.modalVinculosAberto()).toBe(false);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('Escape e clique no overlay fecham o modal de instituições', async () => {
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
+      projetosProfessor([], [fatecA, fatecB])
+    );
+
+    component.abrirModalVinculos();
+    fixture.detectChanges();
+    expect(component.modalVinculosAberto()).toBe(true);
+
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+    );
+    fixture.detectChanges();
+    expect(component.modalVinculosAberto()).toBe(false);
+
+    component.abrirModalVinculos();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.modal-overlay') as HTMLElement).click();
+    fixture.detectChanges();
+    expect(component.modalVinculosAberto()).toBe(false);
+  });
+
+  it('aluno não abre o modal de instituições', async () => {
+    await configurar(
+      { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) },
+      { obterMeusProjetos: vi.fn().mockReturnValue(of([])) }
+    );
+
+    component.irParaInstituicoes();
+    fixture.detectChanges();
+
+    expect(component.modalVinculosAberto()).toBe(false);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 });
 
