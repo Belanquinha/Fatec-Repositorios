@@ -26,6 +26,7 @@ import ImageTool from '@editorjs/image';
 
 import { ProjetoService } from '../../core/services/projeto.service';
 import {
+  CursoOption,
   InstituicaoOption,
   ProjetoCreatePayload,
 } from '../../core/models/projeto.model';
@@ -101,6 +102,12 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   instituicaoDestaque = -1;
   carregandoInstituicoes = signal(false);
   erroCarregarInstituicoes = signal(false);
+
+  // Curso oferecido pela Instituição
+  cursoId = '';
+  cursosDaInstituicao = signal<CursoOption[]>([]);
+  carregandoCursos = signal(false);
+  erroCarregarCursos = signal(false);
 
   /**
    * Campo de e-mail do professor (Story 3.2, decisão 2026-10-26): somente
@@ -192,8 +199,34 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       );
       if (encontrada) {
         this.instituicaoSelecionadaObjeto.set(encontrada);
+        this.carregarCursos(encontrada.id);
       }
     }
+  }
+
+  carregarCursos(instituicaoId: string) {
+    if (!instituicaoId) {
+      this.cursosDaInstituicao.set([]);
+      this.cursoId = '';
+      return;
+    }
+    this.carregandoCursos.set(true);
+    this.erroCarregarCursos.set(false);
+    this.projetoService.listarCursosDaInstituicao(instituicaoId).subscribe({
+      next: (cursos) => {
+        this.cursosDaInstituicao.set(cursos || []);
+        this.carregandoCursos.set(false);
+        if (this.cursoId && !cursos.some((c) => c.id === this.cursoId)) {
+          this.cursoId = '';
+        }
+      },
+      error: (err) => {
+        console.error('Erro ao carregar cursos da instituição:', err);
+        this.cursosDaInstituicao.set([]);
+        this.carregandoCursos.set(false);
+        this.erroCarregarCursos.set(true);
+      },
+    });
   }
 
   getLogoUrl(codigoUnidade?: string): string {
@@ -250,11 +283,14 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.mostrarDropdownInstituicao.set(false);
     this.instituicaoDestaque = -1;
     this.atualizarQueryParamInstituicao(inst.id);
+    this.carregarCursos(inst.id);
   }
 
   trocarInstituicao() {
     this.instituicaoId = '';
     this.instituicaoSelecionadaObjeto.set(null);
+    this.cursoId = '';
+    this.cursosDaInstituicao.set([]);
     this.buscaInstituicao = '';
     this.instituicoesFiltradas = [];
     this.instituicoesEncontradas = 0;
@@ -611,6 +647,12 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (!this.cursoId) {
+      this.erroMensagem.set('Selecione o curso do projeto.');
+      this.irParaSecao(2);
+      return;
+    }
+
     if (!this.professorEmail.trim()) {
       this.erroMensagem.set(
         'Informe o e-mail do professor responsável pela validação acadêmica.',
@@ -700,6 +742,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         palavrasChave: tags,
         anoPublicado: new Date().getFullYear(),
         instituicaoId: this.instituicaoId,
+        cursoId: this.cursoId,
         emailProfessorResponsavel: this.professorEmail.trim().toLowerCase(),
         integrantes: integrantesValidos.map((i) => ({
           nome: i.nome.trim(),

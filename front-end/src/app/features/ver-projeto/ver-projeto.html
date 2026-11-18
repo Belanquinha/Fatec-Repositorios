@@ -102,7 +102,12 @@
           @if (p.instituicaoNome) {
           <span class="meta-item">
             <span class="material-symbols-outlined meta-icone">school</span>
-            <span>{{ p.instituicaoNome }}</span>
+            <a [routerLink]="['/instituicoes', p.instituicaoId]" class="hover:underline">{{ p.instituicaoNome }}</a>
+          </span>
+          } @if (p.cursoNome) {
+          <span class="meta-item">
+            <span class="material-symbols-outlined meta-icone">menu_book</span>
+            <span>{{ p.cursoNome }}</span>
           </span>
           } @if (p.anoPublicado) {
           <span class="meta-item">
@@ -114,7 +119,7 @@
           } @if (p.autorNome) {
           <span class="meta-item">
             <span class="material-symbols-outlined meta-icone">person</span>
-            <span>{{ p.autorNome }}</span>
+            <a [routerLink]="['/usuarios', p.autorId]" class="hover:underline">{{ p.autorNome }}</a>
           </span>
           }
         </div>
@@ -224,7 +229,14 @@
           @if (p.instituicaoNome) {
           <div class="detalhe-item">
             <dt>Instituição</dt>
-            <dd>{{ p.instituicaoNome }}</dd>
+            <dd>
+              <a [routerLink]="['/instituicoes', p.instituicaoId]" class="hover:underline">{{ p.instituicaoNome }}</a>
+            </dd>
+          </div>
+          } @if (p.cursoNome) {
+          <div class="detalhe-item">
+            <dt>Curso</dt>
+            <dd>{{ p.cursoNome }}</dd>
           </div>
           } @if (p.anoPublicado) {
           <div class="detalhe-item">
@@ -234,12 +246,20 @@
           } @if (p.autorNome) {
           <div class="detalhe-item">
             <dt>Autor</dt>
-            <dd>{{ p.autorNome }}</dd>
+            <dd>
+              <a [routerLink]="['/usuarios', p.autorId]" class="hover:underline">{{ p.autorNome }}</a>
+            </dd>
           </div>
           } @if (p.nomeProfessorResponsavel) {
           <div class="detalhe-item">
             <dt>Professor responsável</dt>
-            <dd>{{ p.nomeProfessorResponsavel }}</dd>
+            <dd>
+              @if (p.professorResponsavelId) {
+                <a [routerLink]="['/usuarios', p.professorResponsavelId]" class="hover:underline">{{ p.nomeProfessorResponsavel }}</a>
+              } @else {
+                <span>{{ p.nomeProfessorResponsavel }}</span>
+              }
+            </dd>
           </div>
           } @else {
           <div class="detalhe-item">

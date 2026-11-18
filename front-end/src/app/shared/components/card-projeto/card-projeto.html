@@ -32,6 +32,9 @@
             <div class="frame-nome-instituicao">
                 <span class="material-symbols-outlined icon-instituicao">school</span>
                 <span class="nome-instituicao">{{ instituicao || 'Instituição não informada' }}</span>
+                @if (curso) {
+                    <span class="nome-curso">• {{ curso }}</span>
+                }
             </div>
             @if (ano) {
                 <span class="ano-projeto">{{ ano }}</span>

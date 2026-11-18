@@ -35,11 +35,14 @@ class PostagemProjetoE2ETest extends ApiE2ETestSupport {
 
     private String tokenAluno;
     private UUID instituicaoId;
+    private UUID cursoId;
 
     @BeforeEach
     void prepararCenario() {
         tokenAluno = tokenPara("Aluno E2E", "aluno.postagem@aluno.cps.sp.gov.br", UserRole.ALUNO);
-        instituicaoId = criarInstituicao("001", "Fatec E2E Central").getId();
+        var instituicao = criarInstituicao("001", "Fatec E2E Central");
+        instituicaoId = instituicao.getId();
+        cursoId = criarCursoVinculado(instituicao, "Análise e Desenvolvimento de Sistemas").getId();
     }
 
     private Map<String, Object> payloadValido() {
@@ -51,6 +54,7 @@ class PostagemProjetoE2ETest extends ApiE2ETestSupport {
         body.put("palavrasChave", List.of("Java", "Spring Boot", "Angular"));
         body.put("anoPublicado", 2026);
         body.put("instituicaoId", instituicaoId.toString());
+        body.put("cursoId", cursoId.toString());
         body.put("emailProfessorResponsavel", "professor@cps.sp.gov.br");
         body.put("integrantes", List.of(
             Map.of("nome", "Ana Integrante", "linkLinkedin", "https://linkedin.com/in/ana"),
@@ -322,6 +326,67 @@ class PostagemProjetoE2ETest extends ApiE2ETestSupport {
 
             assertThat(json(post("/projetos", body, tokenAluno)).path("anoPublicado").asInt())
                 .isEqualTo(java.time.Year.now().getValue());
+        }
+
+        @Test
+        @DisplayName("Curso ausente devolve 400")
+        void cursoAusente() {
+            Map<String, Object> body = payloadValido();
+            body.remove("cursoId");
+
+            ResponseEntity<String> response = post("/projetos", body, tokenAluno);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            assertThat(json(response).path("erros").has("cursoId")).isTrue();
+        }
+
+        @Test
+        @DisplayName("Curso inexistente devolve 404")
+        void cursoInexistente() {
+            Map<String, Object> body = payloadValido();
+            body.put("cursoId", UUID.randomUUID().toString());
+
+            ResponseEntity<String> response = post("/projetos", body, tokenAluno);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(404);
+            assertThat(texto(response, "mensagem")).contains("Curso");
+        }
+
+        @Test
+        @DisplayName("Curso que não pertence à instituição selecionada devolve 400")
+        void cursoDeOutraInstituicao() {
+            var outraInst = criarInstituicao("099", "Fatec Outra Unidade");
+            var outroCurso = criarCursoVinculado(outraInst, "Gestão Portuária");
+
+            Map<String, Object> body = payloadValido();
+            body.put("cursoId", outroCurso.getId().toString());
+
+            ResponseEntity<String> response = post("/projetos", body, tokenAluno);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            assertThat(texto(response, "mensagem")).containsIgnoringCase("não é oferecido");
+        }
+
+        @Test
+        @DisplayName("Curso é retornado no projeto criado e listável publicamente por instituição")
+        void cursoRetornadoEListadoPorInstituicao() {
+            var inst = instituicaoRepository.findById(instituicaoId).orElseThrow();
+            criarCursoVinculado(inst, "Logística");
+
+            ResponseEntity<String> listaCursos = get("/instituicoes/" + instituicaoId + "/cursos");
+            assertThat(listaCursos.getStatusCode().value()).isEqualTo(200);
+            assertThat(jsonList(listaCursos))
+                .extracting(c -> String.valueOf(c.get("nome")))
+                .containsExactly("Análise e Desenvolvimento de Sistemas", "Logística");
+
+            ResponseEntity<String> catalogoCursos = get("/cursos");
+            assertThat(catalogoCursos.getStatusCode().value()).isEqualTo(200);
+            assertThat(jsonList(catalogoCursos)).hasSize(2);
+
+            ResponseEntity<String> criado = post("/projetos", payloadValido(), tokenAluno);
+            assertThat(criado.getStatusCode().value()).isEqualTo(201);
+            assertThat(texto(criado, "cursoId")).isEqualTo(cursoId.toString());
+            assertThat(texto(criado, "cursoNome")).isEqualTo("Análise e Desenvolvimento de Sistemas");
         }
     }
 

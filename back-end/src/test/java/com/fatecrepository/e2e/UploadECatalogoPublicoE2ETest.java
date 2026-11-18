@@ -166,6 +166,7 @@ class UploadECatalogoPublicoE2ETest extends ApiE2ETestSupport {
         @DisplayName("Apenas projetos no estado APROVADO aparecem na vitrine pública")
         void apenasProjetosAprovadosAparecem() {
             var inst = criarInstituicao("099", "Fatec Pública Teste");
+            var curso = criarCursoVinculado(inst, "Análise e Desenvolvimento de Sistemas");
             var autor = criarUsuario("Aluno Autor", "autor.publico@aluno.cps.sp.gov.br", UserRole.ALUNO);
 
             com.fatecrepository.model.Projeto aprovado = new com.fatecrepository.model.Projeto();
@@ -175,6 +176,7 @@ class UploadECatalogoPublicoE2ETest extends ApiE2ETestSupport {
             aprovado.setEstado(com.fatecrepository.model.ProjetoEstado.APROVADO);
             aprovado.setEmailProfessorResponsavel("prof@cps.sp.gov.br");
             aprovado.setInstituicao(inst);
+            aprovado.setCurso(curso);
             aprovado.setAutor(autor);
             projetoRepository.save(aprovado);
 
@@ -185,6 +187,7 @@ class UploadECatalogoPublicoE2ETest extends ApiE2ETestSupport {
             pendente.setEstado(com.fatecrepository.model.ProjetoEstado.AGUARDANDO_APROVACAO);
             pendente.setEmailProfessorResponsavel("prof@cps.sp.gov.br");
             pendente.setInstituicao(inst);
+            pendente.setCurso(curso);
             pendente.setAutor(autor);
             projetoRepository.save(pendente);
 

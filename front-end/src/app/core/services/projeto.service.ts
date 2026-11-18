@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  CursoOption,
   InstituicaoOption,
   ProfessorDetalhe,
   ProfessorOption,
@@ -24,6 +25,16 @@ export class ProjetoService {
 
   listarInstituicoes(): Observable<InstituicaoOption[]> {
     return this.http.get<InstituicaoOption[]>(`${this.apiUrl}/instituicoes`);
+  }
+
+  listarCursosDaInstituicao(instituicaoId: string): Observable<CursoOption[]> {
+    return this.http.get<CursoOption[]>(
+      `${this.apiUrl}/instituicoes/${encodeURIComponent(instituicaoId)}/cursos`
+    );
+  }
+
+  listarTodosCursos(): Observable<CursoOption[]> {
+    return this.http.get<CursoOption[]>(`${this.apiUrl}/cursos`);
   }
 
   /**

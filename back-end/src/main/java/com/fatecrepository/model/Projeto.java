@@ -62,6 +62,11 @@ public class Projeto {
     private Instituicao instituicao;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curso_id", nullable = false)
+    @ToString.Exclude
+    private Curso curso;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     @ToString.Exclude
     private User autor;

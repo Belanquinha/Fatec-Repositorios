@@ -3,6 +3,8 @@ package com.fatecrepository.seed;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fatecrepository.model.*;
+import com.fatecrepository.repository.CursoRepository;
+import com.fatecrepository.repository.InstituicaoCursoRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
 import com.fatecrepository.repository.ProjetoRepository;
 import com.fatecrepository.repository.UserRepository;
@@ -26,8 +28,12 @@ import java.util.List;
 @Service
 public class ProjetoSeedLoader {
 
+    private static final String CURSO_PADRAO_SEED = "Análise e Desenvolvimento de Sistemas";
+
     private final ProjetoRepository projetoRepository;
     private final InstituicaoRepository instituicaoRepository;
+    private final CursoRepository cursoRepository;
+    private final InstituicaoCursoRepository instituicaoCursoRepository;
     private final UserRepository userRepository;
     private final ResourceLoader resourceLoader;
     private final String uploadDir;
@@ -36,12 +42,16 @@ public class ProjetoSeedLoader {
     public ProjetoSeedLoader(
             ProjetoRepository projetoRepository,
             InstituicaoRepository instituicaoRepository,
+            CursoRepository cursoRepository,
+            InstituicaoCursoRepository instituicaoCursoRepository,
             UserRepository userRepository,
             ResourceLoader resourceLoader,
             @Value("${app.upload.dir:uploads}") String uploadDir
     ) {
         this.projetoRepository = projetoRepository;
         this.instituicaoRepository = instituicaoRepository;
+        this.cursoRepository = cursoRepository;
+        this.instituicaoCursoRepository = instituicaoCursoRepository;
         this.userRepository = userRepository;
         this.resourceLoader = resourceLoader;
         this.uploadDir = uploadDir;
@@ -60,7 +70,6 @@ public class ProjetoSeedLoader {
             int existentes = 0;
 
             for (ProjetoSeedDto dto : dtos) {
-                // Se o seed indicar um arquivo do classpath para a imagem de capa, provisiona no sistema de uploads real do backend
                 if (dto.getImagemSeedClasspath() != null && dto.getImagemCapaUrl() != null) {
                     provisionarImagemDeUpload(dto.getImagemSeedClasspath(), dto.getImagemCapaUrl());
                 }
@@ -81,6 +90,8 @@ public class ProjetoSeedLoader {
                                     .findFirst()
                                     .orElseThrow(() -> new IllegalStateException("Nenhuma instituição disponível para vincular o projeto"));
                         });
+
+                Curso curso = resolverOuProvisionarCurso(dto.getCursoNome(), instituicao);
 
                 User autor = userRepository.findByEmail(dto.getAutorEmail())
                         .orElseGet(() -> {
@@ -114,6 +125,7 @@ public class ProjetoSeedLoader {
                 projeto.setEstado(estado);
                 projeto.setEmailProfessorResponsavel(dto.getEmailProfessorResponsavel());
                 projeto.setInstituicao(instituicao);
+                projeto.setCurso(curso);
                 projeto.setAutor(autor);
                 projeto.setCriadoEm(LocalDateTime.now());
                 projeto.setAtualizadoEm(LocalDateTime.now());
@@ -141,12 +153,43 @@ public class ProjetoSeedLoader {
         }
     }
 
+    private Curso resolverOuProvisionarCurso(String cursoNomeDesejado, Instituicao instituicao) {
+        String nomeAlvo = (cursoNomeDesejado != null && !cursoNomeDesejado.isBlank())
+            ? cursoNomeDesejado.trim()
+            : CURSO_PADRAO_SEED;
+
+        Curso curso = cursoRepository.findByNomeIgnoreCase(nomeAlvo)
+            .orElseGet(() -> {
+                List<Curso> daInstituicao = instituicaoCursoRepository.buscarCursosAtivosPorInstituicao(instituicao.getId());
+                if (!daInstituicao.isEmpty()) {
+                    log.warn("[seed-projeto] curso '{}' não encontrado; usando '{}' da instituição {}",
+                        nomeAlvo, daInstituicao.get(0).getNome(), instituicao.getCodigoUnidade());
+                    return daInstituicao.get(0);
+                }
+                log.info("[seed-projeto] curso '{}' não encontrado no catálogo; criando registro de seed", nomeAlvo);
+                Curso novo = new Curso();
+                novo.setNome(nomeAlvo);
+                novo.setAtivo(true);
+                LocalDateTime agora = LocalDateTime.now();
+                novo.setCriadoEm(agora);
+                novo.setAtualizadoEm(agora);
+                return cursoRepository.save(novo);
+            });
+
+        if (!instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(instituicao.getId(), curso.getId())) {
+            InstituicaoCurso vinculo = new InstituicaoCurso();
+            vinculo.setInstituicao(instituicao);
+            vinculo.setCurso(curso);
+            instituicaoCursoRepository.save(vinculo);
+        }
+
+        return curso;
+    }
+
     private void provisionarImagemDeUpload(String classpathLocation, String imagemCapaUrl) {
         if (!imagemCapaUrl.startsWith("/uploads/")) {
             return;
         }
-        // Só o nome do arquivo é aproveitado: evita path traversal via seed
-        // (ex.: "/uploads/../../etc/passwd" vira "passwd" e fica contido no uploadDir).
         String nomeArquivo = Paths.get(imagemCapaUrl.substring("/uploads/".length())).getFileName().toString();
         Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
         Path destino = uploadPath.resolve(nomeArquivo).normalize();

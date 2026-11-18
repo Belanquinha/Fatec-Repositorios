@@ -1,6 +1,7 @@
 package com.fatecrepository.controller;
 
 import com.fatecrepository.dto.request.InstituicaoRequest;
+import com.fatecrepository.dto.response.CursoResponse;
 import com.fatecrepository.dto.response.InstituicaoResponse;
 import com.fatecrepository.service.InstituicaoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,6 +53,19 @@ public class InstituicaoController {
         log.info("GET /instituicoes/{}", id);
         InstituicaoResponse instituicao = instituicaoService.obterPorId(id);
         return ResponseEntity.ok(instituicao);
+    }
+
+    @GetMapping("/{id}/cursos")
+    @Operation(summary = "Listar cursos oferecidos pela instituição",
+        description = "Retorna a lista de cursos ativos oferecidos pela instituição, ordenados alfabeticamente")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de cursos retornada com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Instituição não encontrada")
+    })
+    public ResponseEntity<List<CursoResponse>> obterCursosDaInstituicao(
+        @Parameter(description = "ID da instituição") @PathVariable UUID id) {
+        log.info("GET /instituicoes/{}/cursos", id);
+        return ResponseEntity.ok(instituicaoService.obterCursosDaInstituicao(id));
     }
 
     @PostMapping

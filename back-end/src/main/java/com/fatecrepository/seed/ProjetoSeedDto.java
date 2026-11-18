@@ -24,6 +24,7 @@ public class ProjetoSeedDto {
     private String estado;
     private String emailProfessorResponsavel;
     private String codigoUnidadeInstituicao;
+    private String cursoNome;
     private String autorEmail;
     private String autorNome;
     private List<IntegranteSeedDto> integrantes;

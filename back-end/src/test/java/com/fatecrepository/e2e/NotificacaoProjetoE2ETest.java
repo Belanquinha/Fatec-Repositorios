@@ -51,6 +51,7 @@ class NotificacaoProjetoE2ETest extends ApiE2ETestSupport {
 
     private String tokenAluno;
     private UUID instituicaoId;
+    private UUID cursoId;
 
     @BeforeEach
     void prepararCenario() {
@@ -58,7 +59,9 @@ class NotificacaoProjetoE2ETest extends ApiE2ETestSupport {
         doReturn(true).when(notificacaoEmailSender).habilitado();
 
         tokenAluno = tokenPara("Aluno Notificacao", "aluno.notificacao@aluno.cps.sp.gov.br", UserRole.ALUNO);
-        instituicaoId = criarInstituicao("400", "Fatec Notificacao").getId();
+        var instituicao = criarInstituicao("400", "Fatec Notificacao");
+        instituicaoId = instituicao.getId();
+        cursoId = criarCursoVinculado(instituicao, "Análise e Desenvolvimento de Sistemas").getId();
     }
 
     private Map<String, Object> payloadValido() {
@@ -67,6 +70,7 @@ class NotificacaoProjetoE2ETest extends ApiE2ETestSupport {
         body.put("descricaoCurta", "Verifica se o professor responsavel e avisado");
         body.put("conteudoEditorJs", "{\"blocks\":[]}");
         body.put("instituicaoId", instituicaoId.toString());
+        body.put("cursoId", cursoId.toString());
         body.put("emailProfessorResponsavel", "professor.teste@cps.sp.gov.br");
         body.put("integrantes", List.of(Map.of("nome", "Ana Integrante")));
         return body;

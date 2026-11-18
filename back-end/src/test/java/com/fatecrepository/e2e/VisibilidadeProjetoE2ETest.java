@@ -40,6 +40,7 @@ class VisibilidadeProjetoE2ETest extends ApiE2ETestSupport {
     private User professor;
     private String tokenProfessor;
     private com.fatecrepository.model.Instituicao instituicao;
+    private java.util.UUID cursoId;
 
     @BeforeEach
     void prepararCenario() {
@@ -48,6 +49,7 @@ class VisibilidadeProjetoE2ETest extends ApiE2ETestSupport {
         professor = criarUsuario("Prof Visibilidade", "prof.visibilidade@cps.sp.gov.br", UserRole.PROFESSOR);
         tokenProfessor = tokenDe(professor);
         instituicao = criarInstituicao("810", "Fatec Visibilidade");
+        cursoId = criarCursoVinculado(instituicao, "Análise e Desenvolvimento de Sistemas").getId();
     }
 
     private Map<String, Object> payloadPendente() {
@@ -56,6 +58,7 @@ class VisibilidadeProjetoE2ETest extends ApiE2ETestSupport {
         body.put("descricaoCurta", "Submetido e ainda nao aprovado");
         body.put("conteudoEditorJs", "{\"blocks\":[]}");
         body.put("instituicaoId", instituicao.getId().toString());
+        body.put("cursoId", cursoId.toString());
         body.put("emailProfessorResponsavel", professor.getEmail());
         body.put("integrantes", List.of(Map.of("nome", "Ana Integrante")));
         return body;

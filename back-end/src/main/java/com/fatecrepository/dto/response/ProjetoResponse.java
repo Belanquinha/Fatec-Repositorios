@@ -23,10 +23,14 @@ public class ProjetoResponse {
     private String estado;
     private String motivoRejeicao;
     private String emailProfessorResponsavel;
+    /** ID da conta do professor responsável (quando cadastrado), permitindo linkar o perfil público sem expor o e-mail. */
+    private UUID professorResponsavelId;
     /** Nome da conta do professor responsável (visão pública/LGPD — nunca expor e-mail na vitrine). */
     private String nomeProfessorResponsavel;
     private UUID instituicaoId;
     private String instituicaoNome;
+    private UUID cursoId;
+    private String cursoNome;
     private UUID autorId;
     private String autorNome;
     private List<IntegranteResponse> integrantes;

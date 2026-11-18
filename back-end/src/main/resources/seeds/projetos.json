@@ -18,6 +18,7 @@
     "estado": "APROVADO",
     "emailProfessorResponsavel": "professor.teste@cps.sp.gov.br",
     "codigoUnidadeInstituicao": "003",
+    "cursoNome": "Análise e Desenvolvimento de Sistemas",
     "autorEmail": "aluno.teste@aluno.cps.sp.gov.br",
     "autorNome": "Aluno Teste da Silva Santos",
     "integrantes": [

@@ -1,11 +1,13 @@
 package com.fatecrepository.service;
 
 import com.fatecrepository.dto.request.InstituicaoRequest;
+import com.fatecrepository.dto.response.CursoResponse;
 import com.fatecrepository.dto.response.InstituicaoResponse;
 import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.ResourceNotFoundException;
 import com.fatecrepository.mapper.ResponseMapper;
 import com.fatecrepository.model.Instituicao;
+import com.fatecrepository.repository.InstituicaoCursoRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class InstituicaoService {
 
     private final InstituicaoRepository instituicaoRepository;
+    private final InstituicaoCursoRepository instituicaoCursoRepository;
     private final ResponseMapper responseMapper;
 
     @Transactional
@@ -58,6 +61,15 @@ public class InstituicaoService {
             .collect(Collectors.toList());
     }
 
+    public List<CursoResponse> obterCursosDaInstituicao(UUID instituicaoId) {
+        if (!instituicaoRepository.existsById(instituicaoId)) {
+            throw new ResourceNotFoundException("Instituição não encontrada");
+        }
+        return instituicaoCursoRepository.buscarCursosAtivosPorInstituicao(instituicaoId).stream()
+            .map(responseMapper::toCursoResponse)
+            .toList();
+    }
+
     @Transactional
     public InstituicaoResponse atualizar(UUID id, InstituicaoRequest request) {
         log.info("Atualizando instituição: {}", id);
@@ -87,6 +99,7 @@ public class InstituicaoService {
         instituicaoRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Instituição não encontrada"));
 
+        instituicaoCursoRepository.deleteByInstituicaoId(id);
         instituicaoRepository.deleteById(id);
         log.info("Instituição deletada com sucesso: {}", id);
     }

@@ -43,6 +43,10 @@ export class CardProjeto {
     return this.projeto?.instituicaoNome ?? '';
   }
 
+  get curso(): string {
+    return this.projeto?.cursoNome ?? '';
+  }
+
   get tags(): string[] {
     return this.projeto?.palavrasChave?.slice(0, 3) ?? [];
   }

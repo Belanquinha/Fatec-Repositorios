@@ -95,4 +95,34 @@ class SeedCatalogoE2ETest extends ApiE2ETestSupport {
 
         assertThat(comCodigo004).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("O seed completo (instituições + cursos + projetos) é idempotente e expõe os cursos por unidade")
+    void seedCompletoComCursosEProjetosEhIdempotente() {
+        seedProperties.setFiles(List.of(
+            "seeds/instituicoes.csv",
+            "seeds/cursos_instituicoes.csv",
+            "seeds/projetos.json"
+        ));
+
+        executarSeedDoCsvVersionado();
+        long cursosPrimeira = cursoRepository.count();
+        long vinculosPrimeira = instituicaoCursoRepository.count();
+        long projetosPrimeira = projetoRepository.count();
+
+        executarSeedDoCsvVersionado();
+
+        assertThat(cursosPrimeira).isEqualTo(102);
+        assertThat(vinculosPrimeira).isEqualTo(401);
+        assertThat(projetosPrimeira).isEqualTo(1);
+        assertThat(cursoRepository.count()).isEqualTo(cursosPrimeira);
+        assertThat(instituicaoCursoRepository.count()).isEqualTo(vinculosPrimeira);
+        assertThat(projetoRepository.count()).isEqualTo(projetosPrimeira);
+
+        Instituicao fatecSorocaba = instituicaoRepository.findByCodigoUnidade("003").orElseThrow();
+        ResponseEntity<String> cursosSorocaba = get("/instituicoes/" + fatecSorocaba.getId() + "/cursos");
+        assertThat(cursosSorocaba.getStatusCode().value()).isEqualTo(200);
+        assertThat(cursosSorocaba.getBody())
+            .contains("Análise e Desenvolvimento de Sistemas", "Gestão Empresarial", "Polímeros");
+    }
 }

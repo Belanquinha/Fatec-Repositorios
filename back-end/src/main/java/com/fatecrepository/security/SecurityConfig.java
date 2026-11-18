@@ -53,6 +53,7 @@ public class SecurityConfig {
             .userDetailsService(customUserDetailsService)
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/cursos", "/cursos/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/instituicoes/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/instituicoes/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/instituicoes/**").hasRole("ADMIN")

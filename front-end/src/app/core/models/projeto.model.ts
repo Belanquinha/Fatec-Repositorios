@@ -16,6 +16,11 @@ export interface InstituicaoOption {
   ativo: boolean;
 }
 
+export interface CursoOption {
+  id: string;
+  nome: string;
+}
+
 export interface ProfessorOption {
   id: string;
   nome: string;
@@ -39,6 +44,7 @@ export interface ProjetoCreatePayload {
   palavrasChave?: string[];
   anoPublicado?: number;
   instituicaoId: string;
+  cursoId: string;
   emailProfessorResponsavel: string;
   integrantes: {
     nome: string;
@@ -63,10 +69,14 @@ export interface ProjetoResponseModel {
    * pendente ou rejeitado) mantém o valor operacional.
    */
   emailProfessorResponsavel: string;
+  /** ID da conta do professor responsável (quando existente), para linkar o perfil público sem expor e-mail. */
+  professorResponsavelId?: string | null;
   /** Nome da conta do professor responsável — o que a vitrine exibe (nunca o e-mail). */
   nomeProfessorResponsavel?: string | null;
   instituicaoId: string;
   instituicaoNome: string;
+  cursoId?: string;
+  cursoNome?: string;
   autorId: string;
   autorNome: string;
   integrantes: IntegranteModel[];

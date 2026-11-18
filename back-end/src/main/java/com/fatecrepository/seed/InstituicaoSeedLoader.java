@@ -1,6 +1,7 @@
 package com.fatecrepository.seed;
 
 import com.fatecrepository.model.Instituicao;
+import com.fatecrepository.repository.InstituicaoCursoRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import java.util.List;
 public class InstituicaoSeedLoader {
 
     private final InstituicaoRepository instituicaoRepository;
+    private final InstituicaoCursoRepository instituicaoCursoRepository;
 
     @Transactional
     public int upsert(List<Instituicao> instituicoes) {
@@ -34,6 +36,8 @@ public class InstituicaoSeedLoader {
 
     @Transactional
     public int replace(List<Instituicao> instituicoes) {
+        instituicaoCursoRepository.deleteAll();
+        instituicaoCursoRepository.flush();
         instituicaoRepository.deleteAll();
         instituicaoRepository.flush();
         List<Instituicao> salvas = instituicaoRepository.saveAll(instituicoes);

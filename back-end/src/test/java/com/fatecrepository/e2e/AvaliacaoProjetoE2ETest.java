@@ -31,6 +31,7 @@ class AvaliacaoProjetoE2ETest extends ApiE2ETestSupport {
     private User responsavel;
     private String tokenResponsavel;
     private com.fatecrepository.model.Instituicao instituicao;
+    private java.util.UUID cursoId;
 
     @BeforeEach
     void prepararCenario() {
@@ -39,6 +40,7 @@ class AvaliacaoProjetoE2ETest extends ApiE2ETestSupport {
         responsavel = criarUsuario("Prof Responsavel", "prof.responsavel@cps.sp.gov.br", UserRole.PROFESSOR);
         tokenResponsavel = tokenDe(responsavel);
         instituicao = criarInstituicao("701", "Fatec Avaliacao");
+        cursoId = criarCursoVinculado(instituicao, "Análise e Desenvolvimento de Sistemas").getId();
         // Responsável vinculado à instituição do projeto (metade da interseção).
         put("/professores/me/instituicoes",
             Map.of("instituicaoIds", List.of(instituicao.getId().toString())), tokenResponsavel);
@@ -50,6 +52,7 @@ class AvaliacaoProjetoE2ETest extends ApiE2ETestSupport {
         body.put("descricaoCurta", "Descricao para a fila de avaliacao");
         body.put("conteudoEditorJs", "{\"blocks\":[]}");
         body.put("instituicaoId", instituicao.getId().toString());
+        body.put("cursoId", cursoId.toString());
         body.put("emailProfessorResponsavel", emailResponsavel);
         body.put("integrantes", List.of(Map.of("nome", "Ana Integrante")));
         return body;

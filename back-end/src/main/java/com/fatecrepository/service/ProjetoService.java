@@ -8,6 +8,8 @@ import com.fatecrepository.exception.ConflictException;
 import com.fatecrepository.exception.ResourceNotFoundException;
 import com.fatecrepository.mapper.ResponseMapper;
 import com.fatecrepository.model.*;
+import com.fatecrepository.repository.CursoRepository;
+import com.fatecrepository.repository.InstituicaoCursoRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
 import com.fatecrepository.repository.ProfessorInstituicaoRepository;
 import com.fatecrepository.repository.ProjetoRepository;
@@ -34,6 +36,8 @@ public class ProjetoService {
 
     private final ProjetoRepository projetoRepository;
     private final InstituicaoRepository instituicaoRepository;
+    private final CursoRepository cursoRepository;
+    private final InstituicaoCursoRepository instituicaoCursoRepository;
     private final UserRepository userRepository;
     private final ProfessorInstituicaoRepository vinculoRepository;
     private final ResponseMapper responseMapper;
@@ -51,6 +55,21 @@ public class ProjetoService {
 
         if (!instituicao.isAtivo()) {
             throw new BadRequestException("A instituição selecionada está inativa no catálogo");
+        }
+
+        if (request.getCursoId() == null) {
+            throw new BadRequestException("O curso do projeto é obrigatório");
+        }
+
+        Curso curso = cursoRepository.findById(request.getCursoId())
+            .orElseThrow(() -> new ResourceNotFoundException("Curso informado não encontrado"));
+
+        if (!curso.isAtivo()) {
+            throw new BadRequestException("O curso selecionado está inativo no catálogo");
+        }
+
+        if (!instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(instituicao.getId(), curso.getId())) {
+            throw new BadRequestException("O curso selecionado não é oferecido pela instituição informada");
         }
 
         if (request.getIntegrantes() == null || request.getIntegrantes().isEmpty()) {
@@ -82,6 +101,7 @@ public class ProjetoService {
         projeto.setMotivoRejeicao(null);
         projeto.setEmailProfessorResponsavel(emailResponsavel); // Regra AD-6
         projeto.setInstituicao(instituicao);
+        projeto.setCurso(curso);
         projeto.setAutor(autor);
         projeto.setCriadoEm(LocalDateTime.now());
         projeto.setAtualizadoEm(LocalDateTime.now());
@@ -268,7 +288,12 @@ public class ProjetoService {
         }
         try {
             userRepository.findByEmail(resp.getEmailProfessorResponsavel())
-                .ifPresent(u -> resp.setNomeProfessorResponsavel(u.getNome()));
+                .ifPresent(u -> {
+                    resp.setNomeProfessorResponsavel(u.getNome());
+                    if (u.getRole() == UserRole.PROFESSOR) {
+                        resp.setProfessorResponsavelId(u.getId());
+                    }
+                });
         } catch (Exception e) {
             log.warn("Não foi possível resolver o nome do professor responsável", e);
         }

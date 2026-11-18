@@ -138,4 +138,5 @@ faterepo:
     mode: ${FATEREPO_SEED_MODE:upsert}   # upsert (padrão) | replace
     files:                                # ordem declarada = ordem de carga (FK-safe)
       - seeds/instituicoes.csv
+      - seeds/cursos_instituicoes.csv
       - seeds/projetos.json

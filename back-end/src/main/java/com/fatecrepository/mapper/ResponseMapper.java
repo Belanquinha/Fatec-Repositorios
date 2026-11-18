@@ -1,9 +1,11 @@
 package com.fatecrepository.mapper;
 
 import com.fatecrepository.dto.response.AuthResponse;
+import com.fatecrepository.dto.response.CursoResponse;
 import com.fatecrepository.dto.response.InstituicaoResponse;
 import com.fatecrepository.dto.response.UsuarioResponse;
 import com.fatecrepository.exception.ResourceNotFoundException;
+import com.fatecrepository.model.Curso;
 import com.fatecrepository.model.Instituicao;
 import com.fatecrepository.model.User;
 import org.springframework.stereotype.Component;
@@ -45,6 +47,13 @@ public class ResponseMapper {
         );
     }
 
+    public CursoResponse toCursoResponse(Curso curso) {
+        if (curso == null) {
+            throw new ResourceNotFoundException("Curso inexistente");
+        }
+        return new CursoResponse(curso.getId(), curso.getNome());
+    }
+
     public AuthResponse toAuthResponse(String token, long expiresInSeconds, String role) {
         return new AuthResponse(token, "Bearer", expiresInSeconds, null, null, null, role);
     }
@@ -83,9 +92,12 @@ public class ResponseMapper {
             projeto.getEstado().name(),
             projeto.getMotivoRejeicao(),
             projeto.getEmailProfessorResponsavel(),
+            null, // professorResponsavelId: preenchido pelo ProjetoService via lookup
             null, // nomeProfessorResponsavel: preenchido pelo ProjetoService via lookup (LGPD)
             projeto.getInstituicao() != null ? projeto.getInstituicao().getId() : null,
             projeto.getInstituicao() != null ? projeto.getInstituicao().getNome() : null,
+            projeto.getCurso() != null ? projeto.getCurso().getId() : null,
+            projeto.getCurso() != null ? projeto.getCurso().getNome() : null,
             projeto.getAutor() != null ? projeto.getAutor().getId() : null,
             projeto.getAutor() != null ? projeto.getAutor().getNome() : null,
             integrantes,

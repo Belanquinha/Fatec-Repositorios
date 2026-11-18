@@ -2,11 +2,14 @@ package com.fatecrepository.seed;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fatecrepository.model.Curso;
 import com.fatecrepository.model.Instituicao;
 import com.fatecrepository.model.Projeto;
 import com.fatecrepository.model.ProjetoEstado;
 import com.fatecrepository.model.User;
 import com.fatecrepository.model.UserRole;
+import com.fatecrepository.repository.CursoRepository;
+import com.fatecrepository.repository.InstituicaoCursoRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
 import com.fatecrepository.repository.ProjetoRepository;
 import com.fatecrepository.repository.UserRepository;
@@ -38,6 +41,12 @@ class ProjetoSeedLoaderTest {
     private InstituicaoRepository instituicaoRepository;
 
     @Mock
+    private CursoRepository cursoRepository;
+
+    @Mock
+    private InstituicaoCursoRepository instituicaoCursoRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     private ObjectMapper objectMapper;
@@ -49,6 +58,8 @@ class ProjetoSeedLoaderTest {
         loader = new ProjetoSeedLoader(
                 projetoRepository,
                 instituicaoRepository,
+                cursoRepository,
+                instituicaoCursoRepository,
                 userRepository,
                 new org.springframework.core.io.DefaultResourceLoader(),
                 tempDir.toString()
@@ -56,7 +67,7 @@ class ProjetoSeedLoaderTest {
     }
 
     @Test
-    @DisplayName("Lê o arquivo oficial seeds/projetos.json e valida estrutura e integrantes")
+    @DisplayName("Lê o arquivo oficial seeds/projetos.json e valida estrutura, curso e integrantes")
     void validaEstruturaDoArquivoOficial() throws Exception {
         InputStream stream = getClass().getResourceAsStream("/seeds/projetos.json");
         assertThat(stream).as("Arquivo seeds/projetos.json deve existir no classpath").isNotNull();
@@ -74,6 +85,7 @@ class ProjetoSeedLoaderTest {
         assertThat(goldenMaker.getAnoPublicado()).isEqualTo(2025);
         assertThat(goldenMaker.getAutorEmail()).isEqualTo("aluno.teste@aluno.cps.sp.gov.br");
         assertThat(goldenMaker.getCodigoUnidadeInstituicao()).isEqualTo("003");
+        assertThat(goldenMaker.getCursoNome()).isEqualTo("Análise e Desenvolvimento de Sistemas");
         assertThat(goldenMaker.getIntegrantes()).hasSize(4);
         assertThat(goldenMaker.getIntegrantes())
                 .extracting(ProjetoSeedDto.IntegranteSeedDto::getNome)
@@ -87,11 +99,18 @@ class ProjetoSeedLoaderTest {
 
         when(projetoRepository.existsByTitulo("Golden Maker")).thenReturn(false);
 
-        Instituicao fatecSp = new Instituicao();
-        fatecSp.setId(UUID.randomUUID());
-        fatecSp.setCodigoUnidade("003");
-        fatecSp.setNome("Fatec São Paulo");
-        when(instituicaoRepository.findByCodigoUnidade("003")).thenReturn(Optional.of(fatecSp));
+        Instituicao fatecSorocaba = new Instituicao();
+        fatecSorocaba.setId(UUID.randomUUID());
+        fatecSorocaba.setCodigoUnidade("003");
+        fatecSorocaba.setNome("Fatec Sorocaba");
+        when(instituicaoRepository.findByCodigoUnidade("003")).thenReturn(Optional.of(fatecSorocaba));
+
+        Curso ads = new Curso();
+        ads.setId(UUID.randomUUID());
+        ads.setNome("Análise e Desenvolvimento de Sistemas");
+        ads.setAtivo(true);
+        when(cursoRepository.findByNomeIgnoreCase("Análise e Desenvolvimento de Sistemas")).thenReturn(Optional.of(ads));
+        when(instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(fatecSorocaba.getId(), ads.getId())).thenReturn(true);
 
         User autor = new User();
         autor.setId(UUID.randomUUID());
@@ -110,7 +129,8 @@ class ProjetoSeedLoaderTest {
         Projeto salvo = captor.getValue();
         assertThat(salvo.getTitulo()).isEqualTo("Golden Maker");
         assertThat(salvo.getEstado()).isEqualTo(ProjetoEstado.APROVADO);
-        assertThat(salvo.getInstituicao()).isEqualTo(fatecSp);
+        assertThat(salvo.getInstituicao()).isEqualTo(fatecSorocaba);
+        assertThat(salvo.getCurso()).isEqualTo(ads);
         assertThat(salvo.getAutor()).isEqualTo(autor);
         assertThat(salvo.getIntegrantes()).hasSize(4);
     }

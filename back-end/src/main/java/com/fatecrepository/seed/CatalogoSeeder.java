@@ -16,11 +16,14 @@ import java.io.InputStream;
 public class CatalogoSeeder implements CommandLineRunner {
 
     private static final String CATALOGO_INSTITUICOES = "instituicoes.csv";
+    private static final String CATALOGO_CURSOS = "cursos_instituicoes.csv";
     private static final String SEED_PROJETOS = "projetos.json";
 
     private final SeedProperties seedProperties;
     private final InstituicaoCsvParser instituicaoCsvParser;
     private final InstituicaoSeedLoader instituicaoSeedLoader;
+    private final CursoCsvParser cursoCsvParser;
+    private final CursoSeedLoader cursoSeedLoader;
     private final ProjetoSeedLoader projetoSeedLoader;
     private final ResourceLoader resourceLoader;
 
@@ -36,6 +39,8 @@ public class CatalogoSeeder implements CommandLineRunner {
         for (String arquivo : seedProperties.getFiles()) {
             if (arquivo.endsWith(CATALOGO_INSTITUICOES)) {
                 carregarInstituicoes(arquivo);
+            } else if (arquivo.endsWith(CATALOGO_CURSOS)) {
+                carregarCursos(arquivo);
             } else if (arquivo.endsWith(SEED_PROJETOS)) {
                 carregarProjetos(arquivo);
             } else {
@@ -49,6 +54,28 @@ public class CatalogoSeeder implements CommandLineRunner {
         try (InputStream input = resource.getInputStream()) {
             int inseridos = projetoSeedLoader.carregar(input, seedProperties.getMode());
             log.info("[seed] {} => carga concluída ({} projetos novos inseridos)", resourcePath, inseridos);
+        } catch (IOException ex) {
+            log.error("[seed] falha ao ler o recurso {}: {}", resourcePath, ex.getMessage());
+        }
+    }
+
+    private void carregarCursos(String resourcePath) {
+        Resource resource = resourceLoader.getResource("classpath:" + resourcePath);
+        try (InputStream input = resource.getInputStream()) {
+            var resultado = cursoCsvParser.parse(input);
+
+            resultado.linhasInvalidas()
+                .forEach(motivo -> log.warn("[seed] linha inválida em {}: {} (ignorada)", resourcePath, motivo));
+
+            if ("replace".equalsIgnoreCase(seedProperties.getMode())) {
+                int reinseridos = cursoSeedLoader.replace(resultado.vinculos());
+                log.info("[seed] {} => replace: {} vínculos de cursos carregados ({} linhas inválidas ignoradas)",
+                    resourcePath, reinseridos, resultado.totalInvalidas());
+            } else {
+                int inseridos = cursoSeedLoader.upsert(resultado.vinculos());
+                log.info("[seed] {} => upsert: {} novos vínculos inseridos ({} linhas inválidas ignoradas)",
+                    resourcePath, inseridos, resultado.totalInvalidas());
+            }
         } catch (IOException ex) {
             log.error("[seed] falha ao ler o recurso {}: {}", resourcePath, ex.getMessage());
         }

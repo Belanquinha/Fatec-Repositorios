@@ -7,6 +7,8 @@ import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.ResourceNotFoundException;
 import com.fatecrepository.mapper.ResponseMapper;
 import com.fatecrepository.model.*;
+import com.fatecrepository.repository.CursoRepository;
+import com.fatecrepository.repository.InstituicaoCursoRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
 import com.fatecrepository.repository.ProjetoRepository;
 import com.fatecrepository.repository.UserRepository;
@@ -38,6 +40,12 @@ class ProjetoServiceTest {
     private InstituicaoRepository instituicaoRepository;
 
     @Mock
+    private CursoRepository cursoRepository;
+
+    @Mock
+    private InstituicaoCursoRepository instituicaoCursoRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Spy
@@ -48,6 +56,7 @@ class ProjetoServiceTest {
 
     private User autor;
     private Instituicao instituicao;
+    private Curso curso;
 
     @BeforeEach
     void setUp() {
@@ -62,13 +71,19 @@ class ProjetoServiceTest {
         instituicao.setNome("Fatec Ipiranga");
         instituicao.setCodigoUnidade("001");
         instituicao.setAtivo(true);
+
+        curso = new Curso();
+        curso.setId(UUID.randomUUID());
+        curso.setNome("Análise e Desenvolvimento de Sistemas");
+        curso.setAtivo(true);
     }
 
     @Test
-    @DisplayName("Deve criar projeto com sucesso no estado AGUARDANDO_APROVACAO (Regra AD-7)")
+    @DisplayName("Deve criar projeto com sucesso no estado AGUARDANDO_APROVACAO e curso vinculado")
     void deveCriarProjetoComSucessoNoEstadoAguardandoAprovacao() {
         UUID autorId = autor.getId();
         UUID instituicaoId = instituicao.getId();
+        UUID cursoId = curso.getId();
 
         ProjetoCreateRequest request = new ProjetoCreateRequest();
         request.setTitulo("Plataforma de Repositório Fatec");
@@ -78,6 +93,7 @@ class ProjetoServiceTest {
         request.setImagemCapaUrl("/uploads/capa.jpg");
         request.setPalavrasChave(List.of("Java", "Angular", "TCC"));
         request.setInstituicaoId(instituicaoId);
+        request.setCursoId(cursoId);
         request.setEmailProfessorResponsavel("PROFESSOR@CPS.SP.GOV.BR");
         request.setIntegrantes(List.of(
             new IntegranteRequest("Gabriel Belan", "https://linkedin.com/in/gabriel"),
@@ -86,6 +102,8 @@ class ProjetoServiceTest {
 
         when(userRepository.findById(autorId)).thenReturn(Optional.of(autor));
         when(instituicaoRepository.findById(instituicaoId)).thenReturn(Optional.of(instituicao));
+        when(cursoRepository.findById(cursoId)).thenReturn(Optional.of(curso));
+        when(instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(instituicaoId, cursoId)).thenReturn(true);
         when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> {
             Projeto p = invocation.getArgument(0);
             p.setId(UUID.randomUUID());
@@ -101,6 +119,8 @@ class ProjetoServiceTest {
         assertEquals("professor@cps.sp.gov.br", response.getEmailProfessorResponsavel());
         assertEquals(2, response.getIntegrantes().size());
         assertEquals("Fatec Ipiranga", response.getInstituicaoNome());
+        assertEquals(cursoId, response.getCursoId());
+        assertEquals("Análise e Desenvolvimento de Sistemas", response.getCursoNome());
         assertEquals("Aluno Gabriel", response.getAutorNome());
 
         verify(projetoRepository, times(1)).save(any(Projeto.class));
@@ -116,6 +136,7 @@ class ProjetoServiceTest {
         request.setTitulo("Projeto Teste");
         request.setDescricaoCurta("Desc");
         request.setInstituicaoId(instituicaoId);
+        request.setCursoId(curso.getId());
         request.setEmailProfessorResponsavel("prof@cps.sp.gov.br");
         request.setIntegrantes(List.of(new IntegranteRequest("Aluno", null)));
 
@@ -137,6 +158,7 @@ class ProjetoServiceTest {
         request.setTitulo("Projeto Teste");
         request.setDescricaoCurta("Desc");
         request.setInstituicaoId(instituicaoId);
+        request.setCursoId(curso.getId());
         request.setEmailProfessorResponsavel("prof@cps.sp.gov.br");
         request.setIntegrantes(List.of(new IntegranteRequest("Aluno", null)));
 
@@ -148,20 +170,48 @@ class ProjetoServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar BadRequestException quando nenhum integrante for fornecido")
-    void deveLancarExcecaoQuandoNenhumIntegranteFornecido() {
+    @DisplayName("Deve lançar BadRequestException quando curso não for oferecido pela instituição")
+    void deveLancarExcecaoQuandoCursoNaoPertencerAInstituicao() {
         UUID autorId = autor.getId();
         UUID instituicaoId = instituicao.getId();
+        UUID cursoId = curso.getId();
 
         ProjetoCreateRequest request = new ProjetoCreateRequest();
         request.setTitulo("Projeto Teste");
         request.setDescricaoCurta("Desc");
         request.setInstituicaoId(instituicaoId);
+        request.setCursoId(cursoId);
+        request.setEmailProfessorResponsavel("prof@cps.sp.gov.br");
+        request.setIntegrantes(List.of(new IntegranteRequest("Aluno", null)));
+
+        when(userRepository.findById(autorId)).thenReturn(Optional.of(autor));
+        when(instituicaoRepository.findById(instituicaoId)).thenReturn(Optional.of(instituicao));
+        when(cursoRepository.findById(cursoId)).thenReturn(Optional.of(curso));
+        when(instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(instituicaoId, cursoId)).thenReturn(false);
+
+        assertThrows(BadRequestException.class, () -> projetoService.criar(request, autorId));
+        verify(projetoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException quando nenhum integrante for fornecido")
+    void deveLancarExcecaoQuandoNenhumIntegranteFornecido() {
+        UUID autorId = autor.getId();
+        UUID instituicaoId = instituicao.getId();
+        UUID cursoId = curso.getId();
+
+        ProjetoCreateRequest request = new ProjetoCreateRequest();
+        request.setTitulo("Projeto Teste");
+        request.setDescricaoCurta("Desc");
+        request.setInstituicaoId(instituicaoId);
+        request.setCursoId(cursoId);
         request.setEmailProfessorResponsavel("prof@cps.sp.gov.br");
         request.setIntegrantes(Collections.emptyList());
 
         when(userRepository.findById(autorId)).thenReturn(Optional.of(autor));
         when(instituicaoRepository.findById(instituicaoId)).thenReturn(Optional.of(instituicao));
+        when(cursoRepository.findById(cursoId)).thenReturn(Optional.of(curso));
+        when(instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(instituicaoId, cursoId)).thenReturn(true);
 
         assertThrows(BadRequestException.class, () -> projetoService.criar(request, autorId));
         verify(projetoRepository, never()).save(any());

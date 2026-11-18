@@ -2,10 +2,14 @@ package com.fatecrepository.e2e;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fatecrepository.model.Curso;
 import com.fatecrepository.model.Instituicao;
+import com.fatecrepository.model.InstituicaoCurso;
 import com.fatecrepository.model.User;
 import com.fatecrepository.model.UserRole;
+import com.fatecrepository.repository.CursoRepository;
 import com.fatecrepository.repository.EmailVerificationCodeRepository;
+import com.fatecrepository.repository.InstituicaoCursoRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
 import com.fatecrepository.repository.ProfessorInstituicaoRepository;
 import com.fatecrepository.repository.ProjetoRepository;
@@ -66,6 +70,12 @@ abstract class ApiE2ETestSupport {
     protected InstituicaoRepository instituicaoRepository;
 
     @Autowired
+    protected CursoRepository cursoRepository;
+
+    @Autowired
+    protected InstituicaoCursoRepository instituicaoCursoRepository;
+
+    @Autowired
     protected ProjetoRepository projetoRepository;
 
     @Autowired
@@ -109,6 +119,8 @@ abstract class ApiE2ETestSupport {
         verificationCodeRepository.deleteAll();
         vinculoRepository.deleteAll();
         projetoRepository.deleteAll();
+        instituicaoCursoRepository.deleteAll();
+        cursoRepository.deleteAll();
         instituicaoRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -191,6 +203,30 @@ abstract class ApiE2ETestSupport {
         instituicao.setAtivo(ativo);
         instituicao.setEstado("SP");
         return instituicaoRepository.saveAndFlush(instituicao);
+    }
+
+    protected Curso criarCurso(String nome) {
+        return criarCurso(nome, true);
+    }
+
+    protected Curso criarCurso(String nome, boolean ativo) {
+        return cursoRepository.findByNomeIgnoreCase(nome).orElseGet(() -> {
+            Curso curso = new Curso();
+            curso.setNome(nome);
+            curso.setAtivo(ativo);
+            return cursoRepository.saveAndFlush(curso);
+        });
+    }
+
+    protected Curso criarCursoVinculado(Instituicao instituicao, String nomeCurso) {
+        Curso curso = criarCurso(nomeCurso, true);
+        if (!instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(instituicao.getId(), curso.getId())) {
+            InstituicaoCurso vinculo = new InstituicaoCurso();
+            vinculo.setInstituicao(instituicao);
+            vinculo.setCurso(curso);
+            instituicaoCursoRepository.saveAndFlush(vinculo);
+        }
+        return curso;
     }
 
     // ------------------------------------------------------------------

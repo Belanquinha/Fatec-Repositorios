@@ -38,6 +38,9 @@ public class ProjetoCreateRequest {
     @NotNull(message = "Instituição é obrigatória")
     private UUID instituicaoId;
 
+    @NotNull(message = "Curso é obrigatório")
+    private UUID cursoId;
+
     @NotBlank(message = "E-mail do professor responsável é obrigatório")
     @Email(message = "E-mail do professor responsável inválido")
     private String emailProfessorResponsavel;
