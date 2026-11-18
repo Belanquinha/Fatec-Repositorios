@@ -3,12 +3,19 @@ package com.fatecrepository.service;
 import com.fatecrepository.dto.request.InstituicaoRequest;
 import com.fatecrepository.dto.response.CursoResponse;
 import com.fatecrepository.dto.response.InstituicaoResponse;
+import com.fatecrepository.dto.response.PerfilInstituicaoResponse;
+import com.fatecrepository.dto.response.ProjetoResponse;
 import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.ResourceNotFoundException;
 import com.fatecrepository.mapper.ResponseMapper;
 import com.fatecrepository.model.Instituicao;
+import com.fatecrepository.model.Projeto;
+import com.fatecrepository.model.ProjetoEstado;
+import com.fatecrepository.model.UserRole;
 import com.fatecrepository.repository.InstituicaoCursoRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
+import com.fatecrepository.repository.ProjetoRepository;
+import com.fatecrepository.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +34,8 @@ public class InstituicaoService {
 
     private final InstituicaoRepository instituicaoRepository;
     private final InstituicaoCursoRepository instituicaoCursoRepository;
+    private final ProjetoRepository projetoRepository;
+    private final UserRepository userRepository;
     private final ResponseMapper responseMapper;
 
     @Transactional
@@ -68,6 +77,57 @@ public class InstituicaoService {
         return instituicaoCursoRepository.buscarCursosAtivosPorInstituicao(instituicaoId).stream()
             .map(responseMapper::toCursoResponse)
             .toList();
+    }
+
+    public PerfilInstituicaoResponse obterPerfil(UUID instituicaoId) {
+        Instituicao instituicao = instituicaoRepository.findById(instituicaoId)
+            .orElseThrow(() -> new ResourceNotFoundException("Instituição não encontrada"));
+
+        List<CursoResponse> cursos = instituicaoCursoRepository.buscarCursosAtivosPorInstituicao(instituicaoId).stream()
+            .map(responseMapper::toCursoResponse)
+            .toList();
+
+        List<Projeto> projetosEntidades = projetoRepository
+            .findByInstituicaoIdAndEstadoOrderByCriadoEmDesc(instituicaoId, ProjetoEstado.APROVADO);
+
+        List<ProjetoResponse> projetos = projetosEntidades.stream()
+            .map(p -> {
+                ProjetoResponse resp = responseMapper.toProjetoResponse(p);
+                enriquecerESanitizarProjeto(resp);
+                return resp;
+            })
+            .toList();
+
+        return PerfilInstituicaoResponse.builder()
+            .id(instituicao.getId())
+            .codigoUnidade(instituicao.getCodigoUnidade())
+            .nome(instituicao.getNome())
+            .endereco(instituicao.getEndereco())
+            .cidade(instituicao.getCidade())
+            .estado(instituicao.getEstado())
+            .regiaoAdministrativa(instituicao.getRegiaoAdministrativa())
+            .telefone(instituicao.getTelefone())
+            .site(instituicao.getSite())
+            .linkLogo(instituicao.getLinkLogo())
+            .ativo(instituicao.isAtivo())
+            .cursos(cursos)
+            .projetos(projetos)
+            .build();
+    }
+
+    private void enriquecerESanitizarProjeto(ProjetoResponse resp) {
+        if (resp == null) return;
+        if (resp.getEmailProfessorResponsavel() != null) {
+            userRepository.findByEmail(resp.getEmailProfessorResponsavel())
+                .ifPresent(u -> {
+                    resp.setNomeProfessorResponsavel(u.getNome());
+                    if (u.getRole() == UserRole.PROFESSOR) {
+                        resp.setProfessorResponsavelId(u.getId());
+                    }
+                });
+        }
+        resp.setEmailProfessorResponsavel(null);
+        resp.setMotivoRejeicao(null);
     }
 
     @Transactional

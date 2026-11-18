@@ -88,3 +88,29 @@ export interface UploadResponseModel {
   url: string;
   nomeArquivo: string;
 }
+
+export interface PerfilInstituicaoModel {
+  id: string;
+  codigoUnidade: string;
+  nome: string;
+  endereco?: string;
+  cidade?: string;
+  estado?: string;
+  regiaoAdministrativa?: string;
+  telefone?: string;
+  site?: string;
+  linkLogo?: string;
+  ativo: boolean;
+  cursos: CursoOption[];
+  projetos: ProjetoResponseModel[];
+}
+
+export interface PerfilPublicoUsuarioModel {
+  id: string;
+  nome: string;
+  role: 'ALUNO' | 'PROFESSOR' | 'ADMIN';
+  fotoUrl?: string;
+  instituicoes: InstituicaoOption[];
+  projetos: ProjetoResponseModel[];
+}
+

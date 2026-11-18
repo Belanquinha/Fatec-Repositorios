@@ -29,6 +29,19 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
     @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
     List<Projeto> findByEstadoAndEmailProfessorResponsavelIgnoreCaseOrderByCriadoEmDesc(ProjetoEstado estado, String emailProfessorResponsavel);
 
+    @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT DISTINCT p FROM Projeto p " +
+        "WHERE p.estado = :estado " +
+        "AND (p.autor.id = :usuarioId OR LOWER(p.emailProfessorResponsavel) = LOWER(:email)) " +
+        "ORDER BY p.criadoEm DESC"
+    )
+    List<Projeto> findProjetosAprovadosPorUsuario(
+        @org.springframework.data.repository.query.Param("usuarioId") UUID usuarioId,
+        @org.springframework.data.repository.query.Param("email") String email,
+        @org.springframework.data.repository.query.Param("estado") ProjetoEstado estado
+    );
+
     boolean existsByTitulo(String titulo);
 
     Optional<Projeto> findByTitulo(String titulo);

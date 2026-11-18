@@ -5,6 +5,8 @@ import { environment } from '../../../environments/environment';
 import {
   CursoOption,
   InstituicaoOption,
+  PerfilInstituicaoModel,
+  PerfilPublicoUsuarioModel,
   ProfessorDetalhe,
   ProfessorOption,
   ProjetoCreatePayload,
@@ -25,6 +27,18 @@ export class ProjetoService {
 
   listarInstituicoes(): Observable<InstituicaoOption[]> {
     return this.http.get<InstituicaoOption[]>(`${this.apiUrl}/instituicoes`);
+  }
+
+  obterPerfilInstituicao(id: string): Observable<PerfilInstituicaoModel> {
+    return this.http.get<PerfilInstituicaoModel>(
+      `${this.apiUrl}/instituicoes/${encodeURIComponent(id)}/perfil`
+    );
+  }
+
+  obterPerfilUsuario(id: string): Observable<PerfilPublicoUsuarioModel> {
+    return this.http.get<PerfilPublicoUsuarioModel>(
+      `${this.apiUrl}/usuarios/${encodeURIComponent(id)}/perfil`
+    );
   }
 
   listarCursosDaInstituicao(instituicaoId: string): Observable<CursoOption[]> {

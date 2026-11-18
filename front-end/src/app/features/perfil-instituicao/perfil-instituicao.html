@@ -1,0 +1,189 @@
+<div class="min-h-screen bg-branco-500 pb-16 dark:bg-cinza-700">
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Botão Voltar -->
+    <div class="mb-6">
+      <a
+        routerLink="/instituicoes"
+        class="inline-flex items-center gap-1.5 text-sm font-medium text-cinza-400 hover:text-cinza-600 dark:text-branco-700 dark:hover:text-branco-500"
+      >
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        <span>Todas as Instituições</span>
+      </a>
+    </div>
+
+    @if (carregando()) {
+      <div class="space-y-6">
+        <div class="h-48 animate-pulse rounded-2xl border border-branco-600 bg-branco-50 dark:border-cinza-400 dark:bg-cinza-600"></div>
+        <div class="h-32 animate-pulse rounded-2xl border border-branco-600 bg-branco-50 dark:border-cinza-400 dark:bg-cinza-600"></div>
+      </div>
+    } @else if (erro() || !perfil()) {
+      <div class="rounded-xl border border-vermelho-600/30 bg-vermelho-500/10 p-8 text-center text-vermelho-600 dark:text-vermelho-400">
+        <span class="material-symbols-outlined text-[48px]">domain_disabled</span>
+        <h2 class="mt-2 text-lg font-bold">Erro ao carregar instituição</h2>
+        <p class="mt-1 text-sm">{{ erro() }}</p>
+        <a
+          routerLink="/instituicoes"
+          class="mt-4 inline-block rounded-lg bg-vermelho-600 px-4 py-2 text-sm font-semibold text-branco-50 hover:bg-vermelho-700"
+        >
+          Voltar ao catálogo de instituições
+        </a>
+      </div>
+    } @else {
+      @let inst = perfil()!;
+
+      <!-- Cabeçalho da Instituição -->
+      <section class="rounded-2xl border border-branco-600 bg-branco-50 p-6 shadow-sm sm:p-8 dark:border-cinza-400 dark:bg-cinza-600">
+        <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div class="flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center rounded-md bg-amarelo-500/15 px-2.5 py-0.5 text-xs font-mono font-bold text-amarelo-700 dark:bg-amarelo-400/20 dark:text-amarelo-300">
+                Unidade {{ inst.codigoUnidade }}
+              </span>
+              @if (inst.regiaoAdministrativa) {
+                <span class="rounded-md bg-branco-400 px-2 py-0.5 text-xs font-medium text-cinza-400 dark:bg-cinza-500 dark:text-branco-700">
+                  {{ inst.regiaoAdministrativa }}
+                </span>
+              }
+              <span class="rounded-md bg-verde-500/15 px-2 py-0.5 text-xs font-semibold text-verde-700 dark:text-verde-400">
+                Ativa
+              </span>
+            </div>
+
+            <h1 class="mt-3 text-2xl font-black text-cinza-600 sm:text-3xl dark:text-branco-500">
+              {{ inst.nome }}
+            </h1>
+
+            <div class="mt-4 flex flex-wrap gap-y-2 gap-x-6 text-sm text-cinza-400 dark:text-branco-700">
+              @if (inst.cidade) {
+                <div class="flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[18px] text-amarelo-600 dark:text-amarelo-400">location_on</span>
+                  <span>{{ inst.cidade }}{{ inst.estado ? ' - ' + inst.estado : '' }}</span>
+                </div>
+              }
+
+              @if (inst.telefone) {
+                <div class="flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[18px] text-amarelo-600 dark:text-amarelo-400">call</span>
+                  <span>{{ inst.telefone }}</span>
+                </div>
+              }
+            </div>
+
+            @if (inst.endereco) {
+              <p class="mt-2 text-xs text-cinza-300 dark:text-branco-700">
+                {{ inst.endereco }}
+              </p>
+            }
+          </div>
+
+          @if (inst.site) {
+            <div class="shrink-0">
+              <a
+                [href]="inst.site"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 rounded-lg border border-branco-600 bg-branco-500 px-4 py-2.5 text-sm font-semibold text-cinza-600 shadow-sm transition-colors hover:border-amarelo-500 hover:text-amarelo-600 dark:border-cinza-400 dark:bg-cinza-700 dark:text-branco-500 dark:hover:text-amarelo-400"
+              >
+                <span class="material-symbols-outlined text-[18px]">language</span>
+                <span>Site Oficial</span>
+                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+              </a>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- Seção Cursos Oferecidos -->
+      <section class="mt-8 rounded-2xl border border-branco-600 bg-branco-50 p-6 shadow-sm dark:border-cinza-400 dark:bg-cinza-600">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[22px] text-amarelo-600 dark:text-amarelo-400">school</span>
+            <h2 class="text-lg font-bold text-cinza-600 dark:text-branco-500">Cursos Oferecidos</h2>
+          </div>
+          <span class="text-xs text-cinza-400 dark:text-branco-700 font-medium">
+            {{ inst.cursos.length }} {{ inst.cursos.length === 1 ? 'curso' : 'cursos' }}
+          </span>
+        </div>
+
+        <p class="mt-1 text-xs text-cinza-400 dark:text-branco-700">
+          Clique em um curso para filtrar os projetos vinculados a esta unidade:
+        </p>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            (click)="filtrarPorCurso(null)"
+            [class.bg-amarelo-500]="cursoFiltroId() === null"
+            [class.text-cinza-900]="cursoFiltroId() === null"
+            [class.font-bold]="cursoFiltroId() === null"
+            [class.bg-branco-400]="cursoFiltroId() !== null"
+            [class.text-cinza-500]="cursoFiltroId() !== null"
+            [class.dark:bg-cinza-500]="cursoFiltroId() !== null"
+            [class.dark:text-branco-500]="cursoFiltroId() !== null"
+            class="rounded-full px-3.5 py-1.5 text-xs transition-colors hover:opacity-90"
+          >
+            Todos os cursos ({{ inst.projetos.length }})
+          </button>
+
+          @for (curso of inst.cursos; track curso.id) {
+            <button
+              type="button"
+              (click)="filtrarPorCurso(curso.id)"
+              [class.bg-amarelo-500]="cursoFiltroId() === curso.id"
+              [class.text-cinza-900]="cursoFiltroId() === curso.id"
+              [class.font-bold]="cursoFiltroId() === curso.id"
+              [class.bg-branco-400]="cursoFiltroId() !== curso.id"
+              [class.text-cinza-500]="cursoFiltroId() !== curso.id"
+              [class.dark:bg-cinza-500]="cursoFiltroId() !== curso.id"
+              [class.dark:text-branco-500]="cursoFiltroId() !== curso.id"
+              class="rounded-full px-3.5 py-1.5 text-xs transition-colors hover:opacity-90"
+            >
+              {{ curso.nome }}
+            </button>
+          }
+        </div>
+      </section>
+
+      <!-- Seção Projetos Aprovados -->
+      <section class="mt-8">
+        <div class="mb-4 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[22px] text-amarelo-600 dark:text-amarelo-400">folder_open</span>
+            <h2 class="text-xl font-bold text-cinza-600 dark:text-branco-500">Projetos Publicados</h2>
+          </div>
+          <span class="text-xs text-cinza-400 dark:text-branco-700">
+            {{ projetosFiltrados().length }} {{ projetosFiltrados().length === 1 ? 'projeto encontrado' : 'projetos encontrados' }}
+          </span>
+        </div>
+
+        @if (projetosFiltrados().length === 0) {
+          <div class="rounded-2xl border border-dashed border-branco-600 bg-branco-50 p-12 text-center dark:border-cinza-400 dark:bg-cinza-600">
+            <span class="material-symbols-outlined text-[48px] text-cinza-300 dark:text-branco-700">source_notes</span>
+            <h3 class="mt-2 text-base font-semibold text-cinza-600 dark:text-branco-500">Nenhum projeto encontrado</h3>
+            <p class="mt-1 text-sm text-cinza-400 dark:text-branco-700">
+              @if (cursoFiltroId()) {
+                Não há projetos aprovados cadastrados para o curso selecionado nesta unidade.
+              } @else {
+                Esta unidade ainda não possui projetos publicados no repositório.
+              }
+            </p>
+            @if (cursoFiltroId()) {
+              <button
+                (click)="filtrarPorCurso(null)"
+                class="mt-4 rounded-lg bg-amarelo-500 px-4 py-2 text-xs font-semibold text-cinza-900 hover:bg-amarelo-600"
+              >
+                Ver todos os cursos
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            @for (p of projetosFiltrados(); track p.id) {
+              <app-card-projeto [projeto]="p"></app-card-projeto>
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
+</div>

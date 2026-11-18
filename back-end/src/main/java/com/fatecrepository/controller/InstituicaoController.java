@@ -3,6 +3,7 @@ package com.fatecrepository.controller;
 import com.fatecrepository.dto.request.InstituicaoRequest;
 import com.fatecrepository.dto.response.CursoResponse;
 import com.fatecrepository.dto.response.InstituicaoResponse;
+import com.fatecrepository.dto.response.PerfilInstituicaoResponse;
 import com.fatecrepository.service.InstituicaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -66,6 +67,20 @@ public class InstituicaoController {
         @Parameter(description = "ID da instituição") @PathVariable UUID id) {
         log.info("GET /instituicoes/{}/cursos", id);
         return ResponseEntity.ok(instituicaoService.obterCursosDaInstituicao(id));
+    }
+
+    @GetMapping("/{id}/perfil")
+    @Operation(summary = "Obter perfil público da instituição",
+        description = "Retorna os dados da instituição, cursos oferecidos e projetos aprovados vinculados a ela")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Perfil retornado com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Instituição não encontrada"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<PerfilInstituicaoResponse> obterPerfil(
+        @Parameter(description = "ID da instituição") @PathVariable UUID id) {
+        log.info("GET /instituicoes/{}/perfil", id);
+        return ResponseEntity.ok(instituicaoService.obterPerfil(id));
     }
 
     @PostMapping

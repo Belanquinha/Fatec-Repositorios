@@ -4,6 +4,9 @@ import { UploadProjeto } from './features/upload-projeto/upload-projeto';
 import { VerProjeto } from './features/ver-projeto/ver-projeto';
 import { Perfil } from './features/perfil/perfil';
 import { Autenticacao } from './features/autenticacao/autenticacao';
+import { Instituicoes } from './features/instituicoes/instituicoes';
+import { PerfilInstituicao } from './features/perfil-instituicao/perfil-instituicao';
+import { PerfilPublico } from './features/perfil-publico/perfil-publico';
 import { authGuard } from './core/auth/auth.guard';
 import { submissaoGuard } from './core/auth/submissao.guard';
 import { visitanteGuard } from './core/auth/visitante.guard';
@@ -11,6 +14,9 @@ import { visitanteGuard } from './core/auth/visitante.guard';
 export const routes: Routes = [
     { path: '', component: CatalogoPublico, pathMatch: 'full' },
     { path: 'catalogo-publico', component: CatalogoPublico },
+    { path: 'instituicoes', component: Instituicoes },
+    { path: 'instituicoes/:id', component: PerfilInstituicao },
+    { path: 'usuarios/:id', component: PerfilPublico },
     { path: 'entrar', component: Autenticacao, canActivate: [visitanteGuard] },
     { path: 'login', redirectTo: 'entrar', pathMatch: 'full' },
     { path: 'entra', redirectTo: 'entrar', pathMatch: 'full' },
