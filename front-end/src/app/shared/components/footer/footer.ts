@@ -1,4 +1,6 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+
+import { CookieConsentService } from '../../../core/cookies/cookie-consent.service';
 
 @Component({
   selector: 'app-footer',
@@ -7,4 +9,10 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './footer.css',
 })
-export class Footer {}
+export class Footer {
+  private readonly cookieConsentService = inject(CookieConsentService);
+
+  abrirPreferenciasCookies(): void {
+    this.cookieConsentService.abrirPreferencias();
+  }
+}

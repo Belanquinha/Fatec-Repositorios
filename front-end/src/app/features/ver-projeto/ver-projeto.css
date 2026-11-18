@@ -153,7 +153,7 @@
     align-items: center;
     gap: 0.5rem;
     background-color: var(--amarelo-500);
-    color: var(--cinza-600);
+    color: var(--cinza-900);
     font-size: 0.875rem;
     font-weight: 700;
     padding: 0.75rem 1.5rem;
@@ -300,8 +300,9 @@
 .ej-list li { margin-bottom: 0.25rem; }
 
 .ej-code {
-    background-color: var(--cinza-600);
+    background-color: var(--cinza-900);
     color: #f4f6f9;
+    border: 1px solid var(--branco-600);
     padding: 1rem 1.25rem;
     overflow-x: auto;
     font-size: 0.875rem;
@@ -470,13 +471,13 @@
     cursor: pointer;
 }
 
-.btn-aprovar { background-color: var(--amarelo-500); color: var(--cinza-600); }
+.btn-aprovar { background-color: var(--amarelo-500); color: var(--cinza-900); }
 .btn-aprovar:hover { background-color: var(--amarelo-600); }
 
 .btn-rejeitar {
     background-color: transparent;
     color: var(--cinza-500);
-    border-color: #6a6a6c;
+    border-color: var(--cinza-300);
 }
 .btn-rejeitar:hover { background-color: var(--branco-600); }
 
@@ -502,7 +503,7 @@
 
 .avaliacao-campo {
     width: 100%;
-    border: 1px solid #6a6a6c;
+    border: 1px solid var(--cinza-300);
     border-radius: 0 !important;
     padding: 0.6rem 0.75rem;
     font-size: 0.875rem;
@@ -542,7 +543,7 @@
     align-items: center;
     gap: 0.5rem;
     background-color: var(--amarelo-500);
-    color: var(--cinza-600);
+    color: var(--cinza-900);
     font-size: 0.875rem;
     font-weight: 700;
     padding: 0.75rem 1.5rem;

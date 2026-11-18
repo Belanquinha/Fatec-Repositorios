@@ -115,7 +115,7 @@
     white-space: nowrap;
     gap: 0.5rem;
     background-color: var(--amarelo-500);
-    color: var(--cinza-600);
+    color: var(--cinza-900);
     font-weight: 700;
     font-size: 0.9375rem;
     padding: 0.875rem 1.75rem;
@@ -203,8 +203,8 @@
 
 /* ---------------- BANNER DE USUÁRIO AUTENTICADO ---------------- */
 .banner-auth {
-    background-color: #fcf9ee;
-    border-bottom: 1px solid #ebd896;
+    background-color: var(--amarelo-50);
+    border-bottom: 1px solid var(--amarelo-200);
     padding: 1rem 2rem;
 }
 
@@ -259,8 +259,9 @@
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    background-color: var(--cinza-600);
-    color: #ffffff;
+    background-color: var(--cinza-900);
+    border: 1px solid var(--branco-600);
+    color: #F4F6F9;
     font-size: 0.8125rem;
     font-weight: 600;
     padding: 0.5rem 1rem;
@@ -270,7 +271,7 @@
 }
 
 .btn-auth-action:hover {
-    background-color: var(--cinza-500);
+    background-color: var(--cinza-700);
 }
 
 /* ---------------- SEÇÃO DO CATÁLOGO & FILTROS ---------------- */
@@ -456,7 +457,7 @@
 .chip-filtro.chip-ativo {
     background-color: var(--amarelo-500);
     border-color: var(--amarelo-600);
-    color: var(--cinza-600);
+    color: var(--cinza-900);
     font-weight: 700;
 }
 
@@ -467,7 +468,7 @@
     margin-left: auto;
     background: none;
     border: none;
-    color: #b45309;
+    color: var(--amarelo-700);
     font-size: 0.8125rem;
     font-weight: 600;
     cursor: pointer;
@@ -476,7 +477,7 @@
 }
 
 .btn-limpar-todos:hover {
-    color: #92400e;
+    color: var(--amarelo-800);
 }
 
 .icon-limpar {
@@ -695,7 +696,7 @@
     align-items: center;
     gap: 0.5rem;
     background-color: var(--amarelo-500);
-    color: var(--cinza-600);
+    color: var(--cinza-900);
     font-size: 0.875rem;
     font-weight: 700;
     padding: 0.75rem 1.5rem;

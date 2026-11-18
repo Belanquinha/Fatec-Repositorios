@@ -67,4 +67,25 @@ describe('ThemeService', () => {
 
     expect(service.tema()).toBe('escuro');
   });
+
+  it('aplica o tema em memória mas não grava no localStorage quando cookies de preferência foram recusados', () => {
+    simularSistema(false);
+    localStorage.setItem(
+      'fatec-lgpd-cookies',
+      JSON.stringify({
+        versao: 1,
+        essenciais: true,
+        preferencias: false,
+        analiticos: false,
+        atualizadoEm: '2026-11-17T00:00:00.000Z',
+      }),
+    );
+    const service = new ThemeService();
+
+    service.alternar();
+
+    expect(service.tema()).toBe('escuro');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(localStorage.getItem(CHAVE_TEMA_ARMAZENADO)).toBeNull();
+  });
 });

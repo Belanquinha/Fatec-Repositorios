@@ -538,10 +538,10 @@
   gap: 0.5rem;
   margin: 0;
   padding: 0.75rem 1rem;
-  border: 1px solid var();
+  border: 1px solid var(--amarelo-500);
   border-radius: 0;
   background: var(--branco-50);
-  color: #d97706;
+  color: var(--amarelo-800);
   font-size: 0.875rem;
 }
 
@@ -651,17 +651,17 @@
   min-height: 48px;
   padding: 0 0.75rem;
   background: var(--branco-50);
-  border: 1px solid #6a6a6c;
+  border: 1px solid var(--cinza-300);
   border-radius: 0;
 }
 
 .combo-campo:focus-within {
-  border-color: #8a6802;
-  box-shadow: 0 0 0 2px #8a6802;
+  border-color: var(--amarelo-600);
+  box-shadow: 0 0 0 2px var(--amarelo-600);
 }
 
 .combo-teto {
-  border: 2px solid #202124;
+  border: 2px solid var(--cinza-500);
 }
 
 .combo-icone {
@@ -698,9 +698,9 @@
   overflow: auto;
   margin-top: 4px;
   background: var(--branco-50);
-  border: 1px solid #6a6a6c;
+  border: 1px solid var(--cinza-300);
   border-radius: 0;
-  box-shadow: 0 4px 12px rgba(13, 14, 15, 0.1);
+  box-shadow: 0 4px 12px rgba(13, 14, 15, 0.2);
 }
 
 .combo-status {
@@ -840,7 +840,7 @@
   gap: 0.5rem;
   min-height: 32px;
   padding: 0 4px 0 10px;
-  border: 1px solid #6a6a6c;
+  border: 1px solid var(--cinza-300);
   border-radius: 0;
   background: var(--branco-50);
   font-size: 0.875rem;

@@ -98,10 +98,25 @@ export class ThemeService {
   private salvarTema(tema: Tema): void {
     try {
       if (typeof localStorage !== 'undefined') {
+        if (!this.podePersistirPreferencia()) {
+          localStorage.removeItem(CHAVE_TEMA_ARMAZENADO);
+          return;
+        }
         localStorage.setItem(CHAVE_TEMA_ARMAZENADO, tema);
       }
     } catch {
       // Armazenamento indisponível (modo privado etc.): o tema da sessão continua valendo.
+    }
+  }
+
+  private podePersistirPreferencia(): boolean {
+    try {
+      const bruto = localStorage.getItem('fatec-lgpd-cookies');
+      if (!bruto) return true;
+      const parsed = JSON.parse(bruto) as { preferencias?: unknown };
+      return parsed?.preferencias !== false;
+    } catch {
+      return true;
     }
   }
 }

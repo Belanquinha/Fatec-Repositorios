@@ -1,14 +1,20 @@
 /* Rodapé: marca + links institucionais, como no mock.
-   Fundo claro com borda superior; links em cinza que escurecem no hover. */
+   Usa variáveis semânticas de paleta.css para suportar modo claro e escuro. */
 
 .app-footer {
     display: flex;
-    background-color: #F6F7FB;
-    border-top: 1px solid #E5E7EB;
-    height: 7rem;
+    background-color: var(--branco-300);
+    border-top: 1px solid var(--branco-600);
+    min-height: 7rem;
+}
+
+:host-context(.dark) .app-footer {
+    background-color: var(--cinza-700);
+    border-top-color: var(--branco-600);
 }
 
 .app-footer-inner {
+    width: 100%;
     max-width: 1120px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
@@ -35,12 +41,13 @@
 .app-footer-copy {
     margin: 0;
     font-size: 0.875rem;
-    color: #4B5563;
+    color: var(--cinza-400);
 }
 
 .app-footer-links {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.5rem 1.5rem;
 }
 
@@ -48,6 +55,10 @@
     font-size: 0.875rem;
     color: var(--cinza-300);
     text-decoration: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
 }
 
 .app-footer-link:hover {

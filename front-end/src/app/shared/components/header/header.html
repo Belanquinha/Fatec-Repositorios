@@ -20,6 +20,17 @@
   </div>
 
   <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+    <button
+      type="button"
+      data-header-theme-toggle
+      (click)="alternarTema()"
+      [attr.aria-pressed]="modoEscuro()"
+      [attr.aria-label]="modoEscuro() ? 'Ativar modo claro' : 'Ativar modo escuro'"
+      [title]="modoEscuro() ? 'Ativar modo claro' : 'Ativar modo escuro'"
+      class="flex h-10 w-10 items-center justify-center border border-branco-600 bg-branco-50 text-cinza-500 transition-colors hover:bg-branco-400 hover:text-cinza-600 focus-visible:outline-2 focus-visible:outline-amarelo-500 dark:border-cinza-400 dark:bg-cinza-700 dark:text-branco-500 dark:hover:bg-cinza-400 dark:hover:text-branco-50">
+      <span class="material-symbols-outlined text-[20px] leading-none">{{ modoEscuro() ? 'light_mode' : 'dark_mode' }}</span>
+    </button>
+
     @if (!logado()) {
       <a
         routerLink="/entrar"

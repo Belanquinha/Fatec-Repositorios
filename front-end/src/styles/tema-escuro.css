@@ -1,198 +1,241 @@
 /* Modo escuro — exceções ao remapeamento de `paleta.css`.
  *
  * O `.dark` de paleta.css inverte as variáveis branco/cinza, o que cobre o grosso
- * do layout. Aqui ficam os casos que a inversão quebraria:
- *  1. texto escuro sobre fundo amarelo (vira texto claro ilegível);
- *  2. fundos escuros fixos com texto claro (viram fundo claro);
+ * do layout. Usamos `:root.dark` (especificidade 0,3,0+) para garantir que as
+ * regras globais vençam seletores encapsulados de componentes Angular (0,2,0).
+ *
+ * Casos tratados aqui:
+ *  1. texto escuro sobre fundo amarelo (evita texto claro ilegível);
+ *  2. fundos escuros fixos com texto claro (evita fundo claro invertido);
  *  3. cores chapadas (hex) que não usam variáveis;
- *  4. links azuis e alertas que precisam de tons legíveis no escuro.
+ *  4. links azuis, alertas e Editor.js com contraste adequado no escuro.
  */
 
-.dark body {
+:root.dark body {
     background-color: var(--branco-500);
     color: var(--cinza-500);
 }
 
-/* ---------- 1. Texto escuro preservado sobre amarelo ---------- */
-.dark .btn-primary-hero,
-.dark .btn-primario,
-.dark .btn-primary-vazio,
-.dark .chip-filtro.chip-ativo,
-.dark .badge-papel {
+/* ---------- 1. Texto escuro preservado sobre botões/chips amarelos ----------
+   Nota: `.btn-primario` em `perfil.css` é vermelho (#B20000) com texto branco,
+   por isso restringimos `.btn-primario` aos contextos amarelos (header, ver-projeto, auth). */
+:root.dark .btn-primary-hero,
+:root.dark .btn-primary-vazio,
+:root.dark .chip-filtro.chip-ativo,
+:root.dark .badge-papel,
+:root.dark .btn-aprovar,
+:root.dark .btn-voltar-perfil,
+:root.dark .auth-submit-btn,
+:root.dark header .btn-primario,
+:root.dark .ver-projeto-container .btn-primario {
     color: #1D1E21;
 }
 
 /* ---------- 2. Fundos escuros fixos que a inversão clarearia ---------- */
-.dark .ej-code {
+:root.dark .ej-code {
     background-color: #0D0E0F;
     color: #F4F6F9;
     border: 1px solid var(--branco-600);
 }
 
-.dark .btn-auth-action {
+:root.dark .btn-auth-action {
     background-color: #0D0E0F;
     border: 1px solid var(--branco-600);
     color: #F4F6F9;
 }
 
-.dark .btn-auth-action:hover {
+:root.dark .btn-auth-action:hover {
     background-color: #1D1E21;
 }
 
-/* ---------- 3. Cores chapadas ---------- */
-.dark footer {
+/* ---------- 3. Cores chapadas e superfícies institucionais ---------- */
+:root.dark footer,
+:root.dark .app-footer {
     background-color: #17171A;
+    border-top-color: var(--branco-600);
     color: var(--branco-900);
 }
 
-.dark .banner-auth {
+:root.dark .app-footer-copy {
+    color: var(--cinza-300);
+}
+
+:root.dark .banner-auth {
     background-color: #241D02;
     border-bottom-color: var(--amarelo-800);
 }
 
-.dark .banner-auth-title {
+:root.dark .banner-auth-title {
     color: var(--branco-900);
 }
 
-.dark .banner-auth-desc {
+:root.dark .banner-auth-desc {
     color: var(--branco-800);
 }
 
-.dark .icon-auth {
+:root.dark .icon-auth {
     color: var(--amarelo-400);
 }
 
 /* Painéis de erro/aviso âmbar: versão escura legível (vermelho CPS segue proibido). */
-.dark .painel-alerta-erro,
-.dark .painel-rejeicao {
+:root.dark .painel-alerta-erro,
+:root.dark .painel-rejeicao,
+:root.dark .avaliacao-erro,
+:root.dark .alerta-contexto {
     background-color: #241D02;
     border-color: var(--amarelo-800);
     color: #EFD78B;
 }
 
-.dark .painel-alerta-content h3,
-.dark .painel-rejeicao strong {
+:root.dark .painel-alerta-content h3,
+:root.dark .painel-rejeicao strong {
     color: #F4E4B1;
 }
 
-.dark .painel-alerta-content p,
-.dark .painel-rejeicao p {
+:root.dark .painel-alerta-content p,
+:root.dark .painel-rejeicao p {
     color: #EFD78B;
 }
 
 /* Skeletons: brilho escuro em vez de cinza-claro. */
-.dark .skeleton-img,
-.dark .skeleton-line,
-.dark .skeleton-capa {
+:root.dark .skeleton-img,
+:root.dark .skeleton-line,
+:root.dark .skeleton-capa {
     background: linear-gradient(90deg, #2A2B2F 25%, #3A3B40 50%, #2A2B2F 75%);
     background-size: 200% 100%;
 }
 
-.dark .skeleton-tags {
+:root.dark .skeleton-tags {
     background: #34363B;
 }
 
 /* Destaques e avisos que usam tons fixos claros. */
-.dark .combo-opcao-ativa {
+:root.dark .combo-opcao-ativa {
     background: #2A2303;
+    box-shadow: inset 2px 0 0 var(--amarelo-400);
 }
 
-.dark .vinculo-recusa,
-.dark .painel-neutro {
+:root.dark .vinculo-recusa,
+:root.dark .painel-neutro {
     background: #1D1E21;
     border-color: var(--branco-600);
     color: var(--branco-900);
 }
 
-.dark .vinculo-recusa strong,
-.dark .painel-neutro {
+:root.dark .vinculo-recusa strong,
+:root.dark .painel-neutro {
     color: var(--branco-900);
 }
 
 /* ---------- 4. Links, acentos e alertas no escuro ---------- */
-.dark .link-repositorio {
+:root.dark .link-repositorio {
     color: var(--azul-200);
     border-color: var(--azul-200);
 }
 
-.dark .link-repositorio:hover {
+:root.dark .link-repositorio:hover {
     background-color: rgba(169, 169, 231, 0.12);
 }
 
-.dark .link-linkedin {
+:root.dark .link-linkedin,
+:root.dark .link-acao {
     color: var(--azul-200);
 }
 
-.dark .highlight-title {
+:root.dark .highlight-title,
+:root.dark .icon-eyebrow,
+:root.dark .etapa-tag {
     color: var(--amarelo-400);
 }
 
-.dark .icon-eyebrow {
-    color: var(--amarelo-400);
-}
-
-.dark .btn-limpar-todos,
-.dark .btn-limpar-todos:hover {
-    color: var(--amarelo-300);
-}
-
-.dark .meta-filtro-aviso {
-    color: var(--amarelo-300);
-}
-
-.dark .combo-contador,
-.dark .combo-check,
-.dark .vinculo-contador-teto,
-.dark .vinculo-contador-teto strong {
+:root.dark .btn-limpar-todos,
+:root.dark .btn-limpar-todos:hover,
+:root.dark .meta-filtro-aviso,
+:root.dark .combo-contador,
+:root.dark .combo-check,
+:root.dark .vinculo-contador-teto,
+:root.dark .vinculo-contador-teto strong {
     color: var(--amarelo-300);
 }
 
 /* Badges de estado com fundo chapado claro. */
-.dark .badge-aprovado,
-.dark .painel-alerta-sucesso,
-.dark .badge-dominio-aluno {
+:root.dark .badge-aprovado,
+:root.dark .painel-alerta-sucesso,
+:root.dark .badge-dominio-aluno {
     background-color: #0B2E13;
     color: #8ADC9D;
     border-color: #006217;
 }
 
-.dark .badge-rejeitado,
-.dark .badge-dominio-professor {
+:root.dark .badge-rejeitado,
+:root.dark .badge-dominio-professor {
     background-color: #241D02;
     color: #EFD78B;
     border-color: var(--amarelo-800);
 }
 
-.dark .etapa-tag {
-    color: var(--amarelo-400);
-}
-
-.dark .link-acao {
+/* Editor.js: bloco selecionado, textos, barras e popovers no escuro. */
+:root.dark .editor-conteudo a {
     color: var(--azul-200);
 }
 
-/* Editor.js: bloco selecionado e popovers no escuro. */
-.dark .editor-conteudo .ce-block--selected .ce-block__content {
+:root.dark .editor-conteudo .ce-block--selected .ce-block__content {
     background: #2A2303;
 }
 
-.dark .editor-conteudo .ce-popover,
-.dark .editor-conteudo .ce-inline-toolbar,
-.dark .editor-conteudo .ce-toolbar__plus,
-.dark .editor-conteudo .ce-toolbar__settings-btn {
+:root.dark .editor-conteudo .ce-popover,
+:root.dark .editor-conteudo .ce-popover__container,
+:root.dark .editor-conteudo .ce-inline-toolbar,
+:root.dark .editor-conteudo .ce-conversion-toolbar,
+:root.dark .editor-conteudo .ce-toolbar__plus,
+:root.dark .editor-conteudo .ce-toolbar__settings-btn,
+:root.dark .editor-conteudo .cdx-settings-button {
     background-color: #1D1E21;
     border-color: var(--branco-600);
     color: var(--branco-900);
+    --color-background-item-hover: #2A2B2F;
+    --color-text-primary: #F4F6F9;
+    --color-text-secondary: #ADAFB1;
+    --color-border: #3A3B40;
+}
+
+:root.dark .editor-conteudo .ce-popover-item,
+:root.dark .editor-conteudo .ce-inline-tool,
+:root.dark .editor-conteudo .ce-conversion-tool {
+    color: #F4F6F9;
+}
+
+:root.dark .editor-conteudo .ce-popover-item:hover,
+:root.dark .editor-conteudo .ce-inline-tool:hover,
+:root.dark .editor-conteudo .ce-conversion-tool:hover,
+:root.dark .editor-conteudo .ce-toolbar__plus:hover,
+:root.dark .editor-conteudo .ce-toolbar__settings-btn:hover {
+    background-color: #2A2B2F;
+}
+
+:root.dark .editor-conteudo .ce-popover-item__icon,
+:root.dark .editor-conteudo .ce-conversion-tool__icon {
+    background-color: #26272B;
+    border-color: #3A3B40;
+    color: #F4F6F9;
+}
+
+:root.dark .editor-conteudo .cdx-search-field,
+:root.dark .editor-conteudo .cdx-input,
+:root.dark .editor-conteudo .ce-code__textarea {
+    background-color: #121214;
+    border-color: var(--branco-600);
+    color: #F4F6F9;
 }
 
 /* Inputs/selects nativos: dropdown e indicadores seguem o esquema escuro. */
-.dark input,
-.dark select,
-.dark textarea {
+:root.dark input,
+:root.dark select,
+:root.dark textarea {
     color-scheme: dark;
 }
 
-.dark select option {
+:root.dark select option {
     background-color: #1D1E21;
     color: #F4F6F9;
 }
@@ -200,6 +243,7 @@
 /* Transição suave de troca de tema (respeita reduced-motion como o drawer). */
 @media (prefers-reduced-motion: no-preference) {
     body,
+    main,
     .card,
     .hero-section,
     .filtros-container,

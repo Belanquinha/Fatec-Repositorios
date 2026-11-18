@@ -358,4 +358,20 @@ describe('Header (modo escuro)', () => {
     expect(localStorage.getItem('fatec-tema')).toBe('escuro');
     expect(component.estadoDoMenuAberto).toBe(true);
   });
+
+  it('permite alternar o modo escuro diretamente pelo botão rápido da barra superior', async () => {
+    await estabilizar();
+    const btnTopo = fixture.nativeElement.querySelector(
+      '[data-header-theme-toggle]',
+    ) as HTMLButtonElement;
+    expect(btnTopo).not.toBeNull();
+    expect(btnTopo.getAttribute('aria-pressed')).toBe('false');
+
+    btnTopo.click();
+    fixture.detectChanges();
+
+    expect(component.modoEscuro()).toBe(true);
+    expect(btnTopo.getAttribute('aria-pressed')).toBe('true');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+  });
 });

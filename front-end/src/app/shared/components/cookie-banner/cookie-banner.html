@@ -1,0 +1,166 @@
+@if (bannerVisivel()) {
+  <aside
+    class="cookie-barra"
+    role="region"
+    aria-label="Aviso de privacidade e uso de cookies (LGPD)"
+    data-cookie-banner>
+    <div class="cookie-barra-inner">
+      <div class="cookie-texto-bloco">
+        <div class="cookie-titulo-linha">
+          <span class="material-symbols-outlined cookie-icone" aria-hidden="true">cookie</span>
+          <h2 class="cookie-titulo">Privacidade e uso de cookies (LGPD)</h2>
+        </div>
+        <p class="cookie-descricao">
+          Utilizamos cookies e armazenamento local estritamente necessários para autenticação e segurança da sessão, além de recursos opcionais para memorizar preferências visuais (como o modo escuro) e métricas anônimas do acervo, nos termos da
+          <strong>Lei Geral de Proteção de Dados (Lei nº 13.709/2018)</strong>.
+        </p>
+      </div>
+
+      <div class="cookie-acoes">
+        <button
+          type="button"
+          class="cookie-btn cookie-btn-link"
+          data-cookie-customize
+          (click)="abrirPreferencias()">
+          Personalizar
+        </button>
+        <button
+          type="button"
+          class="cookie-btn cookie-btn-secundario"
+          data-cookie-reject
+          (click)="rejeitarOpcionais()">
+          Apenas essenciais
+        </button>
+        <button
+          type="button"
+          class="cookie-btn cookie-btn-primario"
+          data-cookie-accept
+          (click)="aceitarTodos()">
+          Aceitar todos
+        </button>
+      </div>
+    </div>
+  </aside>
+}
+
+@if (preferenciasAbertas()) {
+  <div
+    class="cookie-modal-overlay"
+    (click)="fecharPreferencias()"
+    aria-hidden="true"></div>
+
+  <div
+    class="cookie-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="cookie-modal-titulo"
+    data-cookie-modal>
+    <div class="cookie-modal-cabecalho">
+      <div class="cookie-titulo-linha">
+        <span class="material-symbols-outlined cookie-icone" aria-hidden="true">shield_lock</span>
+        <h2 id="cookie-modal-titulo" class="cookie-modal-titulo">Preferências de Cookies e Privacidade</h2>
+      </div>
+      <button
+        type="button"
+        class="cookie-modal-fechar"
+        aria-label="Fechar preferências de cookies"
+        (click)="fecharPreferencias()">
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
+
+    <div class="cookie-modal-corpo">
+      <p class="cookie-modal-intro">
+        Escolha quais categorias opcionais deseja autorizar. Conforme a LGPD, você pode alterar ou revogar seu consentimento a qualquer momento pelo link
+        <strong>Gerenciar Cookies</strong> no rodapé do site.
+      </p>
+
+      <div class="cookie-categorias">
+        <!-- Categoria 1: Estritamente necessários -->
+        <div class="cookie-categoria-card">
+          <div class="cookie-categoria-topo">
+            <div>
+              <h3 class="cookie-categoria-nome">Cookies estritamente necessários</h3>
+              <p class="cookie-categoria-desc">
+                Indispensáveis para o funcionamento seguro do repositório: sessão de login (e-mail ou conta institucional Microsoft CPS), proteção de rotas e registro desta escolha de privacidade.
+              </p>
+            </div>
+            <span class="cookie-badge-fixo">Sempre ativos</span>
+          </div>
+        </div>
+
+        <!-- Categoria 2: Preferências de interface -->
+        <div class="cookie-categoria-card">
+          <div class="cookie-categoria-topo">
+            <div>
+              <h3 class="cookie-categoria-nome" id="lbl-cat-preferencias">Preferências de interface</h3>
+              <p class="cookie-categoria-desc">
+                Permitem salvar ajustes visuais no seu navegador, como manter sua escolha entre modo claro e modo escuro nas próximas visitas.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              data-switch-preferencias
+              aria-labelledby="lbl-cat-preferencias"
+              [attr.aria-checked]="preferenciasMarcado()"
+              (click)="alternarPreferencias()"
+              class="cookie-switch"
+              [class.ligado]="preferenciasMarcado()">
+              <span class="cookie-switch-pino"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Categoria 3: Desempenho e estatísticas -->
+        <div class="cookie-categoria-card">
+          <div class="cookie-categoria-topo">
+            <div>
+              <h3 class="cookie-categoria-nome" id="lbl-cat-analiticos">Desempenho e estatísticas</h3>
+              <p class="cookie-categoria-desc">
+                Auxiliam na medição agregada e anônima de consultas aos projetos acadêmicos para orientar melhorias de usabilidade do acervo.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              data-switch-analiticos
+              aria-labelledby="lbl-cat-analiticos"
+              [attr.aria-checked]="analiticosMarcado()"
+              (click)="alternarAnaliticos()"
+              class="cookie-switch"
+              [class.ligado]="analiticosMarcado()">
+              <span class="cookie-switch-pino"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cookie-modal-rodape">
+      <button
+        type="button"
+        class="cookie-btn cookie-btn-secundario"
+        data-modal-reject
+        (click)="rejeitarOpcionais()">
+        Apenas essenciais
+      </button>
+      <div class="cookie-modal-rodape-direita">
+        <button
+          type="button"
+          class="cookie-btn cookie-btn-outline"
+          data-modal-save
+          (click)="salvarEscolhas()">
+          Salvar preferências
+        </button>
+        <button
+          type="button"
+          class="cookie-btn cookie-btn-primario"
+          data-modal-accept
+          (click)="aceitarTodos()">
+          Aceitar todos
+        </button>
+      </div>
+    </div>
+  </div>
+}

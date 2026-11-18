@@ -1,5 +1,6 @@
 main {
-    background-color: #ffffff;
+    background-color: var(--branco-500);
+    color: var(--cinza-500);
 }
 
 .frame-main {

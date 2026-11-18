@@ -11,7 +11,7 @@
  */
 
 .editor-conteudo {
-    color: var(--cinza-700);
+    color: var(--cinza-500);
     font-size: 1rem;
 }
 
@@ -27,7 +27,7 @@
 /* Hierarquia de títulos (o Preflight zera font-size e font-weight de h1..h6) */
 .editor-conteudo .ce-header {
     font-weight: 700;
-    color: var(--cinza-900);
+    color: var(--cinza-600);
     line-height: 1.3;
     padding: 0.9em 0 0.3em;
 }

@@ -51,8 +51,9 @@ cores chapadas, links azuis). **Nunca** usar cores hardcoded em componentes.
 
 | Componente | Responsabilidade | Caminho |
 |---|---|---|
-| `header/header` | Navegação, logo, auth | `src/app/shared/components/header` |
-| `footer/footer` | Rodapé, links, branding | `src/app/shared/components/footer` |
+| `header/header` | Navegação, logo, auth e alternância de tema | `src/app/shared/components/header` |
+| `footer/footer` | Rodapé, links institucionais e gerenciamento de cookies | `src/app/shared/components/footer` |
+| `cookie-banner/cookie-banner` | Aviso e preferências de cookies (LGPD) | `src/app/shared/components/cookie-banner` |
 | `card-projeto/card-projeto` | Card de projeto no catálogo | `src/app/shared/components/card-projeto` |
 | `auth/microsoft-login-button` | Botão SSO Microsoft CPS | `src/app/shared/components/microsoft-login-button` |
 | `features/autenticacao/autenticacao` | Tela `/entrar` (login, cadastro com código e recuperação) | `src/app/features/autenticacao` |

@@ -18,8 +18,35 @@
   animation: fadeIn 0.25s ease-out forwards;
 }
 
+/* Botões de seção da sidebar com suporte nativo ao claro/escuro */
+.secao-btn-ativa {
+  background-color: var(--amarelo-50);
+  border-color: var(--amarelo-500) !important;
+  color: var(--amarelo-900);
+}
+
+:host-context(.dark) .secao-btn-ativa {
+  background-color: rgba(220, 167, 3, 0.16);
+  border-color: var(--amarelo-500) !important;
+  color: var(--amarelo-200);
+}
+
+.secao-badge-ativa {
+  background-color: var(--amarelo-500) !important;
+  color: var(--cinza-900) !important;
+}
+
+/* Opção destacada no autocomplete de FATECs */
+.instituicao-opcao-ativa {
+  background-color: var(--amarelo-50);
+}
+
+:host-context(.dark) .instituicao-opcao-ativa {
+  background-color: rgba(220, 167, 3, 0.18);
+}
+
 /* Indica visualmente que o campo está em foco (o editor ocupa a caixa inteira) */
 .editor-caixa:focus-within {
   border-color: var(--amarelo-500);
-  box-shadow: 0 0 0 3px var(--amarelo-100);
+  box-shadow: 0 0 0 3px rgba(220, 167, 3, 0.25);
 }
