@@ -1,5 +1,6 @@
 import {
   Component,
+  Input,
   OnInit,
   signal,
   ChangeDetectionStrategy,
@@ -15,6 +16,8 @@ import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
   styleUrl: './microsoft-login-button.css',
 })
 export class MicrosoftLoginButton implements OnInit {
+  @Input() returnUrl?: string;
+
   usuarioLogado = signal(false);
   usuario = signal<UsuarioLogado | null>(null);
   inicializando = signal(true);
@@ -25,15 +28,13 @@ export class MicrosoftLoginButton implements OnInit {
     this.authService
       .inicializar()
       .then(async () => {
+        const sessaoJaAtiva = this.authService.usuarioAtual?.() ?? null;
         const conta = this.authService.conta;
-        if (conta) {
+        if (conta && !sessaoJaAtiva) {
           try {
             await this.authService.loginMicrosoftViaApi();
           } catch (e) {
             console.error('Erro ao autenticar com o back-end:', e);
-            // Sem sessão no backend não há perfil a exibir: descarta o que sobrou
-            // de tentativas anteriores para a UI não mostrar um usuário "logado"
-            // que o backend nunca reconheceu.
             this.authService.limparSessaoLocal();
           }
         }
@@ -53,6 +54,10 @@ export class MicrosoftLoginButton implements OnInit {
   }
 
   login(): void {
+    if (this.returnUrl) {
+      this.authService.loginMicrosoft(this.returnUrl);
+      return;
+    }
     this.authService.loginMicrosoft();
   }
 

@@ -6,13 +6,13 @@ import {
   OnInit,
   OnDestroy,
   computed,
+  effect,
   signal,
   inject,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
-import { MicrosoftLoginButton } from '../microsoft-login-button/microsoft-login-button';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { UsuarioLogado } from '../../../core/auth/models/usuario-logado';
@@ -21,7 +21,7 @@ import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-header',
-  imports: [CommonModule, RouterModule, MicrosoftLoginButton],
+  imports: [CommonModule, RouterModule],
   templateUrl: './header.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './header.css',
@@ -32,8 +32,8 @@ export class Header implements OnInit, OnDestroy {
   logado = signal(false);
   isAdmin = signal(false);
   usuario = signal<UsuarioLogado | null>(null);
+  private sessaoInicializada = false;
   private readonly themeService = inject(ThemeService);
-  /** Espelha o modo escuro no template (ícone sol/lua + estado do switch). */
   modoEscuro = this.themeService.modoEscuro;
   private routerSubscription!: Subscription;
 
@@ -44,26 +44,31 @@ export class Header implements OnInit, OnDestroy {
     return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
   });
 
-  /**
-   * Submissão é de aluno e professor. Controla só a apresentação: o guard da
-   * rota (`submissaoGuard`) e o `POST /projetos` no back-end continuam sendo a
-   * autoridade — sem isto o ADMIN veria um link que o levaria a um redirect.
-   */
   podeSubmeter = computed(
     () => this.usuario()?.role === 'ALUNO' || this.usuario()?.role === 'PROFESSOR',
   );
 
   @ViewChild('menuNav') menuNav!: ElementRef<HTMLElement>;
-  /** Foco a restaurar ao fechar o drawer (a11y: o Tab volta para o toggle). */
   private ultimoFocoAntesDoMenu: HTMLElement | null = null;
-  /** `overflow` do body antes da trava — restaurado ao fechar (não zerado). */
   private overflowAnteriorDoBody: string | null = null;
 
   constructor(
     private elementRef: ElementRef,
     private authService: AuthService,
     private router: Router,
-  ) {}
+  ) {
+    if (this.authService.usuarioAtual) {
+      effect(() => {
+        const atual = this.authService.usuarioAtual();
+        if (!this.sessaoInicializada && atual === null) {
+          return;
+        }
+        this.usuario.set(atual);
+        this.logado.set(atual !== null);
+        this.isAdmin.set(this.authService.isAdmin());
+      });
+    }
+  }
 
   ngOnInit(): void {
     this.iniciarSessao();
@@ -71,6 +76,9 @@ export class Header implements OnInit, OnDestroy {
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe(() => {
         this.fecharMenu();
+        if (this.sessaoInicializada) {
+          void this.carregarUsuario();
+        }
       });
   }
 
@@ -87,11 +95,6 @@ export class Header implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * O header é montado antes do `MicrosoftLoginButton` disparar `ngOnInit`, então consultar a
-   * conta aqui exigiria acesso ao cache do MSAL antes de `initialize()`. Aguardar `quandoPronto()`
-   * garante que a UI reflita o estado real da sessão.
-   */
   private async iniciarSessao(): Promise<void> {
     try {
       await this.authService.quandoPronto();
@@ -99,6 +102,7 @@ export class Header implements OnInit, OnDestroy {
       console.error('Erro ao inicializar o login da Microsoft: ', erro);
       return;
     }
+    this.sessaoInicializada = true;
     await this.carregarUsuario();
   }
 
@@ -118,7 +122,6 @@ export class Header implements OnInit, OnDestroy {
         this.ultimoFocoAntesDoMenu = document.activeElement;
       }
       this.aplicarTravaDeRolagem();
-      // Leva o foco para dentro do drawer (sem mudar o visual).
       queueMicrotask(() => this.menuNav?.nativeElement.focus());
     } else {
       this.aplicarTravaDeRolagem();
@@ -126,19 +129,13 @@ export class Header implements OnInit, OnDestroy {
     }
   }
 
-  loginMicrosoft(): void {
-    this.authService.loginMicrosoft().catch((erro) => {
-      console.error('Erro ao iniciar o login com a Microsoft: ', erro);
-    });
-  }
-
-  /** Alterna o modo escuro sem fechar o drawer (o usuário vê o efeito na hora). */
   alternarTema(): void {
     this.themeService.alternar();
   }
 
   logout(): void {
-    this.authService.logout().catch((erro) => {
+    this.fecharMenu();
+    Promise.resolve(this.authService.logout()).catch((erro) => {
       console.error('Erro ao encerrar a sessão: ', erro);
     });
   }

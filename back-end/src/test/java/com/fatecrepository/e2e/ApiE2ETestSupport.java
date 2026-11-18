@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fatecrepository.model.Instituicao;
 import com.fatecrepository.model.User;
 import com.fatecrepository.model.UserRole;
+import com.fatecrepository.repository.EmailVerificationCodeRepository;
 import com.fatecrepository.repository.InstituicaoRepository;
 import com.fatecrepository.repository.ProfessorInstituicaoRepository;
 import com.fatecrepository.repository.ProjetoRepository;
@@ -70,6 +71,9 @@ abstract class ApiE2ETestSupport {
     @Autowired
     protected ProfessorInstituicaoRepository vinculoRepository;
 
+    @Autowired
+    protected EmailVerificationCodeRepository verificationCodeRepository;
+
     /**
      * O Boot 4 não auto-configura {@code RestTemplate} nesta combinação de jars,
      * então instanciamos direto.
@@ -102,6 +106,7 @@ abstract class ApiE2ETestSupport {
      */
     @BeforeEach
     void limparBase() {
+        verificationCodeRepository.deleteAll();
         vinculoRepository.deleteAll();
         projetoRepository.deleteAll();
         instituicaoRepository.deleteAll();

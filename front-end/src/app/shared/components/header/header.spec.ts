@@ -1,10 +1,9 @@
-import { ApplicationRef, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { ApplicationRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 
 import { AuthService } from '../../../core/auth/auth.service';
-import { MicrosoftLoginButton } from '../microsoft-login-button/microsoft-login-button';
 import { Header } from './header';
 
 describe('Header', () => {
@@ -14,7 +13,6 @@ describe('Header', () => {
     quandoPronto: ReturnType<typeof vi.fn>;
     inicializar: ReturnType<typeof vi.fn>;
     obterUsuarioLogado: ReturnType<typeof vi.fn>;
-    loginMicrosoft: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
     isAdmin: ReturnType<typeof vi.fn>;
   };
@@ -24,7 +22,6 @@ describe('Header', () => {
       quandoPronto: vi.fn().mockResolvedValue(undefined),
       inicializar: vi.fn().mockResolvedValue(undefined),
       obterUsuarioLogado: vi.fn().mockResolvedValue(null),
-      loginMicrosoft: vi.fn().mockResolvedValue(undefined),
       logout: vi.fn(),
       isAdmin: vi.fn().mockReturnValue(false),
     };
@@ -32,27 +29,19 @@ describe('Header', () => {
     await TestBed.configureTestingModule({
       imports: [Header],
       providers: [provideRouter([]), { provide: AuthService, useValue: authServiceDouble }],
-    })
-      .overrideComponent(Header, {
-        // O filho `MicrosoftLoginButton` também chama markForCheck(). Removê-lo garante que
-        // renderizar depois do `await` dependa só do header notificar o scheduler zoneless.
-        remove: { imports: [MicrosoftLoginButton] },
-        add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] },
-      })
-      .compileComponents();
+    }).compileComponents();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  /** Faz `quandoPronto()` só resolver quando o teste chamar o retorno. */
   function inicializacaoPendente(): () => void {
     let liberar!: () => void;
     authServiceDouble.quandoPronto.mockReturnValue(
       new Promise<void>((resolve) => {
         liberar = resolve;
-      })
+      }),
     );
     return liberar;
   }
@@ -63,11 +52,6 @@ describe('Header', () => {
     fixture.detectChanges();
   }
 
-  /**
-   * A aplicação é zoneless: o que roda a renderização é o `ApplicationRef.tick()` agendado pelo
-   * `markForCheck()`. Reproduzir esse tick é o que prova que a UI reflete a sessão sozinha,
-   * sem depender de um `detectChanges()` manual.
-   */
   async function renderizar(): Promise<void> {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     TestBed.inject(ApplicationRef).tick();
@@ -94,6 +78,19 @@ describe('Header', () => {
     expect(authServiceDouble.obterUsuarioLogado).toHaveBeenCalled();
   });
 
+  it('visitante vê botões apontando para /entrar no topo e no menu lateral', async () => {
+    criarHeader();
+    await renderizar();
+
+    const btnTopo = fixture.nativeElement.querySelector('[data-header-login]') as HTMLAnchorElement;
+    const btnDrawer = fixture.nativeElement.querySelector('[data-drawer-login]') as HTMLAnchorElement;
+
+    expect(btnTopo).not.toBeNull();
+    expect(btnTopo.getAttribute('href')).toBe('/entrar');
+    expect(btnDrawer).not.toBeNull();
+    expect(btnDrawer.getAttribute('href')).toBe('/entrar');
+  });
+
   it('deve refletir o estado de sessão depois que o MSAL inicializa', async () => {
     const liberar = inicializacaoPendente();
     authServiceDouble.obterUsuarioLogado.mockResolvedValue({
@@ -114,7 +111,7 @@ describe('Header', () => {
     expect(component.primeiroNome()).toBe('Aluno');
   });
 
-  it('deve trocar o link de login pelo perfil na tela após a inicialização', async () => {
+  it('deve trocar o botão de entrar pelo perfil na tela após a inicialização', async () => {
     const liberar = inicializacaoPendente();
     authServiceDouble.obterUsuarioLogado.mockResolvedValue({
       nome: 'Aluno da CPS',
@@ -123,14 +120,14 @@ describe('Header', () => {
 
     criarHeader();
 
-    const htmlAntes = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(htmlAntes).toContain('Login institucional');
+    expect(fixture.nativeElement.querySelector('[data-header-login]')).not.toBeNull();
 
     liberar();
     await renderizar();
 
+    expect(fixture.nativeElement.querySelector('[data-header-login]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-drawer-login]')).toBeNull();
     const htmlDepois = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(htmlDepois).not.toContain('Login institucional');
     expect(htmlDepois).toContain('Aluno');
   });
 
@@ -146,11 +143,6 @@ describe('Header', () => {
     expect(erroSpy).toHaveBeenCalled();
   });
 
-  /**
-   * A tela de submissão é de aluno e professor. O drawer não deve oferecer o
-   * link para quem não pode usá-lo (visitante e ADMIN) — o guard barra a rota,
-   * mas o link não deve nem aparecer.
-   */
   it('visitante não vê o link "Upload de projeto" no drawer', async () => {
     criarHeader();
     await renderizar();
@@ -188,17 +180,12 @@ describe('Header', () => {
   });
 });
 
-/**
- * Item 24: drawer a11y — role/dialog + aria-modal ao abrir, inert ao fechar,
- * retorno de foco, Escape e preservação do overflow anterior do body.
- */
 describe('Header (drawer a11y, item 24)', () => {
   let component: Header;
   let fixture: ComponentFixture<Header>;
   let authServiceDouble: {
     quandoPronto: ReturnType<typeof vi.fn>;
     obterUsuarioLogado: ReturnType<typeof vi.fn>;
-    loginMicrosoft: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
     isAdmin: ReturnType<typeof vi.fn>;
   };
@@ -207,7 +194,6 @@ describe('Header (drawer a11y, item 24)', () => {
     authServiceDouble = {
       quandoPronto: vi.fn().mockResolvedValue(undefined),
       obterUsuarioLogado: vi.fn().mockResolvedValue(null),
-      loginMicrosoft: vi.fn().mockResolvedValue(undefined),
       logout: vi.fn(),
       isAdmin: vi.fn().mockReturnValue(false),
     };
@@ -215,12 +201,7 @@ describe('Header (drawer a11y, item 24)', () => {
     await TestBed.configureTestingModule({
       imports: [Header],
       providers: [provideRouter([]), { provide: AuthService, useValue: authServiceDouble }],
-    })
-      .overrideComponent(Header, {
-        remove: { imports: [MicrosoftLoginButton] },
-        add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] },
-      })
-      .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(Header);
     component = fixture.componentInstance;
@@ -238,28 +219,15 @@ describe('Header (drawer a11y, item 24)', () => {
 
   function toggles(): HTMLElement[] {
     return Array.from(
-      fixture.nativeElement.querySelectorAll('[data-menu-toggle]')
+      fixture.nativeElement.querySelectorAll('[data-menu-toggle]'),
     ) as HTMLElement[];
   }
 
-  /**
-   * Mesmo padrão do bloco acima (zoneless): descarrega a navegação inicial do
-   * Router e as continuações de `iniciarSessao()` antes de alternar o drawer.
-   */
   async function estabilizar(): Promise<void> {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     TestBed.inject(ApplicationRef).tick();
   }
 
-  /**
-   * O drawer é alternado por clique real (como o usuário faz), nunca por
-   * chamada imperativa + `detectChanges`: `estadoDoMenuAberto` é uma
-   * propriedade simples e, no modo zoneless, só o evento notifica o
-   * scheduler e marca a view como suja. Chamada direta deixa a view limpa —
-   * o `detectChanges` vira no-op e o `checkNoChanges` do dev-mode acusa
-   * NG0100 em `aria-expanded` (quirk pré-existente do harness, reproduz no
-   * código original sem as mudanças de a11y).
-   */
   function clicarToggleAbrir(): void {
     toggles()[0].click();
     fixture.detectChanges();
@@ -311,7 +279,7 @@ describe('Header (drawer a11y, item 24)', () => {
 
   it('retorna o foco ao toggle ao fechar', () => {
     const toggle = fixture.nativeElement.querySelector(
-      '[data-menu-toggle]'
+      '[data-menu-toggle]',
     ) as HTMLElement;
     toggle.focus();
     expect(document.activeElement).toBe(toggle);
@@ -323,17 +291,12 @@ describe('Header (drawer a11y, item 24)', () => {
   });
 });
 
-/**
- * Modo escuro: o switch `role=switch` da seção Aparência alterna o tema
- * via ThemeService sem fechar o drawer.
- */
 describe('Header (modo escuro)', () => {
   let component: Header;
   let fixture: ComponentFixture<Header>;
   let authServiceDouble: {
     quandoPronto: ReturnType<typeof vi.fn>;
     obterUsuarioLogado: ReturnType<typeof vi.fn>;
-    loginMicrosoft: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
     isAdmin: ReturnType<typeof vi.fn>;
   };
@@ -342,7 +305,6 @@ describe('Header (modo escuro)', () => {
     authServiceDouble = {
       quandoPronto: vi.fn().mockResolvedValue(undefined),
       obterUsuarioLogado: vi.fn().mockResolvedValue(null),
-      loginMicrosoft: vi.fn().mockResolvedValue(undefined),
       logout: vi.fn(),
       isAdmin: vi.fn().mockReturnValue(false),
     };
@@ -350,12 +312,7 @@ describe('Header (modo escuro)', () => {
     await TestBed.configureTestingModule({
       imports: [Header],
       providers: [provideRouter([]), { provide: AuthService, useValue: authServiceDouble }],
-    })
-      .overrideComponent(Header, {
-        remove: { imports: [MicrosoftLoginButton] },
-        add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] },
-      })
-      .compileComponents();
+    }).compileComponents();
 
     localStorage.removeItem('fatec-tema');
     document.documentElement.classList.remove('dark');
@@ -388,8 +345,6 @@ describe('Header (modo escuro)', () => {
 
   it('alterna para escuro ao clicar, sem fechar o drawer', async () => {
     await estabilizar();
-    // Abertura por clique real (mesmo padrão do bloco do drawer): chamada
-    // imperativa + detectChanges acusa NG0100 em `aria-expanded`.
     (fixture.nativeElement.querySelector('[data-menu-toggle]') as HTMLElement).click();
     fixture.detectChanges();
     expect(component.estadoDoMenuAberto).toBe(true);

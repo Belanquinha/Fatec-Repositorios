@@ -422,10 +422,12 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('deve aguardar a inicialização antes de chamar logoutRedirect', async () => {
+    it('deve aguardar a inicialização antes de chamar logoutRedirect quando há conta Microsoft', async () => {
       let liberar!: () => void;
+      const conta = { name: 'Aluno', username: 'aluno@aluno.cps.sp.gov.br' };
       const instancia = criarInstanciaMsal({
         initialize: vi.fn(() => new Promise<void>((resolve) => (liberar = resolve))),
+        getAllAccounts: vi.fn().mockReturnValue([conta]),
       });
       const authService = criarAuthService(instancia);
 
@@ -438,6 +440,79 @@ describe('AuthService', () => {
       await logout;
 
       expect(instancia.logoutRedirect).toHaveBeenCalledTimes(1);
+    });
+
+    it('não deve redirecionar para a Microsoft quando a sessão era local (sem conta MSAL)', async () => {
+      localStorage.setItem('accessToken', criarJwtValido());
+      localStorage.setItem('usuarioNome', 'Mariana');
+      localStorage.setItem('usuarioEmail', 'mariana@gmail.com');
+
+      const instancia = criarInstanciaMsal();
+      const authService = criarAuthService(instancia);
+      authService.sincronizarSessao();
+      expect(authService.usuarioAtual()?.email).toBe('mariana@gmail.com');
+
+      await authService.logout();
+
+      expect(instancia.logoutRedirect).not.toHaveBeenCalled();
+      expect(localStorage.getItem('accessToken')).toBeNull();
+      expect(authService.usuarioAtual()).toBeNull();
+    });
+  });
+
+  describe('autenticação local por e-mail e código', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('loginComEmailSenha grava sessão e atualiza usuarioAtual', async () => {
+      const token = criarJwtValido();
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            accessToken: token,
+            tokenType: 'Bearer',
+            expiresInSeconds: 3600,
+            nome: 'Carlos Docente',
+            email: 'carlos@cps.sp.gov.br',
+            role: 'PROFESSOR',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+
+      const authService = criarAuthService(criarInstanciaMsal());
+      await authService.loginComEmailSenha('carlos@cps.sp.gov.br', 'senha12345');
+
+      expect(localStorage.getItem('accessToken')).toBe(token);
+      expect(authService.usuarioAtual()).toEqual({
+        nome: 'Carlos Docente',
+        email: 'carlos@cps.sp.gov.br',
+        foto: undefined,
+        role: 'PROFESSOR',
+      });
+    });
+
+    it('confirmarCadastro grava sessão de ALUNO para domínio externo', async () => {
+      const token = criarJwtValido();
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            accessToken: token,
+            tokenType: 'Bearer',
+            expiresInSeconds: 3600,
+            nome: 'Ana Externa',
+            email: 'ana@gmail.com',
+            role: 'ALUNO',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+
+      const authService = criarAuthService(criarInstanciaMsal());
+      await authService.confirmarCadastro('ana@gmail.com', '123456');
+
+      expect(authService.usuarioAtual()?.role).toBe('ALUNO');
     });
   });
 

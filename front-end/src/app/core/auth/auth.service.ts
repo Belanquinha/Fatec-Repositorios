@@ -1,41 +1,56 @@
-import { Injectable, Inject } from '@angular/core';
+import { Injectable, Inject, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { MSAL_INSTANCE } from '@azure/msal-angular';
-import { AccountInfo, IPublicClientApplication, RedirectRequest } from '@azure/msal-browser';
+import {
+  AccountInfo,
+  AuthenticationResult,
+  IPublicClientApplication,
+  RedirectRequest,
+} from '@azure/msal-browser';
 import { environment } from '../../../environments/environment';
 import { UsuarioLogado } from './models/usuario-logado';
-import { gravarSessao, lerChave, lerTokenValido, limparSessao } from './sessao-navegador';
+import {
+  SessaoBackend,
+  gravarSessao,
+  lerChave,
+  lerTokenValido,
+  limparSessao,
+} from './sessao-navegador';
 
-/**
- * Escopo do Microsoft Graph, escrito por extenso de propósito.
- *
- * <p>A forma curta `User.Read` é ambígua entre as duas gerações da API: o MSAL pode resolvê-la
- * para o Azure AD Graph v1 (`00000003-0000-0000-c000-000000000000`), e esse recurso emite token
- * `ver=1.0` com `iss=https://sts.windows.net/{tid}/`. O back-end valida contra o JWKS de discovery
- * **v2**, cuja assinatura não é a desse token — daí "Token Microsoft inválido".
- *
- * <p>Nomear o recurso Graph v2 na URL elimina a ambiguidade: o token só pode sair com
- * `aud=00000003-0000-0cc0-000000000000`. Vale notar que `openid`, `profile` e `email` não são
- * pedidos aqui — o MSAL acrescenta os escopos OIDC sozinho, em qualquer fluxo.
- */
 const GRAPH_SCOPES = ['https://graph.microsoft.com/User.Read'];
+const RETURN_URL_STORAGE_KEY = 'fatec_auth_return_url';
+
+export interface CodigoEnviadoResponse {
+  mensagem: string;
+  email: string;
+  expiraEmSegundos: number;
+  reenvioEmSegundos: number;
+}
+
+export class ErroAutenticacao extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+    public readonly retryAfterSeconds?: number,
+  ) {
+    super(message);
+    this.name = 'ErroAutenticacao';
+  }
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  /**
-   * MSAL Browser v3+ exige `await initialize()` antes de qualquer acesso ao cache. A promessa é
-   * memorizada para que `inicializar()` seja idempotente e possa ser aguardado por qualquer
-   * componente, independentemente de quem chegar primeiro.
-   */
   private pronto?: Promise<void>;
+  private inicializadoComSucesso = false;
+  private readonly router = inject(Router, { optional: true });
 
   /**
-   * Separado de `pronto` de propósito: `pronto` registra que a inicialização *foi tentada*,
-   * enquanto isto registra que ela *concluiu*. Ler `getAllAccounts()` sobre uma instância cujo
-   * `initialize()` falhou lança `uninitialized_public_client_application`.
+   * Estado reativo da sessão para que o Header e demais componentes reflitam
+   * logins e logouts feitos via SPA imediatamente, sem exigir reload completo.
    */
-  private inicializadoComSucesso = false;
+  readonly usuarioAtual = signal<UsuarioLogado | null>(null);
 
   constructor(@Inject(MSAL_INSTANCE) private instance: IPublicClientApplication) {}
 
@@ -46,8 +61,6 @@ export class AuthService {
     try {
       await tentativa;
     } catch (erro) {
-      // Libera a memorização para que uma chamada posterior possa tentar de novo, em vez de
-      // repetir a mesma rejeição pelo resto da vida da página.
       if (this.pronto === tentativa) {
         this.pronto = undefined;
         this.inicializadoComSucesso = false;
@@ -69,62 +82,78 @@ export class AuthService {
 
   private async executarInicializacao(): Promise<void> {
     await this.instance.initialize();
-    await this.inicializado();
+    const resultadoRedirect = await this.inicializado();
     this.inicializadoComSucesso = true;
+
+    if (resultadoRedirect) {
+      try {
+        await this.trocarTokensMicrosoftNoBackend(
+          resultadoRedirect.accessToken,
+          resultadoRedirect.idToken,
+        );
+        const destino = this.consumirReturnUrl();
+        if (destino && destino !== '/') {
+          await this.router?.navigateByUrl(destino);
+        }
+      } catch (erro) {
+        console.error('Erro ao concluir login Microsoft com o back-end:', erro);
+        this.limparSessaoLocal();
+      }
+    } else {
+      this.sincronizarSessao();
+    }
   }
 
-  private async inicializado(): Promise<void> {
+  private async inicializado(): Promise<AuthenticationResult | null> {
     try {
-      await this.instance.handleRedirectPromise();
+      return (await this.instance.handleRedirectPromise()) ?? null;
     } catch (e: any) {
       if (e?.errorCode === 'no_token_request_cache_error') {
         Object.keys(sessionStorage)
           .filter((k) => k.startsWith('msal.'))
           .forEach((k) => sessionStorage.removeItem(k));
-      } else {
-        throw e;
+        return null;
       }
+      throw e;
     }
   }
 
-  /**
-   * A identidade exibida na UI vem exclusivamente do backend: só existe usuário
-   * logado quando há token de acesso guardado. O cache do MSAL indica apenas que
-   * a Microsoft autenticou a pessoa no navegador — se o `/auth/login-microsoft`
-   * falhou (backend fora do ar, token expirado, conta não provisionada), mostrar
-   * um perfil ali seria mentir sobre o estado da sessão.
-   *
-   * A chave existir no `localStorage` não é prova de nada: o JWT tem validade e o
-   * `localStorage` não expira nada. Ler o `exp` é o que separa "sessão viva" de
-   * "chave de um token que venceu ontem" — sem isso a UI anunciaria login e toda
-   * chamada autenticada responderia 401.
-   */
-  async obterUsuarioLogado(): Promise<UsuarioLogado | null> {
+  sincronizarSessao(): UsuarioLogado | null {
     if (!lerTokenValido()) {
+      this.usuarioAtual.set(null);
       return null;
     }
 
     const nome = lerChave('usuarioNome');
     const email = lerChave('usuarioEmail');
     if (!nome || !email) {
+      this.usuarioAtual.set(null);
       return null;
     }
 
     const foto = lerChave('usuarioFoto');
     const role = lerChave('usuarioRole');
 
-    return {
+    const usuario: UsuarioLogado = {
       nome,
       email,
       foto: foto || undefined,
       role: role || undefined,
     };
+    this.usuarioAtual.set(usuario);
+    return usuario;
   }
 
-  async loginMicrosoft(): Promise<void> {
-    // O link de login aparece antes da inicialização resolver; sem esta espera o
-    // `loginRedirect` roda sobre uma instância não inicializada.
+  async obterUsuarioLogado(): Promise<UsuarioLogado | null> {
+    return this.sincronizarSessao();
+  }
+
+  async loginMicrosoft(returnUrl?: string): Promise<void> {
     await this.quandoPronto();
+
+    if (returnUrl && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(RETURN_URL_STORAGE_KEY, returnUrl);
+    }
 
     const request: RedirectRequest = {
       scopes: GRAPH_SCOPES,
@@ -135,26 +164,22 @@ export class AuthService {
     await this.instance.loginRedirect(request);
   }
 
-  async loginMicrosoftViaApi(): Promise<{ accessToken: string; tokenType: string; expiresInSeconds: number }> {
+  async loginMicrosoftViaApi(): Promise<{
+    accessToken: string;
+    tokenType: string;
+    expiresInSeconds: number;
+  }> {
     const conta = this.conta;
     if (!conta) {
       throw new Error('Nenhuma conta Microsoft encontrada. Faça login novamente.');
     }
 
-    // A authority vai explícita de propósito: sem ela o MSAL reutiliza a authority da conta
-    // em cache — e quem logou antes da correção `/v2.0` carrega conta v1, que emite access
-    // token v1 (iss sts.windows.net) para sempre. Com a authority v2 o MSAL renova pela via
-    // v2 quando o cache expirar.
     let resultado = await this.instance.acquireTokenSilent({
       scopes: GRAPH_SCOPES,
       account: conta,
       authority: environment.msalAuthority,
     });
 
-    // Cache obsoleto: o silent acima pode devolver o v1 guardado em localStorage. O back-end
-    // autentica pelo idToken (v2) e usa o access token só como bearer para o Graph — então um
-    // v1 aqui não quebra o login —, mas forçar uma renovação aproxima o navegador do formato
-    // v2 e evita carregar o token legado para sempre.
     if (decodificarClaims(resultado.accessToken)['ver'] === '1.0') {
       try {
         resultado = await this.instance.acquireTokenSilent({
@@ -164,43 +189,106 @@ export class AuthService {
           forceRefresh: true,
         });
       } catch {
-        // Renovação falhou (rede, sessão expirada): segue com o token em cache. O back-end
-        // decide pelo idToken + Graph, então abortar aqui seria recusar um login válido.
+        // Segue com o token em cache caso a renovação falhe.
       }
     }
 
-    const resposta = await fetch(`${environment.apiUrl}/auth/login-microsoft`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        accessToken: resultado.accessToken,
-        idToken: resultado.idToken,
-      }),
-    });
+    return this.trocarTokensMicrosoftNoBackend(resultado.accessToken, resultado.idToken);
+  }
 
-    const dados = await resposta.json().catch(() => null);
-
-    if (!resposta.ok) {
-      const mensagem = dados?.mensagem ?? dados?.message ?? 'Não foi possível realizar o login via Microsoft.';
-      throw new Error(mensagem);
-    }
+  private async trocarTokensMicrosoftNoBackend(
+    accessToken: string,
+    idToken: string,
+  ): Promise<{ accessToken: string; tokenType: string; expiresInSeconds: number }> {
+    const dados = await this.postJson<SessaoBackend>(
+      '/auth/login-microsoft',
+      { accessToken, idToken },
+      'Não foi possível realizar o login via Microsoft.',
+    );
 
     gravarSessao(dados);
+    this.sincronizarSessao();
 
     return dados as { accessToken: string; tokenType: string; expiresInSeconds: number };
+  }
+
+  async loginComEmailSenha(email: string, senha: string): Promise<SessaoBackend> {
+    const dados = await this.postJson<SessaoBackend>(
+      '/auth/login',
+      { email, senha },
+      'E-mail ou senha inválidos.',
+    );
+
+    gravarSessao(dados);
+    this.sincronizarSessao();
+    return dados;
+  }
+
+  async iniciarCadastro(
+    nome: string,
+    email: string,
+    senha: string,
+  ): Promise<CodigoEnviadoResponse> {
+    return this.postJson<CodigoEnviadoResponse>(
+      '/auth/cadastro/iniciar',
+      { nome, email, senha },
+      'Não foi possível iniciar o cadastro.',
+    );
+  }
+
+  async reenviarCodigoCadastro(email: string): Promise<CodigoEnviadoResponse> {
+    return this.postJson<CodigoEnviadoResponse>(
+      '/auth/cadastro/reenviar',
+      { email },
+      'Não foi possível reenviar o código.',
+    );
+  }
+
+  async confirmarCadastro(email: string, codigo: string): Promise<SessaoBackend> {
+    const dados = await this.postJson<SessaoBackend>(
+      '/auth/cadastro/confirmar',
+      { email, codigo },
+      'Código inválido ou expirado.',
+    );
+
+    gravarSessao(dados);
+    this.sincronizarSessao();
+    return dados;
+  }
+
+  async solicitarRecuperacaoSenha(email: string): Promise<CodigoEnviadoResponse> {
+    return this.postJson<CodigoEnviadoResponse>(
+      '/auth/senha/esquecer',
+      { email },
+      'Não foi possível solicitar a recuperação de senha.',
+    );
+  }
+
+  async redefinirSenha(
+    email: string,
+    codigo: string,
+    novaSenha: string,
+  ): Promise<{ mensagem: string }> {
+    return this.postJson<{ mensagem: string }>(
+      '/auth/senha/redefinir',
+      { email, codigo, novaSenha },
+      'Não foi possível redefinir a senha.',
+    );
   }
 
   async logout(): Promise<void> {
     this.limparSessaoLocal();
 
-    // `logoutRedirect` também exige a instância inicializada.
     await this.quandoPronto();
-    await this.instance.logoutRedirect({ postLogoutRedirectUri: environment.msalRedirectUri });
+    if (this.conta) {
+      await this.instance.logoutRedirect({ postLogoutRedirectUri: environment.msalRedirectUri });
+      return;
+    }
+
+    await this.router?.navigateByUrl('/');
   }
 
   isAdmin(): boolean {
-    // Passa pela mesma checagem de validade de `obterUsuarioLogado`: um papel guardado no
-    // `localStorage` ao lado de um token vencido descreveria uma sessão que a API não reconhece.
     if (!lerTokenValido()) {
       return false;
     }
@@ -209,22 +297,67 @@ export class AuthService {
     return role === 'ADMIN';
   }
 
-  /**
-   * Descarta a identidade guardada no navegador. Usado quando o login no backend
-   * falha, para que uma sessão de uma tentativa anterior não sobreviva e continue
-   * aparecendo como se estivesse válida.
-   */
   limparSessaoLocal(): void {
     limparSessao();
+    this.usuarioAtual.set(null);
+  }
+
+  private consumirReturnUrl(): string | null {
+    if (typeof sessionStorage === 'undefined') {
+      return null;
+    }
+    const valor = sessionStorage.getItem(RETURN_URL_STORAGE_KEY);
+    sessionStorage.removeItem(RETURN_URL_STORAGE_KEY);
+    if (!valor || !valor.startsWith('/') || valor.startsWith('//')) {
+      return null;
+    }
+    return valor;
+  }
+
+  private async postJson<T>(
+    caminho: string,
+    corpo: unknown,
+    mensagemPadraoErro: string,
+  ): Promise<T> {
+    let resposta: Response;
+    try {
+      resposta = await fetch(`${environment.apiUrl}${caminho}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo),
+      });
+    } catch {
+      throw new ErroAutenticacao(
+        'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.',
+      );
+    }
+
+    const dados = await resposta.json().catch(() => null);
+
+    if (!resposta.ok) {
+      const retryHeader = resposta.headers?.get?.('Retry-After');
+      const retryAfter = retryHeader ? Number.parseInt(retryHeader, 10) : undefined;
+      throw new ErroAutenticacao(
+        extrairMensagemErro(dados, mensagemPadraoErro),
+        resposta.status,
+        Number.isFinite(retryAfter) ? retryAfter : undefined,
+      );
+    }
+
+    return dados as T;
   }
 }
 
-/**
- * Lê o payload de um JWT sem verificar nada.
- *
- * <p>Serve só para o teste de formato abaixo (token v1 em cache pede renovação forçada).
- * Quem valida token é o back-end, com a chave pública do Microsoft.
- */
+function extrairMensagemErro(dados: any, padrao: string): string {
+  if (dados?.erros && typeof dados.erros === 'object') {
+    const primeiraChave = Object.keys(dados.erros)[0];
+    if (primeiraChave && typeof dados.erros[primeiraChave] === 'string') {
+      return dados.erros[primeiraChave];
+    }
+  }
+  return dados?.mensagem ?? dados?.message ?? padrao;
+}
+
 function decodificarClaims(jwt: string | undefined): Record<string, unknown> {
   if (!jwt) return {};
   try {
@@ -235,7 +368,7 @@ function decodificarClaims(jwt: string | undefined): Record<string, unknown> {
       atob(base64)
         .split('')
         .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
-        .join('')
+        .join(''),
     );
     return JSON.parse(json);
   } catch {

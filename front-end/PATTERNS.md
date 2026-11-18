@@ -54,7 +54,8 @@ cores chapadas, links azuis). **Nunca** usar cores hardcoded em componentes.
 | `header/header` | Navegação, logo, auth | `src/app/shared/components/header` |
 | `footer/footer` | Rodapé, links, branding | `src/app/shared/components/footer` |
 | `card-projeto/card-projeto` | Card de projeto no catálogo | `src/app/shared/components/card-projeto` |
-| `auth/microsoft-login-button` | Login via Azure | `src/app/shared/components/microsoft-login-button` |
+| `auth/microsoft-login-button` | Botão SSO Microsoft CPS | `src/app/shared/components/microsoft-login-button` |
+| `features/autenticacao/autenticacao` | Tela `/entrar` (login, cadastro com código e recuperação) | `src/app/features/autenticacao` |
 | `features/upload-projeto/upload-projeto` | Upload de projeto | `src/app/features/upload-projeto` |
 | `features/ver-projeto/ver-projeto` | Exibição de projeto | `src/app/features/ver-projeto` |
 

@@ -4,12 +4,9 @@ import { AuthService } from './auth.service';
 
 /**
  * Exige sessão válida (token guardado e não vencido).
- *
- * Não passa pelo MSAL de propósito: `obterUsuarioLogado` só retorna usuário
- * quando há token de acesso válido no navegador, então é a prova de sessão
- * sem precisar inicializar a instância do Microsoft.
+ * Quando não autenticado, encaminha para `/entrar` preservando a URL de destino.
  */
-export const authGuard: CanActivateFn = async () => {
+export const authGuard: CanActivateFn = async (_route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
@@ -18,5 +15,10 @@ export const authGuard: CanActivateFn = async () => {
     return true;
   }
 
-  return router.createUrlTree(['/']);
+  const destino = state?.url;
+  if (destino && destino !== '/' && destino !== '/entrar') {
+    return router.createUrlTree(['/entrar'], { queryParams: { returnUrl: destino } });
+  }
+
+  return router.createUrlTree(['/entrar']);
 };

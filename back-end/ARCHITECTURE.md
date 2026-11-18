@@ -21,13 +21,16 @@ banco PostgreSQL, contador de uploads gerenciados por arquivo.
 
 ## Fluxos principais
 
-### Login (MSAL)
-1. Front-end redireciona para Azure AD (tenant `eabe64c5-68f5-4a76-8301-9577a679e449`).
-2. Azure AD retorna código de autorização → backend troca por token (MSAL).
-3. Backend extrai UPN (e-mail) → `CustomUserDetailsService` carrega/usa `User`.
-4. `JwtTokenProvider` assina token HS256 com `JWT_SECRET` do `.env`.
-5. `JwtAuthenticationFilter` injeta `SecurityContext` em cada request.
-6. `SecurityConfig` → todos os `POST /projetos` exigem `hasRole(ALUNO)` (ver bug registrada).
+### Autenticação (Cadastro com Código, E-mail/Senha e Microsoft SSO)
+1. **Cadastro (`POST /auth/cadastro/iniciar` → `/auth/cadastro/confirmar`)**:
+   - Gera código numérico de 6 dígitos (`SecureRandom`), persiste pendência isolada em `codigos_verificacao_email` (hash BCrypt, TTL 15 min, máx. 5 tentativas, cooldown de 60s) e envia via `AuthEmailSender` (Resend; fallback em console apenas em `dev`/`local`/`test` sem key).
+   - Na confirmação, `UserProvisioningService.provisionarComSenha()` classifica o papel pelo domínio (`@cps.sp.gov.br` → `PROFESSOR`; qualquer outro domínio → `ALUNO`; contas `ADMIN` preservam `ADMIN`) e emite JWT.
+2. **Login por E-mail/Senha (`POST /auth/login`) e Recuperação (`POST /auth/senha/esquecer` → `/auth/senha/redefinir`)**:
+   - `LocalAuthService` valida credenciais com `BCryptPasswordEncoder` e permite redefinir senha mediante código de 6 dígitos enviado ao e-mail cadastrado.
+3. **Login Institucional Microsoft (`POST /auth/login-microsoft`)**:
+   - Restrito ao tenant CPS (`eabe64c5-68f5-4a76-8301-9577a679e449`).
+   - Backend valida `idToken`, consulta Microsoft Graph, provisiona/atualiza `User` em `UserProvisioningService` e assina JWT HS256 com `JWT_SECRET`.
+4. `JwtAuthenticationFilter` injeta `SecurityContext` em cada request autenticado.
 
 ### Postagem de projeto
 1. Aluno envia `ProjetoCreateRequest` (e-mail do professor responsável, instituição, integrantes).

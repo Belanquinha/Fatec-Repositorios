@@ -148,16 +148,27 @@
 }
 
 /* Badges de estado com fundo chapado claro. */
-.dark .badge-aprovado {
+.dark .badge-aprovado,
+.dark .painel-alerta-sucesso,
+.dark .badge-dominio-aluno {
     background-color: #0B2E13;
     color: #8ADC9D;
     border-color: #006217;
 }
 
-.dark .badge-rejeitado {
+.dark .badge-rejeitado,
+.dark .badge-dominio-professor {
     background-color: #241D02;
     color: #EFD78B;
     border-color: var(--amarelo-800);
+}
+
+.dark .etapa-tag {
+    color: var(--amarelo-400);
+}
+
+.dark .link-acao {
+    color: var(--azul-200);
 }
 
 /* Editor.js: bloco selecionado e popovers no escuro. */

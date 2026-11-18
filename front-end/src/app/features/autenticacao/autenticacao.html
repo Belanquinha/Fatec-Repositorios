@@ -1,0 +1,508 @@
+<section class="auth-page">
+  <div class="auth-grid">
+    <!-- Painel Institucional e Regras de Domínio -->
+    <aside class="auth-institutional" aria-label="Informações de acesso">
+      <div class="auth-eyebrow">
+        <span class="material-symbols-outlined icon-eyebrow">school</span>
+        <span>Centro Paula Souza • Fatec Repositório</span>
+      </div>
+
+      <h1 class="auth-headline">
+        Publique e acompanhe produções acadêmicas em um <span class="highlight-title">único acervo.</span>
+      </h1>
+
+      <p class="auth-lead">
+        Entre com sua conta cadastrada, crie seu acesso validando seu e-mail por código ou utilize o login institucional Microsoft do CPS.
+      </p>
+
+      <div class="domain-rules-panel">
+        <h2 class="domain-rules-title">Como seu perfil é identificado</h2>
+
+        <div class="domain-rule-item">
+          <span class="material-symbols-outlined domain-rule-icon icon-aluno">person</span>
+          <div>
+            <strong class="domain-rule-role">Perfil Aluno</strong>
+            <p class="domain-rule-desc">
+              Qualquer e-mail fora de <code>@cps.sp.gov.br</code> (como <code>@aluno.cps.sp.gov.br</code>, <code>@fatec.sp.gov.br</code> ou pessoal) entra como <strong>Aluno</strong> para envio e acompanhamento de projetos.
+            </p>
+          </div>
+        </div>
+
+        <div class="domain-rule-item">
+          <span class="material-symbols-outlined domain-rule-icon icon-professor">verified_user</span>
+          <div>
+            <strong class="domain-rule-role">Perfil Professor</strong>
+            <p class="domain-rule-desc">
+              Contas confirmadas no domínio <code>@cps.sp.gov.br</code> recebem acesso de <strong>Professor</strong> para vínculo institucional e avaliação de trabalhos.
+            </p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Card Principal de Autenticação -->
+    <div class="auth-card">
+      @if (abaAtiva() !== 'recuperar') {
+        <div class="auth-tabs" role="tablist" aria-label="Opções de acesso">
+          <button
+            type="button"
+            role="tab"
+            data-tab="login"
+            [attr.aria-selected]="abaAtiva() === 'login'"
+            [class.aba-ativa]="abaAtiva() === 'login'"
+            (click)="selecionarAba('login')"
+            class="auth-tab">
+            Entrar
+          </button>
+          <button
+            type="button"
+            role="tab"
+            data-tab="cadastro"
+            [attr.aria-selected]="abaAtiva() === 'cadastro'"
+            [class.aba-ativa]="abaAtiva() === 'cadastro'"
+            (click)="selecionarAba('cadastro')"
+            class="auth-tab">
+            Criar conta
+          </button>
+        </div>
+      }
+
+      <div class="auth-card-body">
+        <!-- Alertas de Erro (Âmbar — Vermelho CPS proibido pelo DESIGN.md) e Sucesso -->
+        @if (mensagemErro()) {
+          <div class="painel-alerta-erro auth-alert" role="alert">
+            <span class="material-symbols-outlined auth-alert-icon">warning</span>
+            <div class="painel-alerta-content">
+              <p>{{ mensagemErro() }}</p>
+            </div>
+          </div>
+        }
+
+        @if (mensagemSucesso()) {
+          <div class="painel-alerta-sucesso auth-alert" role="status" aria-live="polite">
+            <span class="material-symbols-outlined auth-alert-icon">check_circle</span>
+            <div>
+              <p>{{ mensagemSucesso() }}</p>
+            </div>
+          </div>
+        }
+
+        <!-- ==================== ABA 1: LOGIN ==================== -->
+        @if (abaAtiva() === 'login') {
+          <div class="auth-section-header">
+            <h2 class="auth-card-title">Entrar na plataforma</h2>
+            <p class="auth-card-subtitle">Informe seu e-mail e senha cadastrados para continuar.</p>
+          </div>
+
+          <form class="auth-form" (ngSubmit)="submeterLogin()" novalidate>
+            <div class="campo-grupo">
+              <label for="login-email" class="campo-label">E-mail</label>
+              <div class="campo-input-wrap">
+                <span class="material-symbols-outlined campo-icone">mail</span>
+                <input
+                  id="login-email"
+                  name="emailLogin"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="seu.nome@exemplo.com"
+                  class="campo-input"
+                  [ngModel]="emailLogin()"
+                  (ngModelChange)="emailLogin.set($event)"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="campo-grupo">
+              <div class="campo-label-row">
+                <label for="login-senha" class="campo-label">Senha</label>
+                <button
+                  type="button"
+                  data-forgot-password
+                  (click)="abrirRecuperacaoSenha()"
+                  class="link-acao">
+                  Esqueci minha senha
+                </button>
+              </div>
+              <div class="campo-input-wrap">
+                <span class="material-symbols-outlined campo-icone">lock</span>
+                <input
+                  id="login-senha"
+                  name="senhaLogin"
+                  [type]="mostrarSenhaLogin() ? 'text' : 'password'"
+                  autocomplete="current-password"
+                  placeholder="Digite sua senha"
+                  class="campo-input campo-input-senha"
+                  [ngModel]="senhaLogin()"
+                  (ngModelChange)="senhaLogin.set($event)"
+                  required
+                />
+                <button
+                  type="button"
+                  (click)="mostrarSenhaLogin.set(!mostrarSenhaLogin())"
+                  [attr.aria-label]="mostrarSenhaLogin() ? 'Ocultar senha' : 'Mostrar senha'"
+                  class="btn-toggle-senha">
+                  <span class="material-symbols-outlined text-[20px]">
+                    {{ mostrarSenhaLogin() ? 'visibility_off' : 'visibility' }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              data-submit-login
+              [disabled]="carregando()"
+              class="btn-primario auth-submit-btn">
+              <span class="material-symbols-outlined text-[20px] leading-none">login</span>
+              <span>{{ carregando() ? 'Entrando...' : 'Entrar com e-mail' }}</span>
+            </button>
+          </form>
+
+          <div class="auth-divider">
+            <span>ou conta institucional CPS</span>
+          </div>
+
+          <div class="sso-box">
+            <app-microsoft-login-button [returnUrl]="returnUrl()"></app-microsoft-login-button>
+            <p class="sso-caption">
+              Para contas Microsoft do diretório CPS (<code>@cps.sp.gov.br</code> e <code>@aluno.cps.sp.gov.br</code>).
+            </p>
+          </div>
+        }
+
+        <!-- ==================== ABA 2: CADASTRO ==================== -->
+        @if (abaAtiva() === 'cadastro') {
+          @if (etapaCadastro() === 'dados') {
+            <div class="auth-section-header">
+              <span class="etapa-tag">Etapa 1 de 2 • Dados da conta</span>
+              <h2 class="auth-card-title">Criar nova conta</h2>
+              <p class="auth-card-subtitle">
+                Enviaremos um código de 6 dígitos para confirmar que o e-mail pertence a você.
+              </p>
+            </div>
+
+            <form class="auth-form" (ngSubmit)="submeterInicioCadastro()" novalidate>
+              <div class="campo-grupo">
+                <label for="cadastro-nome" class="campo-label">Nome completo</label>
+                <div class="campo-input-wrap">
+                  <span class="material-symbols-outlined campo-icone">badge</span>
+                  <input
+                    id="cadastro-nome"
+                    name="nomeCadastro"
+                    type="text"
+                    autocomplete="name"
+                    placeholder="Ex.: Maria Aparecida Silva"
+                    class="campo-input"
+                    [ngModel]="nomeCadastro()"
+                    (ngModelChange)="nomeCadastro.set($event)"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="campo-grupo">
+                <label for="cadastro-email" class="campo-label">E-mail</label>
+                <div class="campo-input-wrap">
+                  <span class="material-symbols-outlined campo-icone">mail</span>
+                  <input
+                    id="cadastro-email"
+                    name="emailCadastro"
+                    type="email"
+                    autocomplete="email"
+                    placeholder="seu.email@dominio.com"
+                    class="campo-input"
+                    [ngModel]="emailCadastro()"
+                    (ngModelChange)="emailCadastro.set($event)"
+                    required
+                  />
+                </div>
+
+                @if (previaPapelCadastro() === 'PROFESSOR') {
+                  <div class="badge-dominio badge-dominio-professor" data-role-preview="PROFESSOR">
+                    <span class="material-symbols-outlined text-[16px]">verified_user</span>
+                    <span>Domínio <strong>@cps.sp.gov.br</strong> — conta será criada como <strong>Professor</strong></span>
+                  </div>
+                } @else if (previaPapelCadastro() === 'ALUNO') {
+                  <div class="badge-dominio badge-dominio-aluno" data-role-preview="ALUNO">
+                    <span class="material-symbols-outlined text-[16px]">person</span>
+                    <span>Conta será criada com perfil de <strong>Aluno</strong></span>
+                  </div>
+                }
+              </div>
+
+              <div class="campo-grupo">
+                <label for="cadastro-senha" class="campo-label">Senha (mínimo de 8 caracteres)</label>
+                <div class="campo-input-wrap">
+                  <span class="material-symbols-outlined campo-icone">lock</span>
+                  <input
+                    id="cadastro-senha"
+                    name="senhaCadastro"
+                    [type]="mostrarSenhaCadastro() ? 'text' : 'password'"
+                    autocomplete="new-password"
+                    placeholder="Crie uma senha segura"
+                    class="campo-input campo-input-senha"
+                    [ngModel]="senhaCadastro()"
+                    (ngModelChange)="senhaCadastro.set($event)"
+                    required
+                  />
+                  <button
+                    type="button"
+                    (click)="mostrarSenhaCadastro.set(!mostrarSenhaCadastro())"
+                    [attr.aria-label]="mostrarSenhaCadastro() ? 'Ocultar senha' : 'Mostrar senha'"
+                    class="btn-toggle-senha">
+                    <span class="material-symbols-outlined text-[20px]">
+                      {{ mostrarSenhaCadastro() ? 'visibility_off' : 'visibility' }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="campo-grupo">
+                <label for="cadastro-confirmar-senha" class="campo-label">Confirmar senha</label>
+                <div class="campo-input-wrap">
+                  <span class="material-symbols-outlined campo-icone">lock_reset</span>
+                  <input
+                    id="cadastro-confirmar-senha"
+                    name="confirmarSenhaCadastro"
+                    [type]="mostrarSenhaCadastro() ? 'text' : 'password'"
+                    autocomplete="new-password"
+                    placeholder="Repita a senha criada"
+                    class="campo-input"
+                    [ngModel]="confirmarSenhaCadastro()"
+                    (ngModelChange)="confirmarSenhaCadastro.set($event)"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                data-submit-signup-init
+                [disabled]="carregando()"
+                class="btn-primario auth-submit-btn">
+                <span class="material-symbols-outlined text-[20px] leading-none">mark_email_read</span>
+                <span>{{ carregando() ? 'Enviando código...' : 'Enviar código de confirmação' }}</span>
+              </button>
+            </form>
+
+            <div class="auth-divider">
+              <span>ou use sua conta Microsoft CPS</span>
+            </div>
+
+            <div class="sso-box">
+              <app-microsoft-login-button [returnUrl]="returnUrl()"></app-microsoft-login-button>
+            </div>
+          } @else {
+            <div class="auth-section-header">
+              <span class="etapa-tag">Etapa 2 de 2 • Verificação de e-mail</span>
+              <h2 class="auth-card-title">Confirme seu e-mail</h2>
+              <p class="auth-card-subtitle">
+                Digite o código de 6 dígitos enviado para <strong class="email-destaque">{{ emailCadastro() }}</strong>.
+              </p>
+            </div>
+
+            <form class="auth-form" (ngSubmit)="submeterConfirmacaoCadastro()" novalidate>
+              <div class="otp-container" role="group" aria-label="Código de verificação de 6 dígitos">
+                @for (digito of digitosCodigo(); track $index) {
+                  <input
+                    #digitoInput
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="1"
+                    autocomplete="one-time-code"
+                    class="otp-input"
+                    [attr.aria-label]="'Dígito ' + ($index + 1) + ' de 6'"
+                    [value]="digito"
+                    (input)="aoDigitarCodigo($index, $event)"
+                    (keydown)="aoPressionarTeclaCodigo($index, $event)"
+                    (paste)="aoColarCodigo($event)"
+                  />
+                }
+              </div>
+
+              <button
+                type="submit"
+                data-submit-signup-confirm
+                [disabled]="carregando()"
+                class="btn-primario auth-submit-btn">
+                <span class="material-symbols-outlined text-[20px] leading-none">verified</span>
+                <span>{{ carregando() ? 'Confirmando...' : 'Confirmar código e criar conta' }}</span>
+              </button>
+            </form>
+
+            <div class="otp-actions">
+              <button
+                type="button"
+                (click)="reenviarCodigoCadastro()"
+                [disabled]="cooldownSegundos() > 0 || carregando()"
+                class="link-acao">
+                @if (cooldownSegundos() > 0) {
+                  Reenviar código em {{ cooldownSegundos() }}s
+                } @else {
+                  Reenviar código por e-mail
+                }
+              </button>
+
+              <button
+                type="button"
+                (click)="voltarParaDadosCadastro()"
+                class="link-secundario">
+                Alterar endereço de e-mail
+              </button>
+            </div>
+          }
+        }
+
+        <!-- ==================== RECUPERAÇÃO DE SENHA ==================== -->
+        @if (abaAtiva() === 'recuperar') {
+          <button
+            type="button"
+            (click)="voltarParaLogin()"
+            class="btn-voltar-login">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Voltar para o login</span>
+          </button>
+
+          @if (etapaRecuperacao() === 'solicitar') {
+            <div class="auth-section-header">
+              <span class="etapa-tag">Recuperação de acesso</span>
+              <h2 class="auth-card-title">Esqueceu sua senha?</h2>
+              <p class="auth-card-subtitle">
+                Informe o e-mail da sua conta. Enviaremos um código de 6 dígitos para você definir uma nova senha.
+              </p>
+            </div>
+
+            <form class="auth-form" (ngSubmit)="submeterSolicitacaoRecuperacao()" novalidate>
+              <div class="campo-grupo">
+                <label for="recuperar-email" class="campo-label">E-mail cadastrado</label>
+                <div class="campo-input-wrap">
+                  <span class="material-symbols-outlined campo-icone">mail</span>
+                  <input
+                    id="recuperar-email"
+                    name="emailRecuperacao"
+                    type="email"
+                    autocomplete="email"
+                    placeholder="seu.email@dominio.com"
+                    class="campo-input"
+                    [ngModel]="emailRecuperacao()"
+                    (ngModelChange)="emailRecuperacao.set($event)"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                data-submit-forgot
+                [disabled]="carregando()"
+                class="btn-primario auth-submit-btn">
+                <span class="material-symbols-outlined text-[20px] leading-none">send</span>
+                <span>{{ carregando() ? 'Enviando...' : 'Enviar código de recuperação' }}</span>
+              </button>
+            </form>
+          } @else {
+            <div class="auth-section-header">
+              <span class="etapa-tag">Redefinição de senha</span>
+              <h2 class="auth-card-title">Crie sua nova senha</h2>
+              <p class="auth-card-subtitle">
+                Informe o código enviado para <strong class="email-destaque">{{ emailRecuperacao() }}</strong> e escolha sua nova senha.
+              </p>
+            </div>
+
+            <form class="auth-form" (ngSubmit)="submeterRedefinicaoSenha()" novalidate>
+              <div class="campo-grupo">
+                <span class="campo-label">Código de 6 dígitos</span>
+                <div class="otp-container" role="group" aria-label="Código de recuperação de 6 dígitos">
+                  @for (digito of digitosCodigo(); track $index) {
+                    <input
+                      #digitoInput
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="1"
+                      autocomplete="one-time-code"
+                      class="otp-input"
+                      [attr.aria-label]="'Dígito ' + ($index + 1) + ' de 6'"
+                      [value]="digito"
+                      (input)="aoDigitarCodigo($index, $event)"
+                      (keydown)="aoPressionarTeclaCodigo($index, $event)"
+                      (paste)="aoColarCodigo($event)"
+                    />
+                  }
+                </div>
+              </div>
+
+              <div class="campo-grupo">
+                <label for="recuperar-nova-senha" class="campo-label">Nova senha (mínimo de 8 caracteres)</label>
+                <div class="campo-input-wrap">
+                  <span class="material-symbols-outlined campo-icone">lock</span>
+                  <input
+                    id="recuperar-nova-senha"
+                    name="novaSenhaRecuperacao"
+                    [type]="mostrarNovaSenha() ? 'text' : 'password'"
+                    autocomplete="new-password"
+                    placeholder="Digite a nova senha"
+                    class="campo-input campo-input-senha"
+                    [ngModel]="novaSenhaRecuperacao()"
+                    (ngModelChange)="novaSenhaRecuperacao.set($event)"
+                    required
+                  />
+                  <button
+                    type="button"
+                    (click)="mostrarNovaSenha.set(!mostrarNovaSenha())"
+                    [attr.aria-label]="mostrarNovaSenha() ? 'Ocultar senha' : 'Mostrar senha'"
+                    class="btn-toggle-senha">
+                    <span class="material-symbols-outlined text-[20px]">
+                      {{ mostrarNovaSenha() ? 'visibility_off' : 'visibility' }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="campo-grupo">
+                <label for="recuperar-confirmar-senha" class="campo-label">Confirmar nova senha</label>
+                <div class="campo-input-wrap">
+                  <span class="material-symbols-outlined campo-icone">lock_reset</span>
+                  <input
+                    id="recuperar-confirmar-senha"
+                    name="confirmarNovaSenha"
+                    [type]="mostrarNovaSenha() ? 'text' : 'password'"
+                    autocomplete="new-password"
+                    placeholder="Repita a nova senha"
+                    class="campo-input"
+                    [ngModel]="confirmarNovaSenha()"
+                    (ngModelChange)="confirmarNovaSenha.set($event)"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                data-submit-reset
+                [disabled]="carregando()"
+                class="btn-primario auth-submit-btn">
+                <span class="material-symbols-outlined text-[20px] leading-none">check_circle</span>
+                <span>{{ carregando() ? 'Salvando...' : 'Salvar nova senha' }}</span>
+              </button>
+            </form>
+
+            <div class="otp-actions">
+              <button
+                type="button"
+                (click)="submeterSolicitacaoRecuperacao()"
+                [disabled]="cooldownSegundos() > 0 || carregando()"
+                class="link-acao">
+                @if (cooldownSegundos() > 0) {
+                  Solicitar novo código em {{ cooldownSegundos() }}s
+                } @else {
+                  Solicitar novo código
+                }
+              </button>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</section>

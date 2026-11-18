@@ -62,6 +62,43 @@ public class UserProvisioningService {
     }
 
     /**
+     * Provisiona usuário confirmado por código de e-mail e define o hash da senha.
+     *
+     * <p>Se a conta já existia (ex.: entrou antes via Microsoft sem senha ou foi semeada como
+     * {@code ADMIN}), preserva o papel já atribuído e apenas vincula a senha verificada.
+     */
+    @Transactional
+    public User provisionarComSenha(String email, String nome, String senhaHash) {
+        String emailNormalizado = normalizarEmail(email);
+
+        return userRepository.findByEmail(emailNormalizado)
+            .map(existente -> {
+                log.info("Vinculando senha verificada ao usuário existente: {} (papel preservado: {})",
+                    emailNormalizado, existente.getRole());
+                existente.setSenhaHash(senhaHash);
+                if ((existente.getNome() == null || existente.getNome().isBlank())
+                    && nome != null && !nome.isBlank()) {
+                    existente.setNome(nome.trim());
+                }
+                existente.setAtualizadoEm(LocalDateTime.now());
+                return userRepository.save(existente);
+            })
+            .orElseGet(() -> {
+                UserRole papel = classificarPapel(emailNormalizado);
+                log.info("Criando novo usuário por cadastro verificado: {} (papel: {})",
+                    emailNormalizado, papel);
+                User novoUser = new User();
+                novoUser.setNome(nome.trim());
+                novoUser.setEmail(emailNormalizado);
+                novoUser.setSenhaHash(senhaHash);
+                novoUser.setRole(papel);
+                novoUser.setCriadoEm(LocalDateTime.now());
+                novoUser.setAtualizadoEm(LocalDateTime.now());
+                return userRepository.save(novoUser);
+            });
+    }
+
+    /**
      * O domínio do e-mail institucional é a lista de papéis (AD-2). O e-mail que o Microsoft devolveu
      * já vem normalizado por {@code resolverEmail}; normalizar de novo aqui mantém o método seguro
      * para quem chamar direto.

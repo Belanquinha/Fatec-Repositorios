@@ -11,9 +11,9 @@
 composto por:
 
 - **Backend** (`back-end/`): API Spring Boot 4.1 (Java 21), JPA + PostgreSQL 17,
-  Spring Security com JWT (Azure AD/MSAL), Lombok, Swagger/OpenAPI (Springdoc).
+  Spring Security com JWT (autenticação local por e-mail/senha + código de verificação via Resend e SSO Microsoft/MSAL do tenant CPS), Lombok, Swagger/OpenAPI (Springdoc).
 - **Frontend** (`front-end/`): aplicação Angular 22 + TypeScript 6 + Tailwind CSS,
-  Editor.js (rich text), Azure MSAL para login. Servida pelo Nginx em Docker.
+  Editor.js (rich text), tela unificada `/entrar` (login, cadastro com código de 6 dígitos, recuperação de senha e Azure MSAL CPS). Servida pelo Nginx em Docker.
 - **Docker** (`docker-compose.yml`): `postgres:17`, `backend:4040`, `frontend:4200`.
 
 ## Stack resumida
