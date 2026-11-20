@@ -37,11 +37,15 @@ public class CatalogoSeeder implements CommandLineRunner {
         }
 
         for (String arquivo : seedProperties.getFiles()) {
-            if (arquivo.endsWith(CATALOGO_INSTITUICOES)) {
+            // Compara o nome do arquivo, não o path com endsWith: "cursos_instituicoes.csv"
+            // termina com "instituicoes.csv" e seria erroneamente tratado como catálogo de
+            // instituições (o parser não acharia a coluna "nome" e derrubaria o boot).
+            String nome = arquivo.substring(arquivo.lastIndexOf('/') + 1);
+            if (CATALOGO_INSTITUICOES.equals(nome)) {
                 carregarInstituicoes(arquivo);
-            } else if (arquivo.endsWith(CATALOGO_CURSOS)) {
+            } else if (CATALOGO_CURSOS.equals(nome)) {
                 carregarCursos(arquivo);
-            } else if (arquivo.endsWith(SEED_PROJETOS)) {
+            } else if (SEED_PROJETOS.equals(nome)) {
                 carregarProjetos(arquivo);
             } else {
                 log.warn("[seed] arquivo de seed não suportado, ignorado: {}", arquivo);
