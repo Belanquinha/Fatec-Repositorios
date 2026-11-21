@@ -20,6 +20,7 @@ import { UsuarioLogado } from '../../core/auth/models/usuario-logado';
 import { ProjetoService } from '../../core/services/projeto.service';
 import {
   InstituicaoOption,
+  MotivoRemocao,
   ProjetoResponseModel,
 } from '../../core/models/projeto.model';
 import { mensagemErroAmigavel } from '../../core/utils/erro-http';
@@ -82,7 +83,9 @@ export class Perfil implements OnInit, OnDestroy {
 
   // --- Aba "Instituições (0–4)" do professor (Frame B) ---
   readonly LIMITE_VINCULOS = 4;
-  readonly LIMITE_SUGESTOES = 20;
+  // Teto de linhas do popup: acima disso o modal cresce além da viewport e a
+  // tela quebra. O anúncio (aria-live) continua com o total real de matches.
+  readonly LIMITE_SUGESTOES = 3;
 
   /** Vínculos persistidos (espelho do servidor). */
   vinculos = signal<InstituicaoOption[]>([]);
@@ -108,6 +111,8 @@ export class Perfil implements OnInit, OnDestroy {
   /** Modal "Mudar instituições": a edição dos vínculos sai do fim da página. */
   modalVinculosAberto = signal(false);
   @ViewChild('modalVinculos') modalVinculos!: ElementRef<HTMLElement>;
+  /** Modal de exclusão: confirmação destrutiva antes do DELETE. */
+  @ViewChild('modalExclusao') modalExclusao!: ElementRef<HTMLElement>;
   /** Foco a restaurar ao fechar o modal (o Tab volta para o botão). */
   private ultimoFocoAntesDoModal: HTMLElement | null = null;
   /** `overflow` do body antes da trava — restaurado ao fechar (não zerado). */
@@ -123,6 +128,22 @@ export class Perfil implements OnInit, OnDestroy {
   motivosRejeicao = signal<Record<string, string>>({});
   /** Capas que falharam no <img>: o card mostra o bloco neutro no lugar. */
   capasComErro = new Set<string>();
+
+  // --- Exclusão de projeto (SPEC-exclusao-projetos fase 1) ---
+  /** Projeto em confirmação de exclusão; null = modal fechado. */
+  exclusao = signal<{ id: string; titulo: string } | null>(null);
+  motivoExclusao = signal<MotivoRemocao>('PEDIDO_AUTOR');
+  excluindo = signal(false);
+  erroExclusao = signal<string | null>(null);
+  sucessoExclusao = signal<string | null>(null);
+
+  /** Categorias genéricas: o motivo nunca é texto livre (pode conter PII). */
+  readonly motivosRemocao: { valor: MotivoRemocao; rotulo: string }[] = [
+    { valor: 'PEDIDO_AUTOR', rotulo: 'A pedido do autor' },
+    { valor: 'DADOS_PESSOAIS', rotulo: 'Dados pessoais / LGPD' },
+    { valor: 'ERRO_AUTORIA', rotulo: 'Erro de autoria' },
+    { valor: 'OUTRO', rotulo: 'Outro motivo' },
+  ];
 
   // --- Derivados das abas ---
 
@@ -205,7 +226,7 @@ export class Perfil implements OnInit, OnDestroy {
     }
     return this.isProfessor()
       ? 'Nenhum projeto aguardando sua aprovação.'
-      : 'Nenhum projeto enviado em análise.';
+      : 'Nenhum projeto Pendente.';
   });
 
   notaVazia = computed(() => {
@@ -449,6 +470,73 @@ export class Perfil implements OnInit, OnDestroy {
     this.carregarVinculos();
   }
 
+  // --- Exclusão (SPEC-exclusao-projetos fase 1) ---
+
+  /** O card só mostra "Excluir" quando o projeto é do usuário logado. */
+  podeExcluir(p: ProjetoResponseModel): boolean {
+    return p?.autorId != null && p.autorId === this.usuario()?.id;
+  }
+
+  abrirExclusao(id: string, titulo: string): void {
+    this.exclusao.set({ id, titulo });
+    this.motivoExclusao.set('PEDIDO_AUTOR');
+    this.erroExclusao.set(null);
+    this.sucessoExclusao.set(null);
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      this.ultimoFocoAntesDoModal = document.activeElement;
+    }
+    this.aplicarTravaDeRolagemModal();
+    setTimeout(() => this.modalExclusao?.nativeElement.focus(), 0);
+  }
+
+  fecharExclusao(): void {
+    if (this.excluindo()) {
+      return;
+    }
+    this.exclusao.set(null);
+    this.erroExclusao.set(null);
+    this.aplicarTravaDeRolagemModal();
+    this.restaurarFocoModal();
+  }
+
+  confirmarExclusao(): void {
+    const alvo = this.exclusao();
+    if (!alvo || this.excluindo()) {
+      return;
+    }
+    this.excluindo.set(true);
+    this.erroExclusao.set(null);
+    this.sucessoExclusao.set(null);
+    this.projetoService
+      .excluirProjeto(alvo.id, { motivoRemocao: this.motivoExclusao() })
+      .subscribe({
+        next: (resultado) => {
+          this.excluindo.set(false);
+          // Fechar pelo caminho normal: restaura foco e a rolagem do body.
+          this.fecharExclusao();
+          this.meusProjetos.set(
+            this.meusProjetos().filter((p) => p.id !== alvo.id),
+          );
+          this.pendentes.set(this.pendentes().filter((p) => p.id !== alvo.id));
+          this.sucessoExclusao.set(
+            resultado.estado === 'REMOVIDO'
+              ? `"${resultado.titulo}" saiu do ar. Você pode reverter em até 14 dias.`
+              : `"${resultado.titulo}" foi excluído.`,
+          );
+        },
+        error: (err) => {
+          console.error('Erro ao excluir projeto:', err);
+          this.excluindo.set(false);
+          this.erroExclusao.set(
+            mensagemErroAmigavel(
+              err,
+              'Não foi possível excluir o projeto agora. Tente novamente.',
+            ),
+          );
+        },
+      });
+  }
+
   // --- Autocomplete multi (tipo-para-revelar, Frame B §3) ---
   onBuscaVinculo(termo: string): void {
     this.buscaVinculo = termo;
@@ -684,7 +772,7 @@ export class Perfil implements OnInit, OnDestroy {
 
   private aplicarTravaDeRolagemModal(): void {
     if (typeof document === 'undefined') return;
-    if (this.modalVinculosAberto()) {
+    if (this.modalVinculosAberto() || this.exclusao()) {
       if (this.overflowAnteriorDoBodyModal === null) {
         this.overflowAnteriorDoBodyModal = document.body.style.overflow;
       }
@@ -697,6 +785,7 @@ export class Perfil implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
+    this.fecharExclusao();
     this.fecharModalVinculos();
   }
 

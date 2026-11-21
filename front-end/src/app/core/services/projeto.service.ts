@@ -4,12 +4,15 @@ import { Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   CursoOption,
+  ExcluirProjetoPayload,
+  ExclusaoProjetoModel,
   InstituicaoOption,
   PerfilInstituicaoModel,
   PerfilPublicoUsuarioModel,
   ProfessorDetalhe,
   ProfessorOption,
   ProjetoCreatePayload,
+  ProjetoRemovidoModel,
   ProjetoResponseModel,
   UploadResponseModel,
 } from '../models/projeto.model';
@@ -112,6 +115,30 @@ export class ProjetoService {
       `${this.apiUrl}/projetos/${encodeURIComponent(id)}/rejeitar`,
       { motivo }
     );
+  }
+
+  /**
+   * Exclusão pelo autor (SPEC-exclusao-projetos fase 1).
+   * AGUARDANDO_APROVACAO/REJEITADO → hard delete; APROVADO → soft delete (REMOVIDO),
+   * com reversão possível por 14 dias.
+   */
+  excluirProjeto(id: string, payload: ExcluirProjetoPayload): Observable<ExclusaoProjetoModel> {
+    return this.http.delete<ExclusaoProjetoModel>(
+      `${this.apiUrl}/projetos/${encodeURIComponent(id)}`,
+      { body: payload }
+    );
+  }
+
+  reverterProjetoRemovido(id: string): Observable<ProjetoResponseModel> {
+    return this.http.post<ProjetoResponseModel>(
+      `${this.apiUrl}/projetos/${encodeURIComponent(id)}/reverter`,
+      {}
+    );
+  }
+
+  /** Removidos do usuário logado — sem PII, com a contagem regressiva. */
+  listarProjetosRemovidos(): Observable<ProjetoRemovidoModel[]> {
+    return this.http.get<ProjetoRemovidoModel[]>(`${this.apiUrl}/projetos/removidos`);
   }
 
   /**

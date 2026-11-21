@@ -9,6 +9,8 @@
 
 /** Tudo que o back-end devolve no login e que a UI depois consulta. */
 export interface SessaoBackend {
+  /** ID da conta: é o que permite ao front-end reconhecer os cards do próprio usuário. */
+  id?: string;
   accessToken?: string;
   tokenType?: string;
   expiresInSeconds?: number;
@@ -22,6 +24,7 @@ const CHAVES = [
   'accessToken',
   'tokenType',
   'expiresInSeconds',
+  'usuarioId',
   'usuarioNome',
   'usuarioEmail',
   'usuarioFoto',
@@ -43,6 +46,7 @@ export function gravarSessao(dados: unknown): void {
   window.localStorage.setItem('accessToken', sessao.accessToken);
   window.localStorage.setItem('tokenType', sessao.tokenType ?? 'Bearer');
   window.localStorage.setItem('expiresInSeconds', String(sessao.expiresInSeconds ?? 0));
+  if (sessao.id) window.localStorage.setItem('usuarioId', sessao.id);
   if (sessao.nome) window.localStorage.setItem('usuarioNome', sessao.nome);
   if (sessao.email) window.localStorage.setItem('usuarioEmail', sessao.email);
   if (sessao.fotoUrl) window.localStorage.setItem('usuarioFoto', sessao.fotoUrl);

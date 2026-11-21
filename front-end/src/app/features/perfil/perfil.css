@@ -3,9 +3,9 @@
    do projeto para o modo escuro continuar funcionando. */
 
 .perfil-tela {
-  max-width: 1120px;
+  max-width: 1344px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 2.5rem;
+  padding: 1.5rem 1.5rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -16,9 +16,6 @@
   flex-direction: column;
   border-radius: 0;
   padding: 1.5rem;
-}
-
-.perfil-card-larga {
   width: 100%;
 }
 
@@ -26,9 +23,17 @@
 
 .identidade {
   display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
 
+.identidade-topo {
+  display: flex;
+  flex-direction: row;
   align-items: flex-start;
   gap: 1.5rem;
+  width: 100%;
 }
 
 .avatar {
@@ -86,9 +91,6 @@
   flex-wrap: wrap;
   gap: 0.5rem 1.25rem;
   list-style: none;
-  padding: 0.75rem 0 0;
-  margin: 0.25rem 0 0;
-  border-top: 1px solid var(--branco-600);
   font-size: 0.875rem;
   color: var(--cinza-300);
 }
@@ -108,8 +110,9 @@
 .identidade-acoes {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 0.625rem;
-  align-items: stretch;
+  align-items: center;
 }
 
 /* --- Botões --- */
@@ -129,7 +132,8 @@
   height: fit-content;
 }
 
-.btn-primario {
+.btn-primario,
+.aba-contador-vermelho {
   background: var(--vermelho-500);
   color: #ffffff;
 }
@@ -138,22 +142,30 @@
   background: var(--vermelho-600);
 }
 
-.btn-primario:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
 .btn-outline {
   background: var(--branco-50);
   color: var(--cinza-500);
   border-color: var(--cinza-500);
 }
 
-.btn-outline:hover {
+.btn-outline:hover,
+.btn-icone:hover {
   background: var(--branco-600);
 }
 
-.btn-outline:disabled {
+/* Destrutivo: mesma cor de ação do mock (#D32F2F), contorno vermelho. */
+.btn-perigo {
+  background: transparent;
+  color: var(--vermelho-500, #d32f2f);
+  border-color: var(--vermelho-500, #d32f2f);
+}
+
+.btn-perigo:hover {
+  background: var(--vermelho-500, #d32f2f);
+  color: #ffffff;
+}
+
+.btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -167,10 +179,6 @@
   background: var(--branco-50);
   color: var(--cinza-500);
   border-color: var(--cinza-500);
-}
-
-.btn-icone:hover {
-  background: var(--branco-600);
 }
 
 .btn-compacto {
@@ -210,7 +218,10 @@
   cursor: pointer;
 }
 
-.aba:hover {
+.aba:hover,
+.chip-remover:hover,
+.vinculo-contador strong,
+.modal-fechar:hover {
   color: var(--cinza-500);
 }
 
@@ -237,11 +248,6 @@
   color: var(--cinza-300);
   font-size: 0.75rem;
   font-weight: 700;
-}
-
-.aba-contador-vermelho {
-  background: var(--vermelho-500);
-  color: #ffffff;
 }
 
 .busca {
@@ -318,7 +324,8 @@
   background: var(--branco-300);
 }
 
-.icone-capa-vazia {
+.icone-capa-vazia,
+.icone-vazio {
   font-size: 2.5rem;
   color: var(--cinza-100);
 }
@@ -465,10 +472,6 @@
   color: var(--cinza-300);
 }
 
-.paginacao-texto {
-  margin: 0;
-}
-
 .paginacao-controles {
   display: inline-flex;
   align-items: center;
@@ -513,11 +516,6 @@
   padding: 2.5rem 1rem;
   text-align: center;
   color: var(--cinza-300);
-}
-
-.icone-vazio {
-  font-size: 2.5rem;
-  color: var(--cinza-100);
 }
 
 .vazio-mensagem {
@@ -626,10 +624,6 @@
   color: var(--cinza-500);
 }
 
-.vinculo-campo {
-  margin-top: 0.25rem;
-}
-
 .vinculo-rotulo {
   display: block;
   margin-bottom: 0.5rem;
@@ -638,10 +632,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--cinza-500);
-}
-
-.combo {
-  position: relative;
 }
 
 .combo-campo {
@@ -689,18 +679,15 @@
 }
 
 .combo-popup {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
+  position: relative;
+  width: 100%;
   z-index: 30;
-  max-height: 320px;
-  overflow: auto;
-  margin-top: 4px;
+  overflow: hidden;
+  margin-top: 8px;
   background: var(--branco-50);
   border: 1px solid var(--cinza-300);
   border-radius: 0;
-  box-shadow: 0 4px 12px rgba(13, 14, 15, 0.2);
+  box-shadow: 0 4px 12px rgba(13, 14, 15, 0.1);
 }
 
 .combo-status {
@@ -787,6 +774,10 @@
   font-size: 0.75rem;
   color: var(--cinza-300);
   background: var(--branco-600);
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: none !important;
 }
 
 .combo-vazio {
@@ -847,10 +838,6 @@
   color: var(--cinza-500);
 }
 
-.chip-nome {
-  overflow-wrap: break-word;
-}
-
 .chip-remover {
   display: inline-flex;
   align-items: center;
@@ -861,10 +848,6 @@
   background: transparent;
   color: var(--cinza-300);
   cursor: pointer;
-}
-
-.chip-remover:hover {
-  color: var(--cinza-500);
 }
 
 .vinculo-rodape {
@@ -886,10 +869,6 @@
   color: var(--cinza-300);
 }
 
-.vinculo-contador strong {
-  color: var(--cinza-500);
-}
-
 .vinculo-contador-teto,
 .vinculo-contador-teto strong {
   color: #8a6802;
@@ -909,14 +888,14 @@
   color: var(--cinza-300);
 }
 
-/* --- Modal "Mudar instituições" --- */
+/* --- Modal: base compartilhada por "Mudar instituições" e "Excluir projeto" --- */
 
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 1000;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding: 1rem;
   overflow-y: auto;
@@ -927,16 +906,13 @@
 .modal {
   width: 100%;
   max-width: 640px;
-  margin: auto;
+  max-height: calc(100vh - 2rem);
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 2rem);
   background: var(--branco-50);
   border: 1px solid var(--cinza-500);
-  box-shadow: 0 12px 32px rgba(13, 14, 15, 0.25);
-}
-
-.modal:focus {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  /* O foco vai para o diálogo via script (tabindex -1): sem anel visível. */
   outline: none;
 }
 
@@ -962,27 +938,66 @@
   color: var(--cinza-300);
 }
 
+/* Mesmo padrão de atalho do header (48px), só que dentro do modal. */
 .modal-fechar {
-  flex: 0 0 auto;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
   border: 0;
   background: transparent;
   color: var(--cinza-300);
   cursor: pointer;
 }
 
-.modal-fechar:hover {
+.modal-corpo {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex: 1 1 auto;
+}
+
+.modal-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--branco-50);
+  border-top: 1px solid var(--branco-600);
+}
+
+/* --- Modal de exclusão (SPEC-exclusao-projetos fase 1) --- */
+.exclusao-aviso {
+  font-size: 0.85rem;
+  line-height: 1.4;
   color: var(--cinza-500);
 }
 
-.modal-corpo {
-  padding: 1.5rem;
-  overflow-y: auto;
+.exclusao-rotulo {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cinza-500);
+}
+
+.exclusao-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--cinza-500);
+  border-radius: 8px;
+  background: var(--branco-50);
+  color: var(--cinza-600, #333333);
+  font-size: 0.9rem;
+}
+
+.exclusao-select:focus-visible {
+  outline: 2px solid var(--vermelho-500, #d32f2f);
+  outline-offset: 1px;
 }
 
 @keyframes modal-fade {
@@ -1014,30 +1029,91 @@
   }
 
   .identidade {
-    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .identidade-topo {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .avatar {
+    flex: 0 0 72px;
+    width: 72px;
+    height: 72px;
+  }
+
+  .avatar-inicial {
+    font-size: 1.75rem;
+  }
+
+  .perfil-nome {
+    font-size: 1.25rem;
+  }
+
+  .perfil-stats {
+    gap: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
   }
 
   .identidade-acoes {
-    flex: 1 1 100%;
     width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .identidade-acoes .btn {
-    width: 100%;
+  .identidade-acoes .btn-outline {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .btn-icone {
-    align-self: flex-start;
+  .identidade-acoes .btn-outline span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .identidade-acoes .btn-outline .material-symbols-outlined {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .identidade-acoes .btn-icone {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .abas-barra {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .abas {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 2px solid var(--branco-600);
   }
 
   .busca {
     flex-basis: auto;
     min-width: 0;
+    width: 100%;
   }
 
   .grade-projetos {

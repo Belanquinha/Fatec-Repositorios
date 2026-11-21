@@ -154,7 +154,11 @@ abstract class ApiE2ETestSupport {
     }
 
     protected ResponseEntity<String> delete(String path, String token) {
-        return exchange(HttpMethod.DELETE, path, null, token);
+        return delete(path, null, token);
+    }
+
+    protected ResponseEntity<String> delete(String path, Object body, String token) {
+        return exchange(HttpMethod.DELETE, path, body, token);
     }
 
     private ResponseEntity<String> exchange(HttpMethod method, String path, Object body, String token) {

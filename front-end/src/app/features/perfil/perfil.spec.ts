@@ -70,6 +70,9 @@ describe('Perfil', () => {
       listarPendentesAprovacao: vi.fn().mockReturnValue(of([])),
       aprovarProjeto: vi.fn().mockReturnValue(of({})),
       rejeitarProjeto: vi.fn().mockReturnValue(of({})),
+      excluirProjeto: vi.fn().mockReturnValue(of({})),
+      reverterProjetoRemovido: vi.fn().mockReturnValue(of({})),
+      listarProjetosRemovidos: vi.fn().mockReturnValue(of([])),
     };
   }
 
@@ -191,6 +194,10 @@ describe('Perfil', () => {
     expect(mock.obterMeusProjetos).toHaveBeenCalled();
     expect(component.selecao()).toEqual([]);
     expect(component.totalPendentes()).toBe(0);
+
+    // O onboarding de instituições vive no modal, não mais numa seção no fim da página.
+    component.abrirModalVinculos();
+    fixture.detectChanges();
     const texto = fixture.nativeElement.textContent as string;
     expect(texto).toContain('Sem instituições vinculadas ainda');
     expect(texto).toContain('0 de 4');
@@ -275,6 +282,9 @@ describe('Perfil', () => {
     fixture.detectChanges();
 
     expect(component.erroVinculos()).toContain('Não foi possível carregar');
+    // O painel de erro (e o retry) fica no modal de instituições.
+    component.abrirModalVinculos();
+    fixture.detectChanges();
     expect(fixture.nativeElement.textContent as string).toContain('Tentar novamente');
   });
 
@@ -515,6 +525,9 @@ describe('Perfil (erro HTML normalizado, item 30)', () => {
       listarPendentesAprovacao: vi.fn().mockReturnValue(of([])),
       aprovarProjeto: vi.fn().mockReturnValue(of({})),
       rejeitarProjeto: vi.fn().mockReturnValue(of({})),
+      excluirProjeto: vi.fn().mockReturnValue(of({})),
+      reverterProjetoRemovido: vi.fn().mockReturnValue(of({})),
+      listarProjetosRemovidos: vi.fn().mockReturnValue(of([])),
     };
   }
 
@@ -598,5 +611,149 @@ describe('Perfil (erro HTML normalizado, item 30)', () => {
     comp.onMotivoRejeicao('proj-1', 'Falta referencial');
     comp.confirmarRejeicao('proj-1');
     expect(comp.erroPendentes()).toBe('Projeto já avaliado');
+  });
+});
+
+describe('Perfil — exclusão de projeto (SPEC-exclusao-projetos fase 1)', () => {
+  const aluno = {
+    id: 'u-aluno',
+    nome: 'Aluno Teste',
+    email: 'aluno.teste@aluno.cps.sp.gov.br',
+    role: 'ALUNO',
+  };
+
+  function projeto(estado: ProjetoResponseModel['estado'], id = 'p1'): ProjetoResponseModel {
+    return {
+      id,
+      titulo: `Projeto ${id}`,
+      descricaoCurta: 'Descrição',
+      instituicaoNome: 'Fatec Ipiranga',
+      estado,
+      autorId: 'u-aluno',
+      criadoEm: '2026-09-11T00:00:00Z',
+    } as ProjetoResponseModel;
+  }
+
+  function mock() {
+    return {
+      obterMeusProjetos: vi.fn().mockReturnValue(of([projeto('APROVADO')])),
+      excluirProjeto: vi.fn().mockReturnValue(
+        of({ id: 'p1', titulo: 'Projeto p1', estado: 'REMOVIDO', removidoEm: '2026-11-20T00:00:00' })
+      ),
+    };
+  }
+
+  async function configurar(projetosMock: unknown) {
+    await TestBed.configureTestingModule({
+      imports: [Perfil],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) } },
+        { provide: ProjetoService, useValue: projetosMock },
+      ],
+    }).compileComponents();
+
+    const fx = TestBed.createComponent(Perfil);
+    const comp = fx.componentInstance;
+    await fx.whenStable();
+    fx.detectChanges();
+    return { fx, comp };
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('mostra "Excluir" apenas nos projetos do usuário logado', async () => {
+    const { fx, comp } = await configurar(mock());
+
+    expect(comp.podeExcluir(projeto('APROVADO'))).toBe(true);
+    expect(comp.podeExcluir({ ...projeto('APROVADO'), autorId: 'u-outro' })).toBe(false);
+
+    const botoesExcluir: HTMLButtonElement[] = [];
+    fx.nativeElement.querySelectorAll('button').forEach((b: HTMLButtonElement) => {
+      if (b.textContent?.includes('Excluir')) {
+        botoesExcluir.push(b);
+      }
+    });
+    expect(botoesExcluir).toHaveLength(1);
+    expect(botoesExcluir[0].getAttribute('aria-label')).toBe('Excluir projeto Projeto p1');
+  });
+
+  it('não mostra "Excluir" quando a sessão não trouxe o id da conta', async () => {
+    // Sessão legada (gravada antes do `id` existir): sem id não há como provar
+    // autoria, então a ação some em vez de aparecer para um card que não é do usuário.
+    const { fx, comp } = await configurar(mock());
+    comp.usuario.update((u) => ({ ...u!, id: undefined }));
+    fx.detectChanges();
+
+    expect(comp.podeExcluir(projeto('APROVADO'))).toBe(false);
+    const botoesExcluir: HTMLButtonElement[] = [];
+    fx.nativeElement.querySelectorAll('button').forEach((b: HTMLButtonElement) => {
+      if (b.textContent?.includes('Excluir')) {
+        botoesExcluir.push(b);
+      }
+    });
+    expect(botoesExcluir).toHaveLength(0);
+  });
+
+  it('abre a confirmação com motivo padrão e não chama a API antes do confirmar', async () => {
+    const m = mock();
+    const { fx, comp } = await configurar(m);
+
+    comp.abrirExclusao('p1', 'Projeto p1');
+    fx.detectChanges();
+
+    expect(comp.exclusao()?.id).toBe('p1');
+    expect(comp.motivoExclusao()).toBe('PEDIDO_AUTOR');
+    expect(m.excluirProjeto).not.toHaveBeenCalled();
+    const modal = fx.nativeElement.querySelector('[role="alertdialog"]') as HTMLElement;
+    expect(modal).not.toBeNull();
+    expect(modal.textContent).toContain('Projeto p1');
+  });
+
+  it('confirma a exclusão e remove o card da aba', async () => {
+    const m = mock();
+    const { fx, comp } = await configurar(m);
+
+    comp.abrirExclusao('p1', 'Projeto p1');
+    comp.motivoExclusao.set('DADOS_PESSOAIS');
+    comp.confirmarExclusao();
+    await fx.whenStable();
+    fx.detectChanges();
+
+    expect(m.excluirProjeto).toHaveBeenCalledWith('p1', { motivoRemocao: 'DADOS_PESSOAIS' });
+    expect(comp.meusProjetos()).toHaveLength(0);
+    expect(comp.excluindo()).toBe(false);
+    expect(comp.sucessoExclusao()).toContain('14 dias');
+    expect(fx.nativeElement.querySelector('[role="alertdialog"]')).toBeNull();
+  });
+
+  it('cancelar não chama a API e fecha o modal', async () => {
+    const m = mock();
+    const { fx, comp } = await configurar(m);
+
+    comp.abrirExclusao('p1', 'Projeto p1');
+    comp.fecharExclusao();
+    fx.detectChanges();
+
+    expect(m.excluirProjeto).not.toHaveBeenCalled();
+    expect(comp.exclusao()).toBeNull();
+  });
+
+  it('falha do servidor vira erro amigável, sem remover o card', async () => {
+    const m = mock();
+    m.excluirProjeto.mockReturnValue(throwError(() => ({ status: 403, error: { mensagem: 'Acesso negado' } })));
+    const { fx, comp } = await configurar(m);
+
+    comp.abrirExclusao('p1', 'Projeto p1');
+    comp.confirmarExclusao();
+    await fx.whenStable();
+    fx.detectChanges();
+
+    expect(comp.erroExclusao()).toBeTruthy();
+    expect(comp.meusProjetos()).toHaveLength(1);
+    // O modal continua aberto para o usuário tentar de novo.
+    expect(comp.exclusao()).not.toBeNull();
   });
 });

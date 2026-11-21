@@ -27,6 +27,7 @@ describe('sessao-navegador', () => {
   describe('gravarSessao', () => {
     it('deve gravar todas as chaves devolvidas pelo back-end', () => {
       gravarSessao({
+        id: '7f3c1e2a-9b4d-4c5e-8f60-1a2b3c4d5e6f',
         accessToken: 'jwt',
         tokenType: 'Bearer',
         expiresInSeconds: 86400,
@@ -39,6 +40,7 @@ describe('sessao-navegador', () => {
       expect(localStorage.getItem('accessToken')).toBe('jwt');
       expect(localStorage.getItem('tokenType')).toBe('Bearer');
       expect(localStorage.getItem('expiresInSeconds')).toBe('86400');
+      expect(localStorage.getItem('usuarioId')).toBe('7f3c1e2a-9b4d-4c5e-8f60-1a2b3c4d5e6f');
       expect(localStorage.getItem('usuarioNome')).toBe('Maria da CPS');
       expect(localStorage.getItem('usuarioEmail')).toBe('maria@cps.sp.gov.br');
       expect(localStorage.getItem('usuarioFoto')).toBe('https://exemplo.test/foto.png');
@@ -70,6 +72,7 @@ describe('sessao-navegador', () => {
       localStorage.setItem('accessToken', 'jwt');
       localStorage.setItem('tokenType', 'Bearer');
       localStorage.setItem('expiresInSeconds', '3600');
+      localStorage.setItem('usuarioId', '7f3c1e2a-9b4d-4c5e-8f60-1a2b3c4d5e6f');
       localStorage.setItem('usuarioNome', 'Aluno');
       localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
       localStorage.setItem('usuarioFoto', 'foto');
@@ -82,6 +85,7 @@ describe('sessao-navegador', () => {
       expect(localStorage.getItem('accessToken')).toBeNull();
       expect(localStorage.getItem('tokenType')).toBeNull();
       expect(localStorage.getItem('expiresInSeconds')).toBeNull();
+      expect(localStorage.getItem('usuarioId')).toBeNull();
       expect(localStorage.getItem('usuarioNome')).toBeNull();
       expect(localStorage.getItem('usuarioEmail')).toBeNull();
       expect(localStorage.getItem('usuarioFoto')).toBeNull();

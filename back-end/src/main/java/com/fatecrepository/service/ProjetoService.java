@@ -149,6 +149,13 @@ public class ProjetoService {
         Projeto projeto = projetoRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado"));
 
+        // REMOVIDO some do detalhe inclusive para o autor: a reversão acontece
+        // em /projetos/removidos, não na vitrine.
+        if (projeto.getEstado() == ProjetoEstado.REMOVIDO) {
+            log.info("GET /projetos/{} negado: projeto removido", id);
+            throw new ResourceNotFoundException("Projeto não encontrado");
+        }
+
         if (projeto.getEstado() != ProjetoEstado.APROVADO && !podeVerNaoAprovado(projeto, usuario)) {
             log.info("GET /projetos/{} negado para {}: projeto {} não está aprovado",
                 id, usuario == null ? "anônimo" : usuario.getUsername(), projeto.getEstado());
@@ -188,7 +195,10 @@ public class ProjetoService {
     @Transactional(readOnly = true)
     public List<ProjetoResponse> obterMeusProjetos(UUID autorId) {
         log.info("Buscando projetos do autorId: {}", autorId);
-        List<Projeto> projetos = projetoRepository.findByAutorIdOrderByCriadoEmDesc(autorId);
+        // REMOVIDO fica de fora: a remoção é listada em /projetos/removidos e o
+        // card de um projeto removido não deve reaparecer na aba de publicados.
+        List<Projeto> projetos = projetoRepository
+            .findByAutorIdAndEstadoNotOrderByCriadoEmDesc(autorId, ProjetoEstado.REMOVIDO);
         return projetos.stream()
             .map(p -> {
                 ProjetoResponse resp = responseMapper.toProjetoResponse(p);

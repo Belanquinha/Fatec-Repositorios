@@ -10,6 +10,8 @@ import com.fatecrepository.model.Instituicao;
 import com.fatecrepository.model.User;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class ResponseMapper {
 
@@ -55,11 +57,17 @@ public class ResponseMapper {
     }
 
     public AuthResponse toAuthResponse(String token, long expiresInSeconds, String role) {
-        return new AuthResponse(token, "Bearer", expiresInSeconds, null, null, null, role);
+        return new AuthResponse(null, token, "Bearer", expiresInSeconds, null, null, null, role);
     }
 
     public AuthResponse toAuthResponse(String token, long expiresInSeconds, String nome, String email, String fotoUrl, String role) {
-        return new AuthResponse(token, "Bearer", expiresInSeconds, nome, email, fotoUrl, role);
+        return new AuthResponse(null, token, "Bearer", expiresInSeconds, nome, email, fotoUrl, role);
+    }
+
+    /** Sessão completa, com o id da conta que o front-end precisa para dono-de-card. */
+    public AuthResponse toAuthResponse(UUID id, String token, long expiresInSeconds,
+                                       String nome, String email, String fotoUrl, String role) {
+        return new AuthResponse(id, token, "Bearer", expiresInSeconds, nome, email, fotoUrl, role);
     }
 
     public com.fatecrepository.dto.response.IntegranteResponse toIntegranteResponse(com.fatecrepository.model.Integrante integrante) {

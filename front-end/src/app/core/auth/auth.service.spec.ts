@@ -237,6 +237,7 @@ describe('AuthService', () => {
 
     it('deve devolver o usuário quando o back-end confirmou a sessão', async () => {
       localStorage.setItem('accessToken', criarJwtValido());
+      localStorage.setItem('usuarioId', 'u-admin');
       localStorage.setItem('usuarioNome', 'Aluno da CPS');
       localStorage.setItem('usuarioEmail', 'aluno@aluno.cps.sp.gov.br');
       localStorage.setItem('usuarioFoto', 'https://exemplo.test/foto.png');
@@ -245,6 +246,7 @@ describe('AuthService', () => {
       const authService = criarAuthService(criarInstanciaMsal());
 
       await expect(authService.obterUsuarioLogado()).resolves.toEqual({
+        id: 'u-admin',
         nome: 'Aluno da CPS',
         email: 'aluno@aluno.cps.sp.gov.br',
         foto: 'https://exemplo.test/foto.png',
@@ -470,6 +472,7 @@ describe('AuthService', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(
           JSON.stringify({
+            id: 'u-carlos',
             accessToken: token,
             tokenType: 'Bearer',
             expiresInSeconds: 3600,
@@ -485,7 +488,9 @@ describe('AuthService', () => {
       await authService.loginComEmailSenha('carlos@cps.sp.gov.br', 'senha12345');
 
       expect(localStorage.getItem('accessToken')).toBe(token);
+      expect(localStorage.getItem('usuarioId')).toBe('u-carlos');
       expect(authService.usuarioAtual()).toEqual({
+        id: 'u-carlos',
         nome: 'Carlos Docente',
         email: 'carlos@cps.sp.gov.br',
         foto: undefined,

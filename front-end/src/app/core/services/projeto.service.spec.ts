@@ -184,6 +184,7 @@ describe('ProjetoService (contrato HTTP)', () => {
       palavrasChave: ['Java'],
       anoPublicado: 2026,
       instituicaoId: 'inst-001',
+      cursoId: 'curso-001',
       emailProfessorResponsavel: 'professor@cps.sp.gov.br',
       integrantes: [
         { nome: 'Ana', linkLinkedin: 'https://linkedin.com/in/ana' },
@@ -272,6 +273,58 @@ describe('ProjetoService (contrato HTTP)', () => {
       // Um catálogo de fallback silencioso aqui esconderia sessão expirada.
       expect(erro).toBeTruthy();
       expect((erro as { status: number }).status).toBe(401);
+    });
+  });
+
+  describe('exclusão de projeto (SPEC-exclusao-projetos fase 1)', () => {
+    it('deve excluir em DELETE /projetos/{id} com motivo genérico no corpo', () => {
+      service.excluirProjeto('proj-1', { motivoRemocao: 'PEDIDO_AUTOR' }).subscribe();
+
+      const req = http.expectOne(`${base}/projetos/proj-1`);
+      expect(req.request.method).toBe('DELETE');
+      expect(req.request.body).toEqual({ motivoRemocao: 'PEDIDO_AUTOR' });
+      req.flush({ id: 'proj-1', titulo: 'Projeto', estado: 'REMOVIDO' });
+    });
+
+    it('não deve enviar texto livre como motivo (só categoria)', () => {
+      service.excluirProjeto('proj-1', { motivoRemocao: 'DADOS_PESSOAIS' }).subscribe();
+
+      const req = http.expectOne(`${base}/projetos/proj-1`);
+      expect(Object.keys(req.request.body)).toEqual(['motivoRemocao']);
+      req.flush({ id: 'proj-1', estado: 'EXCLUIDO' });
+    });
+
+    it('deve propagar 403/404/401 em vez de mascarar com sucesso', () => {
+      let erro: unknown;
+      service
+        .excluirProjeto('proj-outro', { motivoRemocao: 'OUTRO' })
+        .subscribe({ error: (e) => (erro = e) });
+
+      http
+        .expectOne(`${base}/projetos/proj-outro`)
+        .flush(
+          { codigo: 403, mensagem: 'Acesso negado' },
+          { status: 403, statusText: 'Forbidden' },
+        );
+
+      expect(erro).toBeTruthy();
+      expect((erro as { status: number }).status).toBe(403);
+    });
+
+    it('deve reverter em POST /projetos/{id}/reverter', () => {
+      service.reverterProjetoRemovido('proj-1').subscribe();
+
+      const req = http.expectOne(`${base}/projetos/proj-1/reverter`);
+      expect(req.request.method).toBe('POST');
+      req.flush({ id: 'proj-1', estado: 'APROVADO' });
+    });
+
+    it('deve listar removidos em GET /projetos/removidos', () => {
+      service.listarProjetosRemovidos().subscribe();
+
+      const req = http.expectOne(`${base}/projetos/removidos`);
+      expect(req.request.method).toBe('GET');
+      req.flush([]);
     });
   });
 

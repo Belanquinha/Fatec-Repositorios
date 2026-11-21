@@ -73,6 +73,12 @@ app:
     # relativo resolve para ./uploads a partir do WORKDIR; no compose o
     # APP_UPLOAD_DIR aponta para o volume uploads_data (/app/uploads).
     dir: ${APP_UPLOAD_DIR:uploads}
+  projeto:
+    purgacao:
+      # Purge diário de REMOVIDO com mais de 14 dias (linha + arquivos).
+      enabled: ${APP_PROJETO_PURGACAO_ENABLED:true}
+      dias: ${APP_PROJETO_PURGACAO_DIAS:14}
+      cron: ${APP_PROJETO_PURGACAO_CRON:0 17 3 * * *}
   resend:
     # Integração de e-mail (notificação de projeto submetido ao professor).
     # A key NÃO vai para o front-end: só o back-end envia.

@@ -34,6 +34,12 @@ springdoc:
 app:
   upload:
     dir: ${java.io.tmpdir}/fatecrepository-e2e-uploads
+  projeto:
+    purgacao:
+      # O purge é exercitado pelos testes via ProjetoPurgeService, não pelo cron.
+      enabled: false
+      dias: 14
+      cron: "0 17 3 * * *"
   security:
     jwt:
       # Segredo determinístico do perfil de teste: permite que o teste gere

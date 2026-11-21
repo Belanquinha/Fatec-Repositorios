@@ -3,6 +3,7 @@ package com.fatecrepository.service;
 import com.fatecrepository.dto.response.UploadResponse;
 import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.PayloadTooLargeException;
+import com.fatecrepository.model.Projeto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,9 +14,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -37,6 +44,17 @@ public class FileStorageService {
 
     /** Mesmo teto do multipart no application.yml: barreira amigável antes do 500 do container. */
     private static final long TAMANHO_MAXIMO_BYTES = 10L * 1024 * 1024;
+
+    /**
+     * Regra de proteção: só apaga arquivo cujo nome case com UUID (-thumb opcional) e
+     * extensão de imagem. Preserva o seed (/uploads/golden-maker-capa.png) e qualquer
+     * arquivo externo fora desse padrão.
+     */
+    private static final Pattern NOME_ARQUIVO_SEGURO = Pattern.compile(
+        "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(-thumb)?\\.(png|jpg|jpeg|webp)$");
+
+    private static final Pattern SRC_UPLOADS = Pattern.compile(
+        "/uploads/([^\\\\\"'?#\\s]+)", Pattern.CASE_INSENSITIVE);
 
     public FileStorageService(@Value("${app.upload.dir:uploads}") String uploadDir) {
         this.uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
@@ -97,6 +115,88 @@ public class FileStorageService {
             log.error("Falha ao salvar arquivo no disco: {}", nomeArquivoUnico, e);
             throw new RuntimeException("Falha ao salvar arquivo no servidor", e);
         }
+    }
+
+    /**
+     * Nomes de arquivo de um projeto: capa (+ thumb) e imagens inline do conteúdo.
+     * Não valida o padrão de segurança aqui — só a deleção aplica a regra de proteção.
+     */
+    public List<String> nomesArquivosDeProjeto(Projeto projeto) {
+        if (projeto == null) {
+            return List.of();
+        }
+        Set<String> nomes = new LinkedHashSet<>();
+        adicionarSeUpload(nomes, projeto.getImagemCapaUrl());
+        if (projeto.getConteudoEditorJs() != null) {
+            Matcher matcher = SRC_UPLOADS.matcher(projeto.getConteudoEditorJs());
+            while (matcher.find()) {
+                nomes.add(matcher.group(1));
+            }
+        }
+        return new ArrayList<>(nomes);
+    }
+
+    /**
+     * Apaga arquivos do projeto que case com a regra de proteção. Nome fora do padrão
+     * (seed, arquivo externo) é sempre preservado; arquivo ausente é ignorado; falha de
+     * deleção é logada e não interrompe a operação.
+     */
+    public void excluirArquivos(List<String> nomesArquivos) {
+        if (nomesArquivos == null || nomesArquivos.isEmpty()) {
+            return;
+        }
+        Set<String> candidatos = new LinkedHashSet<>(nomesArquivos);
+        for (String nome : new ArrayList<>(nomesArquivos)) {
+            if (isNomeSeguro(nome) && !nome.matches("^.*-thumb\\.(png|jpg|jpeg|webp)$")) {
+                candidatos.add(nome.replaceFirst("\\.(png|jpg|jpeg|webp)$", "-thumb.png"));
+            }
+        }
+
+        for (String nome : candidatos) {
+            if (!isNomeSeguro(nome)) {
+                log.info("[exclusao] arquivo fora do padrão de segurança preservado: {}", nome);
+                continue;
+            }
+            Path destino = uploadPath.resolve(nome).normalize();
+            if (!destino.startsWith(uploadPath)) {
+                log.warn("[exclusao] caminho de arquivo inválido ignorado: {}", nome);
+                continue;
+            }
+            try {
+                if (Files.deleteIfExists(destino)) {
+                    log.info("[exclusao] arquivo removido: {}", destino);
+                }
+            } catch (IOException e) {
+                log.warn("[exclusao] não foi possível remover arquivo (será tentado pelo purge): {}", destino, e);
+            }
+        }
+    }
+
+    private void adicionarSeUpload(Set<String> nomes, String url) {
+        if (url == null) {
+            return;
+        }
+        String prefixo = "/uploads/";
+        if (!url.startsWith(prefixo)) {
+            return;
+        }
+        String nome = url.substring(prefixo.length());
+        int query = nome.indexOf('?');
+        if (query >= 0) {
+            nome = nome.substring(0, query);
+        }
+        if (!nome.isEmpty()) {
+            nomes.add(nome);
+        }
+    }
+
+    private boolean isNomeSeguro(String nome) {
+        if (nome == null) {
+            return false;
+        }
+        Path path = Paths.get(nome);
+        String base = path.getFileName() == null ? nome : path.getFileName().toString();
+        return NOME_ARQUIVO_SEGURO.matcher(base).matches();
     }
 
     /**

@@ -26,7 +26,7 @@ public class Projeto {
     @Column(nullable = false)
     private String titulo;
 
-    @Column(nullable = false, length = 144)
+    @Column(nullable = true, length = 144)
     private String descricaoCurta;
 
     @Column(columnDefinition = "TEXT")
@@ -53,7 +53,23 @@ public class Projeto {
     @Column(nullable = true, length = 2000, columnDefinition = "TEXT")
     private String motivoRejeicao;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
+    private LocalDateTime removidoEm;
+
+    @Column(nullable = true)
+    private UUID removidoPorId;
+
+    @Column(nullable = true, length = 40)
+    private String motivoRemocaoGenerico;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true)
+    private ProjetoEstado estadoAnterior;
+
+    @Column(nullable = true, columnDefinition = "TEXT")
+    private String dadosOriginais;
+
+    @Column(nullable = true)
     private String emailProfessorResponsavel;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -72,6 +72,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/projetos").hasAnyRole("ALUNO", "PROFESSOR")
                 .requestMatchers(HttpMethod.GET, "/projetos/pendentes").hasRole("PROFESSOR")
                 .requestMatchers(HttpMethod.GET, "/projetos/meus").authenticated()
+                // Estar antes do matcher genérico GET /projetos/** permitAll é o que
+                // impede a lista de removidos (e o PII dela) de virar pública.
+                .requestMatchers(HttpMethod.GET, "/projetos/removidos").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/projetos/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/projetos/*/reverter").authenticated()
                 .requestMatchers(HttpMethod.PATCH, "/projetos/**").hasRole("PROFESSOR")
                 .requestMatchers(HttpMethod.GET, "/projetos/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs").permitAll()

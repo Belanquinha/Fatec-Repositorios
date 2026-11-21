@@ -1,11 +1,15 @@
 package com.fatecrepository.controller;
 
+import com.fatecrepository.dto.request.ExcluirProjetoRequest;
 import com.fatecrepository.dto.request.ProjetoCreateRequest;
 import com.fatecrepository.dto.request.RejeitarProjetoRequest;
+import com.fatecrepository.dto.response.ExclusaoProjetoResponse;
+import com.fatecrepository.dto.response.ProjetoRemovidoResponse;
 import com.fatecrepository.dto.response.ProjetoResponse;
 import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.UnauthorizedException;
 import com.fatecrepository.security.CustomUserDetails;
+import com.fatecrepository.service.ProjetoExclusaoService;
 import com.fatecrepository.service.ProjetoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,6 +37,7 @@ import java.util.UUID;
 public class ProjetoController {
 
     private final ProjetoService projetoService;
+    private final ProjetoExclusaoService projetoExclusaoService;
 
     @PostMapping
     @Operation(summary = "Criar e submeter projeto para avaliação acadêmica", description = "Submete um novo projeto acadêmico que nasce no estado AGUARDANDO_APROVACAO")
@@ -85,6 +90,24 @@ public class ProjetoController {
         }
         log.info("GET /projetos/pendentes para o professor: {}", userDetails.getId());
         return ResponseEntity.ok(projetoService.listarPendentesParaProfessor(userDetails.getId()));
+    }
+
+    @GetMapping("/removidos")
+    @Operation(summary = "Listar projetos removidos pelo usuário logado",
+        description = "Retorna os projetos do autor em REMOVIDO, sem PII, com a contagem regressiva para expirar")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de removidos retornada (vazia quando não houver)"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado")
+    })
+    public ResponseEntity<List<ProjetoRemovidoResponse>> listarRemovidos(
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+        log.info("GET /projetos/removidos para o usuário: {}", userDetails.getId());
+        return ResponseEntity.ok(projetoExclusaoService.listarRemovidos(userDetails.getId()));
     }
 
     @GetMapping("/{id}")
@@ -168,5 +191,54 @@ public class ProjetoController {
         }
         log.info("PATCH /projetos/{}/rejeitar pelo professor: {}", id, userDetails.getId());
         return ResponseEntity.ok(projetoService.rejeitar(id, userDetails.getId(), request.getMotivo()));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Excluir projeto pelo autor",
+        description = "AGUARDANDO_APROVACAO/REJEITADO: hard delete. APROVADO: soft delete para REMOVIDO, "
+            + "com anonimização imediata e reversão pelo autor em até 14 dias.")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Projeto excluído ou removido"),
+        @ApiResponse(responseCode = "400", description = "Motivo de remoção inválido"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado"),
+        @ApiResponse(responseCode = "403", description = "Usuário autenticado não é o autor"),
+        @ApiResponse(responseCode = "404", description = "Projeto inexistente ou já removido")
+    })
+    public ResponseEntity<ExclusaoProjetoResponse> excluir(
+        @Parameter(description = "ID do projeto") @PathVariable UUID id,
+        @jakarta.validation.Valid @RequestBody(required = false) ExcluirProjetoRequest request,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+        if (request == null || request.getMotivoRemocao() == null || request.getMotivoRemocao().isBlank()) {
+            throw new BadRequestException("Motivo da remoção inválido");
+        }
+        log.info("DELETE /projetos/{} pelo autor: {}", id, userDetails.getId());
+        return ResponseEntity.ok(projetoExclusaoService.excluir(id, userDetails.getId(), request.getMotivoRemocao()));
+    }
+
+    @PostMapping("/{id}/reverter")
+    @Operation(summary = "Reverter projeto removido pelo autor",
+        description = "Restaura estado e dados originais de um projeto REMOVIDO dentro do prazo de 14 dias")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Projeto restaurado"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado"),
+        @ApiResponse(responseCode = "403", description = "Usuário autenticado não é o autor"),
+        @ApiResponse(responseCode = "404", description = "Projeto inexistente ou não está REMOVIDO"),
+        @ApiResponse(responseCode = "409", description = "Prazo de reversão expirado")
+    })
+    public ResponseEntity<ProjetoResponse> reverter(
+        @Parameter(description = "ID do projeto") @PathVariable UUID id,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+        log.info("POST /projetos/{}/reverter pelo autor: {}", id, userDetails.getId());
+        return ResponseEntity.ok(projetoExclusaoService.reverter(id, userDetails.getId()));
     }
 }

@@ -133,8 +133,14 @@ export class AuthService {
 
     const foto = lerChave('usuarioFoto');
     const role = lerChave('usuarioRole');
+    // O id é opcional de propósito: uma sessão gravada antes desta chave existir
+    // (ou um payload que não a trouxe) continua apresentando nome/e-mail. Quem
+    // precisa do id trata a ausência — hoje o `podeExcluir()` do /perfil, que
+    // simplesmente não mostra a ação em vez de inventar autoria.
+    const id = lerChave('usuarioId');
 
     const usuario: UsuarioLogado = {
+      id: id || undefined,
       nome,
       email,
       foto: foto || undefined,

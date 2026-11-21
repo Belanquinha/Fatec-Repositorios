@@ -48,6 +48,10 @@ export class CatalogoPublico implements OnInit {
   carregando = signal<boolean>(true);
   erroCarregamento = signal<string | null>(null);
   erroCarregarInstituicoes = signal(false);
+
+  // Rolar até o acervo é o `scroll-behavior: smooth` de `styles.css` (que já
+  // respeita `prefers-reduced-motion`); o JavaScript que existia aqui replicava
+  // esse comportamento com `requestAnimationFrame`.
   usuarioLogado = signal<UsuarioLogado | null>(null);
 
   primeiroNome = computed(() => {

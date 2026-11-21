@@ -1,9 +1,13 @@
 package com.fatecrepository.repository;
 
+import com.fatecrepository.model.Integrante;
 import com.fatecrepository.model.Projeto;
 import com.fatecrepository.model.ProjetoEstado;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +22,9 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
     Optional<Projeto> findById(UUID id);
 
     @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
+    List<Projeto> findByAutorIdAndEstadoNotOrderByCriadoEmDesc(UUID autorId, ProjetoEstado estado);
+
+    @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
     List<Projeto> findByAutorIdOrderByCriadoEmDesc(UUID autorId);
 
     @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
@@ -28,6 +35,20 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
 
     @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
     List<Projeto> findByEstadoAndEmailProfessorResponsavelIgnoreCaseOrderByCriadoEmDesc(ProjetoEstado estado, String emailProfessorResponsavel);
+
+    @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
+    List<Projeto> findByAutorIdAndEstadoOrderByRemovidoEmDesc(UUID autorId, ProjetoEstado estado);
+
+    @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
+    List<Projeto> findByEstadoAndRemovidoEmBefore(ProjetoEstado estado, java.time.LocalDateTime limite);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM Projeto p WHERE p.id = :id")
+    int excluirPorId(@Param("id") UUID id);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM Integrante i WHERE i.id = :id")
+    int excluirIntegrantePorId(@Param("id") UUID id);
 
     @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
     @org.springframework.data.jpa.repository.Query(

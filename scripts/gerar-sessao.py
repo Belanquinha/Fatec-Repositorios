@@ -28,6 +28,8 @@ import base64
 import hashlib
 import hmac
 import json
+import os
+import shutil
 import subprocess
 import sys
 import time
@@ -90,8 +92,38 @@ def mintar_jwt(segredo: str, emissor: str, email: str, user_id: str, role: str, 
     return f"{header}.{payload}.{assinatura}"
 
 
-def resolver_user_id(email: str) -> tuple[str, bool]:
-    """Tenta ler o UUID real da conta no Postgres do compose."""
+def _decodificar(saida: bytes | str | None) -> str:
+    if not saida:
+        return ""
+    return saida.decode("utf-8", "replace") if isinstance(saida, bytes) else saida
+
+
+def _consulta_uuid_no_psql(psql: str, email: str, senha: str) -> str | None:
+    env = dict(os.environ)
+    env["PGPASSWORD"] = senha
+    try:
+        proc = subprocess.run(
+            [
+                psql,
+                "-h", os.environ.get("PGHOST", "localhost"),
+                "-p", os.environ.get("PGPORT", "5432"),
+                "-U", os.environ.get("PGUSER", "postgres"),
+                "-d", os.environ.get("PGDATABASE", "fatecrepository"),
+                "-tAc",
+                f"SELECT id FROM usuarios WHERE email='{email}'",
+            ],
+            capture_output=True,
+            timeout=15,
+            env=env,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    return _decodificar(proc.stdout).strip() or None
+
+
+def _resolver_no_docker(email: str) -> tuple[str, bool]:
     try:
         proc = subprocess.run(
             [
@@ -107,18 +139,59 @@ def resolver_user_id(email: str) -> tuple[str, bool]:
                 f"SELECT id FROM usuarios WHERE email='{email}'",
             ],
             capture_output=True,
-            text=True,
             timeout=15,
         )
     except (OSError, subprocess.SubprocessError):
         return NIL_UUID, False
-    user_id = (proc.stdout or "").strip()
+    user_id = _decodificar(proc.stdout).strip()
     return (user_id, True) if user_id else (NIL_UUID, False)
+
+
+def _resolver_local(email: str, senhas: list[str]) -> tuple[str, bool]:
+    # O `.env` pode trazer a senha do compose, então a do application.yml (123456)
+    # também é tentada.
+    candidatos = [os.environ.get("PSQL_PATH", ""), shutil.which("psql") or ""]
+    candidatos.append(
+        r"C:\Program Files\PostgreSQL\18\bin\psql.exe"
+        if sys.platform.startswith("win")
+        else "/usr/bin/psql"
+    )
+    for senha in dict.fromkeys(s for s in senhas if s):
+        for candidato in candidatos:
+            if not candidato:
+                continue
+            user_id = _consulta_uuid_no_psql(candidato, email, senha)
+            if user_id:
+                return user_id, True
+    return NIL_UUID, False
+
+
+def resolver_user_id(email: str, senhas: list[str], fonte: str = "auto") -> tuple[str, bool]:
+    """Lê o UUID real da conta no Postgres que o back-end em uso está lendo.
+
+    `auto`: se o container `fatec-postgres` do compose está no ar, ele é a fonte
+    (stack Docker); senão, o Postgres local. `local`/`docker` forçam a fonte.
+    """
+    if fonte == "docker":
+        return _resolver_no_docker(email)
+    if fonte == "local":
+        return _resolver_local(email, senhas)
+    user_id, resolveu = _resolver_no_docker(email)
+    if resolveu:
+        return user_id, True
+    return _resolver_local(email, senhas)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Emite sessão local para as contas de teste.")
     parser.add_argument("conta", choices=sorted(CONTAS), help="qual conta de teste simular")
+    parser.add_argument(
+        "--fonte",
+        choices=["auto", "local", "docker"],
+        default=os.environ.get("SESSAO_FONTE", "auto"),
+        help="de onde ler o UUID da conta (default: auto — Docker se o compose estiver "
+             "no ar, senão o Postgres local)",
+    )
     args = parser.parse_args()
 
     if not ENV_PATH.exists():
@@ -137,13 +210,17 @@ def main() -> int:
         expiracao_horas = 24
 
     conta = CONTAS[args.conta]
-    user_id, resolveu = resolver_user_id(conta["email"])
+    user_id, resolveu = resolver_user_id(
+        conta["email"],
+        [s for s in (env.get("POSTGRES_PASSWORD"), "123456") if s],
+        args.fonte,
+    )
     token = mintar_jwt(segredo, emissor, conta["email"], user_id, conta["role"], expiracao_horas)
 
     if not resolveu:
         print(
-            "AVISO: não foi possível ler o UUID da conta no Postgres "
-            "(stack fora do ar?). O claim `userId` saiu zerado — a autenticação "
+            f"AVISO: não foi possível ler o UUID da conta no Postgres (fonte: {args.fonte}). "
+            "O claim `userId` saiu zerado e o front fica sem a ação Excluir — a autenticação "
             "não é afetada, pois o back-end resolve a identidade pelo e-mail.",
             file=sys.stderr,
         )
@@ -152,7 +229,11 @@ def main() -> int:
         f"localStorage.setItem('accessToken','{token}');"
         f"localStorage.setItem('tokenType','Bearer');"
         f"localStorage.setItem('expiresInSeconds','{expiracao_horas * 3600}');"
-        f"localStorage.setItem('usuarioNome','{conta['nome']}');"
+        # Sem o `usuarioId` o front não sabe qual card é do usuário logado e a
+        # ação Excluir (SPEC-exclusao-projetos) fica oculta. O UUID já foi
+        # resolvido acima; quando a stack está fora do ar não há id para gravar.
+        + (f"localStorage.setItem('usuarioId','{user_id}');" if resolveu else "")
+        + f"localStorage.setItem('usuarioNome','{conta['nome']}');"
         f"localStorage.setItem('usuarioEmail','{conta['email']}');"
         f"localStorage.setItem('usuarioRole','{conta['role']}');"
         "location.reload();"

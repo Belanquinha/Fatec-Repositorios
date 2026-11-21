@@ -20,6 +20,14 @@ html, body {
     min-height: 100vh;
 }
 
+/* A rolagem suave do "Explorar Acervo" é opt-in de movimento: quem pediu
+   `prefers-reduced-motion` fica com o salto instantâneo do navegador. */
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
 body {
     background-color: var(--branco-500);
     color: var(--cinza-500);

@@ -72,7 +72,7 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(user);
         log.info("Login Microsoft realizado com sucesso para: {} (papel: {})", user.getEmail(), user.getRole().name());
 
-        return responseMapper.toAuthResponse(token, jwtTokenProvider.getExpirationInSeconds(), user.getNome(), user.getEmail(), user.getFotoUrl(), user.getRole().name());
+        return responseMapper.toAuthResponse(user.getId(), token, jwtTokenProvider.getExpirationInSeconds(), user.getNome(), user.getEmail(), user.getFotoUrl(), user.getRole().name());
     }
 
     /**

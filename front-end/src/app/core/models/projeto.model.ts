@@ -61,7 +61,7 @@ export interface ProjetoResponseModel {
   imagemCapaUrl: string;
   palavrasChave: string[];
   anoPublicado: number;
-  estado: 'SUBMETIDO' | 'AGUARDANDO_APROVACAO' | 'ALTERACOES_SOLICITADAS' | 'REENVIADO' | 'APROVADO' | 'REJEITADO';
+  estado: 'SUBMETIDO' | 'AGUARDANDO_APROVACAO' | 'ALTERACOES_SOLICITADAS' | 'REENVIADO' | 'APROVADO' | 'REJEITADO' | 'REMOVIDO';
   motivoRejeicao?: string;
   /**
    * E-mail do professor responsável. Na vitrine (projeto APROVADO) o back-end
@@ -87,6 +87,31 @@ export interface ProjetoResponseModel {
 export interface UploadResponseModel {
   url: string;
   nomeArquivo: string;
+}
+
+/** Corpo do DELETE /projetos/{id}: só categoria genérica, nunca texto livre com PII. */
+export interface ExcluirProjetoPayload {
+  motivoRemocao: MotivoRemocao;
+}
+
+export type MotivoRemocao = 'PEDIDO_AUTOR' | 'DADOS_PESSOAIS' | 'ERRO_AUTORIA' | 'OUTRO';
+
+/** Resposta do DELETE: confirma a operação sem devolver PII. */
+export interface ExclusaoProjetoModel {
+  id: string;
+  titulo: string;
+  estado: string;
+  removidoEm?: string;
+}
+
+/** Item de GET /projetos/removidos — sem PII, com a contagem regressiva. */
+export interface ProjetoRemovidoModel {
+  id: string;
+  titulo: string;
+  estadoAnterior?: string;
+  removidoEm?: string;
+  motivoRemocaoGenerico?: string;
+  diasParaExpirar: number;
 }
 
 export interface PerfilInstituicaoModel {

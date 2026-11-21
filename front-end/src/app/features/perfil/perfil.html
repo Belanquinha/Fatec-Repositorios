@@ -9,33 +9,35 @@
     <!-- Identidade: somente leitura, vinda da sessão (MSAL via back-end) -->
     <section class="perfil-card perfil-card-larga">
       <div class="identidade">
-        @if (u.foto) {
-          <img [src]="u.foto" alt="Foto de perfil" class="avatar" />
-        } @else {
-          <span class="avatar avatar-inicial" aria-hidden="true">{{ iniciais() }}</span>
-        }
-        <div class="identidade-texto">
-          <h1 class="perfil-nome">{{ u.nome }}</h1>
-          <p class="perfil-email">{{ u.email }}</p>
-          @if (isProfessor() && instituicoesResumo(); as resumo) {
-            <p class="perfil-instituicao">{{ resumo }}</p>
+        <div class="identidade-topo">
+          @if (u.foto) {
+            <img [src]="u.foto" alt="Foto de perfil" class="avatar" />
+          } @else {
+            <span class="avatar avatar-inicial" aria-hidden="true">{{ iniciais() }}</span>
           }
-          <ul class="perfil-stats" aria-label="Resumo da atividade">
-            <li>
-              <strong>{{ totalPublicados() }}</strong>
-              <span>{{ totalPublicados() === 1 ? 'projeto publicado' : 'projetos publicados' }}</span>
-            </li>
-            <li>
-              <strong>{{ totalPendentes() }}</strong>
-              <span>{{ totalPendentes() === 1 ? 'em análise' : 'em análise' }}</span>
-            </li>
-            @if (isProfessor()) {
-              <li>
-                <strong>{{ vinculos().length }}</strong>
-                <span>{{ vinculos().length === 1 ? 'unidade vinculada' : 'unidades vinculadas' }}</span>
-              </li>
+          <div class="identidade-texto">
+            <h1 class="perfil-nome">{{ u.nome }}</h1>
+            <p class="perfil-email">{{ u.email }}</p>
+            @if (isProfessor() && instituicoesResumo(); as resumo) {
+              <p class="perfil-instituicao">{{ resumo }}</p>
             }
-          </ul>
+            <ul class="perfil-stats" aria-label="Resumo da atividade">
+              <li>
+                <span>{{ totalPublicados() }}</span>
+                <span>{{ totalPublicados() === 1 ? 'projeto publicado' : 'projetos publicados' }}</span>
+              </li>
+              <li>
+                <span>{{ totalPendentes() }}</span>
+                <span>{{ totalPendentes() === 1 ? 'Pendentes' : 'Pendentes' }}</span>
+              </li>
+              @if (isProfessor()) {
+                <li>
+                  <span>{{ vinculos().length }}</span>
+                  <span>{{ vinculos().length === 1 ? 'unidade vinculada' : 'unidades vinculadas' }}</span>
+                </li>
+              }
+            </ul>
+          </div>
         </div>
 
         <div class="identidade-acoes">
@@ -126,6 +128,12 @@
           <span>{{ sucessoAcao() }}</span>
         </p>
       }
+      @if (sucessoExclusao()) {
+        <p class="painel-sucesso" role="status">
+          <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+          <span>{{ sucessoExclusao() }}</span>
+        </p>
+      }
 
       @if (carregandoAba()) {
         <div aria-busy="true" aria-label="Carregando projetos">
@@ -203,6 +211,18 @@
                     <span>Rejeitar</span>
                   </button>
                 }
+                @if (podeExcluir(p)) {
+                  <button
+                    type="button"
+                    class="btn btn-perigo"
+                    [disabled]="excluindo()"
+                    (click)="abrirExclusao(p.id, p.titulo)"
+                    [attr.aria-label]="'Excluir projeto ' + (p.titulo || '')"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                    <span>Excluir</span>
+                  </button>
+                }
               </div>
 
               @if (rejeicaoAbertaId() === p.id) {
@@ -249,71 +269,21 @@
     <!-- Professor: instituições vinculadas (Frame B · mode=multi).
          A página mostra o resumo; a edição fica no modal "Mudar instituições". -->
     @if (isProfessor()) {
-      <section class="perfil-card perfil-card-larga" aria-labelledby="vinculos-titulo">
-        <h2 class="secao-titulo" id="vinculos-titulo">Minhas instituições</h2>
-        <h3 class="vinculo-subtitulo">Unidades onde você atua</h3>
-
-        @if (carregandoVinculos()) {
-          <div aria-busy="true" aria-label="Carregando instituições">
-            <div class="skeleton-linha skeleton-nome"></div>
-            <div class="skeleton-linha skeleton-email"></div>
-          </div>
-        } @else if (erroVinculos(); as erroVinculos) {
-          <div class="painel-neutro" role="alert">
-            <span class="material-symbols-outlined" aria-hidden="true">info</span>
-            <span>{{ erroVinculos }}</span>
-          </div>
-          <button type="button" class="btn btn-outline btn-compacto" (click)="tentarNovamenteVinculos()">
-            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-            <span>Tentar novamente</span>
-          </button>
-        } @else {
-          @if (vinculos().length === 0) {
-            <p class="vazio-mensagem">Sem instituições vinculadas ainda — escolha até 4 unidades.</p>
-          } @else {
-            <ul class="chip-lista" aria-label="Instituições vinculadas">
-              @for (vinculo of vinculos(); track vinculo.id) {
-                <li class="chip">
-                  <span class="chip-nome">{{ vinculo.nome }}</span>
-                </li>
-              }
-            </ul>
-          }
-
-          <div class="vinculo-rodape">
-            <span class="vinculo-contador">
-              <strong>{{ vinculos().length }}</strong> de 4 unidades
-            </span>
-            <span class="vinculo-acoes">
-              <button
-                type="button"
-                class="btn btn-outline btn-compacto"
-                (click)="abrirModalVinculos()"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                <span>Mudar instituições</span>
-              </button>
-            </span>
-          </div>
-          <p class="vazio-nota">Você pode alterar a qualquer momento (0 a 4).</p>
-        }
-      </section>
-
       @if (modalVinculosAberto()) {
         <div
           class="modal-overlay"
           (click)="fecharModalVinculos()"
           aria-hidden="true"
-        ></div>
-
-        <div
-          #modalVinculos
-          class="modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-vinculos-titulo"
-          tabindex="-1"
         >
+          <div
+            #modalVinculos
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-vinculos-titulo"
+            tabindex="-1"
+            (click)="$event.stopPropagation()"
+          >
           <div class="modal-cabecalho">
             <div>
               <h2 class="modal-titulo" id="modal-vinculos-titulo">Mudar instituições</h2>
@@ -330,6 +300,16 @@
           </div>
 
           <div class="modal-corpo">
+            @if (erroVinculos()) {
+              <div class="painel-neutro" role="alert">
+                <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                <span>{{ erroVinculos() }}</span>
+              </div>
+              <button type="button" class="btn btn-outline btn-compacto" (click)="tentarNovamenteVinculos()">
+                <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                <span>Tentar novamente</span>
+              </button>
+            }
             @if (erroSalvarVinculos()) {
               <div class="painel-neutro" role="alert">
                 <span class="material-symbols-outlined" aria-hidden="true">info</span>
@@ -372,7 +352,7 @@
                   <div class="combo-popup">
                     <p class="combo-status">
                       <span>Catálogo oficial CPS</span>
-                      <span aria-live="polite">{{ totalEncontradas }} unidades para “{{ buscaVinculo.trim() }}”</span>
+                      
                     </p>
                     @if (sugestoesVinculo.length > 0) {
                       <ul id="vinculo-lista" role="listbox" aria-label="Instituições do catálogo">
@@ -427,6 +407,11 @@
               <p class="vinculo-ajuda" id="vinculo-ajuda">
                 Buscamos no catálogo oficial do Centro Paula Souza. Nada aparece antes de digitar.
               </p>
+              @if (selecao().length === 0) {
+                <p class="vazio-mensagem">
+                  Sem instituições vinculadas ainda — escolha até 4 unidades.
+                </p>
+              }
               @if (tetoRecusado()) {
                 <p class="vinculo-recusa" role="alert" aria-live="polite">
                   <strong>Máximo de 4 instituições por professor.</strong>
@@ -479,9 +464,91 @@
                 </button>
               </span>
             </div>
+            </div>
           </div>
         </div>
       }
+    }
+
+    <!-- Modal de confirmação destrutiva: Excluir projeto (SPEC-exclusao-projetos §3.7) -->
+    @if (exclusao(); as alvo) {
+      <div class="modal-overlay" (click)="fecharExclusao()" aria-hidden="true">
+        <div
+          #modalExclusao
+          class="modal"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="modal-exclusao-titulo"
+          aria-describedby="modal-exclusao-descricao"
+          tabindex="-1"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="modal-cabecalho">
+            <div>
+              <h2 class="modal-titulo" id="modal-exclusao-titulo">Excluir projeto</h2>
+              <p class="modal-subtitulo">
+                Esta ação tira o projeto do ar. Confirme para continuar.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="modal-fechar"
+              (click)="fecharExclusao()"
+              aria-label="Fechar"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+
+          <div class="modal-corpo">
+            @if (erroExclusao()) {
+              <div class="painel-neutro" role="alert">
+                <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                <span>{{ erroExclusao() }}</span>
+              </div>
+            }
+
+            <p class="modal-subtitulo" id="modal-exclusao-descricao">
+              Projeto: <strong>{{ alvo.titulo || 'Sem título' }}</strong>
+            </p>
+            <p class="exclusao-aviso">
+              Se o projeto já está publicado, ele sai do ar e fica oculto por 14 dias,
+              com reversão disponível. Depois desse prazo, é removido definitivamente.
+            </p>
+
+            <label class="exclusao-rotulo" for="motivo-exclusao">Motivo</label>
+            <select
+              id="motivo-exclusao"
+              class="exclusao-select"
+              [ngModel]="motivoExclusao()"
+              (ngModelChange)="motivoExclusao.set($event)"
+            >
+              @for (motivo of motivosRemocao; track motivo.valor) {
+                <option [value]="motivo.valor">{{ motivo.rotulo }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="modal-rodape">
+            <button type="button" class="btn btn-outline btn-compacto" (click)="fecharExclusao()">
+              <span>Cancelar</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-perigo btn-compacto"
+              [disabled]="excluindo()"
+              (click)="confirmarExclusao()"
+            >
+              @if (excluindo()) {
+                <span>Excluindo…</span>
+              } @else {
+                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                <span>Excluir projeto</span>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
     }
   }
 </div>

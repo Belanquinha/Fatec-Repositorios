@@ -348,6 +348,7 @@ public class LocalAuthService {
 
     private AuthResponse emitirSessao(User user, String token) {
         return responseMapper.toAuthResponse(
+            user.getId(),
             token,
             jwtTokenProvider.getExpirationInSeconds(),
             user.getNome(),

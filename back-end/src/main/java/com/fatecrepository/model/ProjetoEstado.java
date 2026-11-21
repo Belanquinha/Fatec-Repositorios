@@ -6,7 +6,8 @@ public enum ProjetoEstado {
     ALTERACOES_SOLICITADAS("ALTERACOES_SOLICITADAS"),
     REENVIADO("REENVIADO"),
     APROVADO("APROVADO"),
-    REJEITADO("REJEITADO");
+    REJEITADO("REJEITADO"),
+    REMOVIDO("REMOVIDO");
 
     private final String value;
 
