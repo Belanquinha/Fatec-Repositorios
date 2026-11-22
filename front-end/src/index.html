@@ -17,13 +17,17 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="manifest" href="/site.webmanifest">
 
-  <!-- Aplica o tema salvo antes do Angular carregar (evita flash claro no modo escuro).
-       Espelha a lógica de ThemeService: escolha salva > prefers-color-scheme. -->
+  <!-- Aplica o tema e tamanho de fonte salvos antes do Angular carregar (evita flash).
+       Espelha a lógica de ThemeService e Configurações de acessibilidade. -->
   <script>
     try {
       var temaSalvo = localStorage.getItem('fatec-tema');
       if (temaSalvo === 'escuro' || (!temaSalvo && matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark');
+      }
+      var fonteSalva = localStorage.getItem('fatec-tamanho-fonte');
+      if (fonteSalva) {
+        document.documentElement.style.fontSize = fonteSalva;
       }
     } catch (e) {}
   </script>

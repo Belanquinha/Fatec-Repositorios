@@ -21,6 +21,7 @@ import { ProjetoService } from '../../core/services/projeto.service';
 import {
   InstituicaoOption,
   MotivoRemocao,
+  ProjetoRemovidoModel,
   ProjetoResponseModel,
 } from '../../core/models/projeto.model';
 import { mensagemErroAmigavel } from '../../core/utils/erro-http';
@@ -41,14 +42,23 @@ import { environment } from '../../../environments/environment';
  * aprovações/rejeições.
  */
 
-type AbaPerfil = 'publicados' | 'pendentes';
+type AbaPerfil = 'publicados' | 'pendentes' | 'removidos';
 
-/** Estados que, para o aluno, significam "enviado e ainda não avaliado". */
+/** Estados que, para o aluno, significam "enviado e ainda não avaliado" (fase 2a). */
 const ESTADOS_EM_ANALISE: readonly ProjetoResponseModel['estado'][] = [
   'AGUARDANDO_APROVACAO',
   'REENVIADO',
+];
+
+/** Devolvido pelo professor: o autor precisa editar e reenviar. */
+const ESTADOS_DEVOLVIDOS: readonly ProjetoResponseModel['estado'][] = [
   'ALTERACOES_SOLICITADAS',
 ];
+
+/** Linha da aba "Pendentes" do aluno: separador de grupo ou card de projeto. */
+type ItemAbaPendente =
+  | { tipo: 'cabecalho'; id: string; rotulo: string }
+  | { tipo: 'projeto'; projeto: ProjetoResponseModel };
 
 @Component({
   selector: 'app-perfil',
@@ -145,6 +155,21 @@ export class Perfil implements OnInit, OnDestroy {
     { valor: 'OUTRO', rotulo: 'Outro motivo' },
   ];
 
+  // --- Aba "Removidos" (SPEC-exclusao-projetos §4.5) ---
+  removidos = signal<ProjetoRemovidoModel[]>([]);
+  carregandoRemovidos = signal(false);
+  erroRemovidos = signal<string | null>(null);
+  revertendoId = signal<string | null>(null);
+  sucessoRemovidos = signal<string | null>(null);
+
+  /** A aba só existe quando há REMOVIDO; depois do purge ela some (AC18). */
+  mostrarAbaRemovidos = computed(() => this.removidos().length > 0);
+
+  rotuloMotivoRemocao(valor?: string): string {
+    const encontrado = this.motivosRemocao.find((m) => m.valor === valor);
+    return encontrado ? encontrado.rotulo : valor || '';
+  }
+
   // --- Derivados das abas ---
 
   /** Aprovados que o próprio usuário submeteu (aba "Seus Projetos"). */
@@ -152,7 +177,7 @@ export class Perfil implements OnInit, OnDestroy {
     () => this.meusProjetos().filter((p) => p.estado === 'APROVADO').length,
   );
 
-  /** Enviados pelo aluno e ainda em análise. */
+  /** Enviados pelo aluno e ainda em análise (aguardando o professor ou reenviado). */
   totalEmAnalise = computed(
     () =>
       this.meusProjetos().filter((p) =>
@@ -160,37 +185,113 @@ export class Perfil implements OnInit, OnDestroy {
       ).length,
   );
 
+  /** Devolvidos pelo professor, aguardando edição e reenvio do autor. */
+  totalDevolvidos = computed(
+    () =>
+      this.meusProjetos().filter((p) =>
+        ESTADOS_DEVOLVIDOS.includes(p.estado),
+      ).length,
+  );
+
   /**
-   * "Pendentes" é papel-dependente: aluno vê o que mandou e está em análise;
-   * professor vê a fila de aprovação (`/projetos/pendentes`).
+   * "Pendentes" é papel-dependente: aluno vê o que mandou e está em análise ou
+   * devolvido; professor vê a fila de aprovação (`/projetos/pendentes`).
    */
   totalPendentes = computed(() =>
-    this.isProfessor() ? this.pendentes().length : this.totalEmAnalise(),
+    this.isProfessor()
+      ? this.pendentes().length
+      : this.totalEmAnalise() + this.totalDevolvidos(),
   );
 
   projetosAba = computed<ProjetoResponseModel[]>(() => {
     if (this.abaAtiva() === 'publicados') {
       return this.meusProjetos().filter((p) => p.estado === 'APROVADO');
     }
+    // "Removidos" tem lista própria (/projetos/removidos), não vem de /meus.
+    if (this.abaAtiva() === 'removidos') {
+      return [];
+    }
     if (this.isProfessor()) {
       return this.pendentes();
     }
-    return this.meusProjetos().filter((p) =>
-      ESTADOS_EM_ANALISE.includes(p.estado),
+    return this.meusProjetos().filter(
+      (p) =>
+        ESTADOS_EM_ANALISE.includes(p.estado) ||
+        ESTADOS_DEVOLVIDOS.includes(p.estado),
     );
   });
 
-  carregandoAba = computed(() =>
-    this.abaAtiva() === 'pendentes' && this.isProfessor()
-      ? this.carregandoPendentes()
-      : this.carregandoMeus(),
-  );
+  /** Aba "Pendentes" do aluno em dois blocos visuais (§4.5). */
+  readonly pendentesAluno = computed(() => ({
+    emAnalise: this.projetosFiltrados().filter((p) =>
+      ESTADOS_EM_ANALISE.includes(p.estado),
+    ),
+    devolvidos: this.projetosFiltrados().filter((p) =>
+      ESTADOS_DEVOLVIDOS.includes(p.estado),
+    ),
+  }));
 
-  erroAba = computed(() =>
-    this.abaAtiva() === 'pendentes' && this.isProfessor()
+  /**
+   * Linha única de card para "Seus Projetos"/"Pendentes": o aluno vê dois grupos
+   * (em análise e devolvidos), os demais papéis veem lista simples.
+   */
+  readonly itensAba = computed<ItemAbaPendente[]>(() => {
+    if (this.abaAtiva() === 'removidos') {
+      return [];
+    }
+    if (this.abaAtiva() === 'pendentes' && !this.isProfessor()) {
+      return this.itensPendentesAluno();
+    }
+    return this.projetosFiltrados().map((projeto) => ({
+      tipo: 'projeto' as const,
+      projeto,
+    }));
+  });
+
+  /** Lista única intercalando cabeçalhos de grupo e cards, para um só @for. */
+  readonly itensPendentesAluno = computed<ItemAbaPendente[]>(() => {
+    const { emAnalise, devolvidos } = this.pendentesAluno();
+    const itens: ItemAbaPendente[] = [];
+    if (emAnalise.length > 0) {
+      itens.push({
+        tipo: 'cabecalho',
+        id: 'cab-em-analise',
+        rotulo: `Em análise (${emAnalise.length})`,
+      });
+      emAnalise.forEach((projeto) =>
+        itens.push({ tipo: 'projeto', projeto }),
+      );
+    }
+    if (devolvidos.length > 0) {
+      itens.push({
+        tipo: 'cabecalho',
+        id: 'cab-devolvidos',
+        rotulo: `Devolvidos (${devolvidos.length})`,
+      });
+      devolvidos.forEach((projeto) =>
+        itens.push({ tipo: 'projeto', projeto }),
+      );
+    }
+    return itens;
+  });
+
+  carregandoAba = computed(() => {
+    if (this.abaAtiva() === 'removidos') {
+      return this.carregandoRemovidos();
+    }
+    return this.abaAtiva() === 'pendentes' && this.isProfessor()
+      ? this.carregandoPendentes()
+      : this.carregandoMeus();
+  });
+
+  erroAba = computed(() => {
+    if (this.abaAtiva() === 'removidos') {
+      return this.erroRemovidos();
+    }
+    return this.abaAtiva() === 'pendentes' && this.isProfessor()
       ? this.erroPendentes()
-      : this.erroMeus(),
-  );
+      : this.erroMeus();
+  });
 
   /** Busca local por título, descrição ou instituição (a aba já vem fatiada). */
   projetosFiltrados = computed(() => {
@@ -214,11 +315,16 @@ export class Perfil implements OnInit, OnDestroy {
         ? this.isProfessor()
           ? 'projetos aprovados'
           : 'projetos publicados'
-        : 'projetos pendentes';
+        : this.abaAtiva() === 'removidos'
+          ? 'projetos removidos'
+          : 'projetos pendentes';
     return `Exibindo 1–${total} de ${total} ${rotulo}`;
   });
 
   mensagemVazia = computed(() => {
+    if (this.abaAtiva() === 'removidos') {
+      return 'Nenhum projeto removido.';
+    }
     if (this.abaAtiva() === 'publicados') {
       return this.isProfessor()
         ? 'Nenhum projeto aprovado por você ainda.'
@@ -230,6 +336,9 @@ export class Perfil implements OnInit, OnDestroy {
   });
 
   notaVazia = computed(() => {
+    if (this.abaAtiva() === 'removidos') {
+      return 'Projetos removidos aparecem aqui por até 14 dias, com a opção de reverter.';
+    }
     if (this.abaAtiva() === 'publicados') {
       return this.isProfessor()
         ? 'Quando você aprovar um projeto, ele aparece aqui.'
@@ -297,6 +406,9 @@ export class Perfil implements OnInit, OnDestroy {
       this.carregarPendentes();
     }
     this.carregarMeusProjetos();
+    // Aba "Removidos" (§4.5): só aparece se houver REMOVIDO; o endpoint é seguro
+    // para qualquer papel autenticado.
+    this.carregarRemovidos();
   }
 
   ngOnDestroy(): void {
@@ -399,11 +511,71 @@ export class Perfil implements OnInit, OnDestroy {
   }
 
   recarregarAba(): void {
+    if (this.abaAtiva() === 'removidos') {
+      this.carregarRemovidos();
+      return;
+    }
     if (this.abaAtiva() === 'pendentes' && this.isProfessor()) {
       this.carregarPendentes();
     } else {
       this.carregarMeusProjetos();
     }
+  }
+
+  // --- Removidos (SPEC-exclusao-projetos §4.5) ---
+
+  /** Carrega /projetos/removidos; a aba só é exibida se a lista vier não vazia. */
+  carregarRemovidos(): void {
+    // Guarda para suítes/mocks que ainda não expõem o método: sem ele a aba
+    // simplesmente não aparece, em vez de derrubar a tela.
+    if (typeof this.projetoService.listarProjetosRemovidos !== 'function') {
+      return;
+    }
+    this.carregandoRemovidos.set(true);
+    this.erroRemovidos.set(null);
+    this.projetoService.listarProjetosRemovidos().subscribe({
+      next: (lista) => {
+        this.removidos.set(lista ?? []);
+        this.carregandoRemovidos.set(false);
+      },
+      error: (err) => {
+        console.error('Erro ao carregar projetos removidos:', err);
+        this.erroRemovidos.set(
+          mensagemErroAmigavel(
+            err,
+            'Não foi possível carregar os projetos removidos agora. Tente novamente.',
+          ),
+        );
+        this.carregandoRemovidos.set(false);
+      },
+    });
+  }
+
+  reverterProjetoRemovido(id: string): void {
+    if (this.revertendoId()) {
+      return;
+    }
+    this.revertendoId.set(id);
+    this.erroRemovidos.set(null);
+    this.sucessoRemovidos.set(null);
+    this.projetoService.reverterProjetoRemovido(id).subscribe({
+      next: (revertido) => {
+        this.revertendoId.set(null);
+        this.removidos.set(this.removidos().filter((r) => r.id !== id));
+        this.meusProjetos.set([...this.meusProjetos(), revertido]);
+        this.sucessoRemovidos.set(`"${revertido.titulo}" está no ar novamente.`);
+      },
+      error: (err) => {
+        console.error('Erro ao reverter projeto removido:', err);
+        this.revertendoId.set(null);
+        this.erroRemovidos.set(
+          mensagemErroAmigavel(
+            err,
+            'Não foi possível reverter o projeto agora. Tente novamente.',
+          ),
+        );
+      },
+    });
   }
 
   selecionarAba(aba: AbaPerfil): void {
@@ -414,6 +586,7 @@ export class Perfil implements OnInit, OnDestroy {
     // Erros e sucessos são da aba: trocar de aba não arrasta o aviso da outra.
     this.erroPendentes.set(null);
     this.sucessoAcao.set(null);
+    this.sucessoRemovidos.set(null);
     this.rejeicaoAbertaId.set(null);
   }
 
@@ -518,6 +691,8 @@ export class Perfil implements OnInit, OnDestroy {
             this.meusProjetos().filter((p) => p.id !== alvo.id),
           );
           this.pendentes.set(this.pendentes().filter((p) => p.id !== alvo.id));
+          // Soft delete de APROVADO passa a existir em /removidos: a aba precisa aparecer.
+          this.carregarRemovidos();
           this.sucessoExclusao.set(
             resultado.estado === 'REMOVIDO'
               ? `"${resultado.titulo}" saiu do ar. Você pode reverter em até 14 dias.`

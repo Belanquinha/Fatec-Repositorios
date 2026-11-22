@@ -24,7 +24,11 @@ public class User {
     @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false, unique = true)
+    // Nullable de propósito: a exclusão da conta (LGPD, SPEC-exclusao-projetos §4.6)
+    // anonimiza a linha com `email = null`, o que invalida os tokens antigos — o filtro
+    // JWT recarrega a conta por e-mail e passa a receber 401. Postgres aceita múltiplos
+    // NULL no unique (NULLs não colidem entre si).
+    @Column(nullable = true, unique = true)
     private String email;
 
     @JsonIgnore

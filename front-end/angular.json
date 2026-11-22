@@ -23,6 +23,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "configuracoes-preview.html",
+                "input": "src/app/features/configuracoes",
+                "output": "/"
               }
             ],
             "styles": ["src/styles.css"]

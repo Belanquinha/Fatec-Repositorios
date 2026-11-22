@@ -77,8 +77,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/projetos/removidos").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/projetos/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/projetos/*/reverter").authenticated()
+                // Edição/reenvio (fase 2): autenticado; a autoria é conferida no serviço.
+                .requestMatchers(HttpMethod.PUT, "/projetos/**").authenticated()
                 .requestMatchers(HttpMethod.PATCH, "/projetos/**").hasRole("PROFESSOR")
                 .requestMatchers(HttpMethod.GET, "/projetos/**").permitAll()
+                // Exclusão da própria conta (§4.6): autenticado; só a própria conta
+                // porque o id vem do token, não da URL.
+                .requestMatchers(HttpMethod.DELETE, "/usuarios/me").authenticated()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs").permitAll()
                 .requestMatchers("/error").permitAll()
                 // Fail-closed: o que não for explicitamente listado exige sessão. Com

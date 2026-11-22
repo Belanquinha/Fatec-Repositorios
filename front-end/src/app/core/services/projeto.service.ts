@@ -4,7 +4,9 @@ import { Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   CursoOption,
+  DevolverProjetoPayload,
   ExcluirProjetoPayload,
+  ExclusaoContaModel,
   ExclusaoProjetoModel,
   InstituicaoOption,
   PerfilInstituicaoModel,
@@ -115,6 +117,36 @@ export class ProjetoService {
       `${this.apiUrl}/projetos/${encodeURIComponent(id)}/rejeitar`,
       { motivo }
     );
+  }
+
+  /**
+   * Devolução pelo professor responsável (fase 2a, §4.3): o projeto sai da fila
+   * para ALTERACOES_SOLICITADAS com a justificativa que o autor vai ler.
+   */
+  devolverProjeto(
+    id: string,
+    payload: DevolverProjetoPayload
+  ): Observable<ProjetoResponseModel> {
+    return this.http.patch<ProjetoResponseModel>(
+      `${this.apiUrl}/projetos/${encodeURIComponent(id)}/devolver`,
+      payload
+    );
+  }
+
+  /** Edição e reenvio pelo autor (fase 2a, §4.3): ALTERACOES_SOLICITADAS -> REENVIADO. */
+  atualizarProjeto(
+    id: string,
+    payload: ProjetoCreatePayload
+  ): Observable<ProjetoResponseModel> {
+    return this.http.put<ProjetoResponseModel>(
+      `${this.apiUrl}/projetos/${encodeURIComponent(id)}`,
+      payload
+    );
+  }
+
+  /** Exclusão da própria conta (fase 2b, §4.6). */
+  excluirConta(): Observable<ExclusaoContaModel> {
+    return this.http.delete<ExclusaoContaModel>(`${this.apiUrl}/usuarios/me`);
   }
 
   /**

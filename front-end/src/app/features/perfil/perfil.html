@@ -51,14 +51,14 @@
             <span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
             <span>Mudar Instituição</span>
           </button>
-          <button
-            type="button"
+          <a
+            routerLink="/configuracoes"
             class="btn btn-icone"
-            (click)="anunciarEmBreve('Configurações')"
             aria-label="Configurações"
+            title="Configurações"
           >
             <span class="material-symbols-outlined" aria-hidden="true">settings</span>
-          </button>
+          </a>
         </div>
       </div>
     </section>
@@ -104,6 +104,20 @@
             <span>Pendentes</span>
             <span class="aba-contador aba-contador-vermelho">{{ totalPendentes() }}</span>
           </button>
+          @if (mostrarAbaRemovidos()) {
+            <button
+              type="button"
+              role="tab"
+              class="aba"
+              [class.aba-ativa]="abaAtiva() === 'removidos'"
+              [attr.aria-selected]="abaAtiva() === 'removidos'"
+              [attr.tabindex]="abaAtiva() === 'removidos' ? 0 : -1"
+              (click)="selecionarAba('removidos')"
+            >
+              <span>Removidos</span>
+              <span class="aba-contador">{{ removidos().length }}</span>
+            </button>
+          }
           <button type="button" class="aba aba-desativada" disabled title="Em breve">
             <span>Recusados</span>
           </button>
@@ -134,6 +148,12 @@
           <span>{{ sucessoExclusao() }}</span>
         </p>
       }
+      @if (sucessoRemovidos()) {
+        <p class="painel-sucesso" role="status">
+          <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+          <span>{{ sucessoRemovidos() }}</span>
+        </p>
+      }
 
       @if (carregandoAba()) {
         <div aria-busy="true" aria-label="Carregando projetos">
@@ -149,16 +169,54 @@
           <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           <span>Tentar novamente</span>
         </button>
-      } @else if (projetosFiltrados().length === 0) {
-        <div class="estado-vazio">
-          <span class="material-symbols-outlined icone-vazio" aria-hidden="true">inventory_2</span>
-          <p class="vazio-mensagem">{{ mensagemVazia() }}</p>
-          <p class="vazio-nota">{{ notaVazia() }}</p>
-        </div>
-      } @else {
+      } @else if (abaAtiva() === 'removidos') {
+              <ul class="grade-projetos">
+                @for (r of removidos(); track r.id) {
+                  <li class="card-projeto card-removido">
+                    <div class="card-corpo">
+                      <h3 class="card-titulo" [title]="r.titulo">{{ r.titulo || 'Projeto sem título' }}</h3>
+                      <p class="card-data">Removido em {{ dataFormatada(r.removidoEm) }}</p>
+                      <p class="card-data">
+                        Restam {{ r.diasParaExpirar }} dias para reverter.
+                      </p>
+                      @if (r.motivoRemocaoGenerico) {
+                        <p class="card-data">
+                          Motivo: {{ rotuloMotivoRemocao(r.motivoRemocaoGenerico) }}
+                        </p>
+                      }
+                    </div>
+                    <div class="card-acoes">
+                      <button
+                        type="button"
+                        class="btn btn-primario"
+                        [disabled]="revertendoId() === r.id"
+                        (click)="reverterProjetoRemovido(r.id)"
+                        [attr.aria-label]="'Reverter projeto ' + (r.titulo || '')"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">restore</span>
+                        <span>{{ revertendoId() === r.id ? 'Revertendo…' : 'Reverter' }}</span>
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            } @else if (itensAba().length === 0) {
+              <div class="estado-vazio">
+                <span class="material-symbols-outlined icone-vazio" aria-hidden="true">inventory_2</span>
+                <p class="vazio-mensagem">{{ mensagemVazia() }}</p>
+                <p class="vazio-nota">{{ notaVazia() }}</p>
+              </div>
+            } @else {
         <ul class="grade-projetos">
-          @for (p of projetosFiltrados(); track p.id) {
-            <li class="card-projeto">
+                  @for (
+                    item of itensAba();
+                    track item.tipo === 'cabecalho' ? item.id : item.projeto.id
+                  ) {
+                    @if (item.tipo === 'cabecalho') {
+                      <li class="pendente-grupo"><h3 class="card-data">{{ item.rotulo }}</h3></li>
+                    } @else {
+                      @let p = item.projeto;
+                      <li class="card-projeto">
               <div class="card-capa">
                 @if (capaUrl(p); as capa) {
                   <img [src]="capa" [alt]="p.titulo || 'Capa do projeto'" (error)="onCapaErro(p.id)" />
@@ -175,10 +233,18 @@
                   <p class="card-descricao">{{ p.descricaoCurta }}</p>
                 }
                 @if (dataFormatada(p.criadoEm); as data) {
-                  <p class="card-data">
-                    {{ abaAtiva() === 'pendentes' && isProfessor() ? 'Enviado em' : 'Publicado em' }} {{ data }}
-                  </p>
-                }
+                                  <p class="card-data">
+                                    {{ abaAtiva() === 'pendentes' && isProfessor() ? 'Enviado em' : 'Publicado em' }} {{ data }}
+                                  </p>
+                                }
+                                @if (abaAtiva() === 'pendentes' && isProfessor() && p.estado === 'REENVIADO') {
+                                  <p class="card-selo">Reenviado após devolução</p>
+                                }
+                                @if (p.motivoDevolucao) {
+                                  <p class="card-data">
+                                    <strong>Motivo da devolução:</strong> {{ p.motivoDevolucao }}
+                                  </p>
+                                }
                 <div class="card-local">
                   <span class="card-instituicao">
                     <span class="material-symbols-outlined icone-instituicao" aria-hidden="true">school</span>
@@ -208,9 +274,20 @@
                     (click)="abrirRejeicao(p.id)"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">remove</span>
-                    <span>Rejeitar</span>
-                  </button>
-                }
+                                        <span>Rejeitar</span>
+                                      </button>
+                                    }
+                                    @if (!isProfessor() && p.estado === 'ALTERACOES_SOLICITADAS') {
+                                      <a
+                                        class="btn btn-primario"
+                                        [routerLink]="['/projeto-forms']"
+                                        [queryParams]="{ id: p.id }"
+                                        [attr.aria-label]="'Editar e reenviar ' + (p.titulo || '')"
+                                      >
+                                        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                                        <span>Editar e reenviar</span>
+                                      </a>
+                                    }
                 @if (podeExcluir(p)) {
                   <button
                     type="button"
@@ -249,12 +326,13 @@
                     </button>
                   </span>
                 </div>
-              }
-            </li>
-          }
-        </ul>
+                              }
+                            </li>
+                            }
+                          }
+                        </ul>
 
-        <div class="paginacao">
+                        <div class="paginacao">
           <p class="paginacao-texto">{{ textoPaginacao() }}</p>
           <div class="paginacao-controles">
             <span class="pagina-btn">Anterior</span>

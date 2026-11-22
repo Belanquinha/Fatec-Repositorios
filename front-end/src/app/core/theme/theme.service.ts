@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 
 /** Tema visual da aplicação. */
 export type Tema = 'claro' | 'escuro';
+export type ModoTema = 'claro' | 'escuro' | 'sistema';
 
 /** Chave do localStorage onde a escolha do usuário é persistida. */
 export const CHAVE_TEMA_ARMAZENADO = 'fatec-tema';
@@ -18,6 +19,7 @@ export const CHAVE_TEMA_ARMAZENADO = 'fatec-tema';
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly temaAtual = signal<Tema>('claro');
+  private readonly modoAtual = signal<ModoTema>('sistema');
   private escolhaManual = false;
   private observadorSistema: MediaQueryList | null = null;
   private aoMudarSistema = (_evento: MediaQueryListEvent): void => {
@@ -26,14 +28,18 @@ export class ThemeService {
     }
   };
 
-  /** Tema atual (somente leitura). */
+  /** Tema atual (somente leitura: claro ou escuro). */
   readonly tema = this.temaAtual.asReadonly();
+  /** Modo de preferência atual: 'claro', 'escuro' ou 'sistema'. */
+  readonly modo = this.modoAtual.asReadonly();
   /** `true` quando o modo escuro está ativo. */
   readonly modoEscuro = computed(() => this.temaAtual() === 'escuro');
 
   constructor() {
-    const inicial = this.lerTemaInicial();
-    this.escolhaManual = this.lerTemaSalvo() !== null;
+    const salvo = this.lerTemaSalvo();
+    this.escolhaManual = salvo !== null;
+    this.modoAtual.set(salvo ?? 'sistema');
+    const inicial = salvo ?? this.lerTemaDoSistema() ?? 'claro';
     this.aplicar(inicial);
     this.observarSistema();
   }
@@ -43,11 +49,36 @@ export class ThemeService {
     this.definir(this.temaAtual() === 'escuro' ? 'claro' : 'escuro');
   }
 
-  /** Define um tema específico e persiste a escolha do usuário. */
+  /** Define um tema específico ('claro' ou 'escuro') e persiste a escolha do usuário. */
   definir(tema: Tema): void {
     this.escolhaManual = true;
+    this.modoAtual.set(tema);
     this.aplicar(tema);
     this.salvarTema(tema);
+  }
+
+  /** Define o modo ('claro', 'escuro' ou 'sistema'). */
+  definirModo(modo: ModoTema): void {
+    if (modo === 'sistema') {
+      this.usarSistema();
+    } else {
+      this.definir(modo);
+    }
+  }
+
+  /** Retorna a configuração de tema para acompanhar o sistema operacional. */
+  usarSistema(): void {
+    this.escolhaManual = false;
+    this.modoAtual.set('sistema');
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(CHAVE_TEMA_ARMAZENADO);
+      }
+    } catch {
+      // Ignora erro de acesso a localStorage
+    }
+    const doSistema = this.lerTemaDoSistema() ?? 'claro';
+    this.aplicar(doSistema);
   }
 
   private aplicar(tema: Tema): void {

@@ -50,44 +50,9 @@ public class ProjetoService {
         User autor = userRepository.findById(autorId)
             .orElseThrow(() -> new ResourceNotFoundException("Usuário autor não encontrado"));
 
-        Instituicao instituicao = instituicaoRepository.findById(request.getInstituicaoId())
-            .orElseThrow(() -> new ResourceNotFoundException("Instituição informada não encontrada"));
-
-        if (!instituicao.isAtivo()) {
-            throw new BadRequestException("A instituição selecionada está inativa no catálogo");
-        }
-
-        if (request.getCursoId() == null) {
-            throw new BadRequestException("O curso do projeto é obrigatório");
-        }
-
-        Curso curso = cursoRepository.findById(request.getCursoId())
-            .orElseThrow(() -> new ResourceNotFoundException("Curso informado não encontrado"));
-
-        if (!curso.isAtivo()) {
-            throw new BadRequestException("O curso selecionado está inativo no catálogo");
-        }
-
-        if (!instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(instituicao.getId(), curso.getId())) {
-            throw new BadRequestException("O curso selecionado não é oferecido pela instituição informada");
-        }
-
-        if (request.getIntegrantes() == null || request.getIntegrantes().isEmpty()) {
-            throw new BadRequestException("O projeto deve conter pelo menos 1 integrante");
-        }
-
-        // Story 3.2 + MSAL CPS-only: o responsável precisa ser alcançável pelo login
-        // Microsoft (só @cps.sp.gov.br vira PROFESSOR; @aluno.* e externo caem em ALUNO
-        // e nunca conseguiriam aprovar — seria órfão permanente). Falha rápido aqui.
-        String emailResponsavel = request.getEmailProfessorResponsavel().trim().toLowerCase();
-        if (emailResponsavel.endsWith("@aluno.cps.sp.gov.br") || !emailResponsavel.endsWith("@cps.sp.gov.br")) {
-            throw new BadRequestException("O e-mail do professor responsável deve ser institucional (@cps.sp.gov.br)");
-        }
-        userRepository.findByEmail(emailResponsavel).ifPresent(u -> {
-            if (u.getRole() != UserRole.PROFESSOR) {
-                throw new BadRequestException("O e-mail informado pertence a um usuário que não é professor");
-            }
-        });
+        CatalogoValidado catalogo = validarCatalogo(request);
+        validarIntegrantes(request.getIntegrantes());
+        String emailResponsavel = validarEmailResponsavel(request.getEmailProfessorResponsavel());
 
         Projeto projeto = new Projeto();
         projeto.setTitulo(request.getTitulo().trim());
@@ -100,18 +65,14 @@ public class ProjetoService {
         projeto.setEstado(ProjetoEstado.AGUARDANDO_APROVACAO); // Regra AD-7: nasce diretamente aguardando aprovação
         projeto.setMotivoRejeicao(null);
         projeto.setEmailProfessorResponsavel(emailResponsavel); // Regra AD-6
-        projeto.setInstituicao(instituicao);
-        projeto.setCurso(curso);
+        projeto.setInstituicao(catalogo.instituicao());
+        projeto.setCurso(catalogo.curso());
         projeto.setAutor(autor);
         projeto.setCriadoEm(LocalDateTime.now());
         projeto.setAtualizadoEm(LocalDateTime.now());
 
         for (IntegranteRequest iReq : request.getIntegrantes()) {
-            Integrante integrante = new Integrante();
-            integrante.setNome(iReq.getNome().trim());
-            integrante.setLinkLinkedin(iReq.getLinkLinkedin() != null ? iReq.getLinkLinkedin().trim() : null);
-            integrante.setCriadoEm(LocalDateTime.now());
-            projeto.adicionarIntegrante(integrante);
+            projeto.adicionarIntegrante(novoIntegrante(iReq));
         }
 
         Projeto salvo = projetoRepository.save(projeto);
@@ -122,6 +83,89 @@ public class ProjetoService {
         ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
         preencherNomeProfessor(resp);
 
+        return resp;
+    }
+
+    /**
+     * Edição e reenvio pelo autor (SPEC-exclusao-projetos §4.3 / CAP-D2).
+     *
+     * <p>Só vale para {@code ALTERACOES_SOLICITADAS}: o professor devolveu e o autor
+     * ajusta. Aplica os mesmos campos e a mesma validação da criação, troca o
+     * responsável pelo e-mail do body e devolve o projeto à fila como
+     * {@code REENVIADO}. Não dispara notificação de submissão (e-mail fora da spec).
+     */
+    @Transactional
+    public ProjetoResponse editar(UUID projetoId, UUID autorId, ProjetoCreateRequest request) {
+        Projeto projeto = buscarProjetoDoAutor(projetoId, autorId);
+        if (projeto.getEstado() != ProjetoEstado.ALTERACOES_SOLICITADAS) {
+            throw new ConflictException(
+                "O projeto só pode ser editado quando está em ALTERACOES_SOLICITADAS (estado atual: "
+                    + projeto.getEstado().name() + ")");
+        }
+
+        CatalogoValidado catalogo = validarCatalogo(request);
+        validarIntegrantes(request.getIntegrantes());
+        String emailResponsavel = validarEmailResponsavel(request.getEmailProfessorResponsavel());
+
+        LocalDateTime agora = LocalDateTime.now();
+        projeto.setTitulo(request.getTitulo().trim());
+        projeto.setDescricaoCurta(request.getDescricaoCurta().trim());
+        projeto.setConteudoEditorJs(request.getConteudoEditorJs());
+        projeto.setLinkRepositorio(request.getLinkRepositorio() != null ? request.getLinkRepositorio().trim() : null);
+        projeto.setImagemCapaUrl(request.getImagemCapaUrl());
+        projeto.setPalavrasChave(request.getPalavrasChave() != null
+            ? new ArrayList<>(request.getPalavrasChave()) : new ArrayList<>());
+        projeto.setAnoPublicado(request.getAnoPublicado() != null ? request.getAnoPublicado() : LocalDate.now().getYear());
+        projeto.setInstituicao(catalogo.instituicao());
+        projeto.setCurso(catalogo.curso());
+        // O e-mail do responsável passa a ser o informado no body (§4.3): a conta
+        // anterior pode ter sido removida ou o autor pode ter corrigido a indicação.
+        projeto.setEmailProfessorResponsavel(emailResponsavel);
+        projeto.setEstado(ProjetoEstado.REENVIADO);
+        projeto.setReenviadoEm(agora);
+        projeto.setAtualizadoEm(agora);
+
+        substituirIntegrantes(projeto, request.getIntegrantes());
+
+        Projeto salvo = projetoRepository.saveAndFlush(projeto);
+        log.info("Projeto {} reenviado pelo autor {}", projetoId, autorId);
+
+        ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
+        preencherNomeProfessor(resp);
+        return resp;
+    }
+
+    /**
+     * Devolução pelo professor responsável (SPEC-exclusao-projetos §4.3 / CAP-D1).
+     *
+     * <p>Tira o projeto da fila sem rejeitar: nasce o {@code ALTERACOES_SOLICITADAS}
+     * com a justificativa que o autor vai ler.
+     */
+    @Transactional
+    public ProjetoResponse devolver(UUID projetoId, UUID professorId, String motivo) {
+        if (motivo == null || motivo.trim().isEmpty()) {
+            throw new BadRequestException("O motivo da devolução é obrigatório");
+        }
+        Projeto projeto = buscarProjeto(projetoId);
+        User professor = buscarProfessor(professorId);
+        verificarPermissaoAvaliacao(projeto, professor);
+        if (projeto.getEstado() != ProjetoEstado.AGUARDANDO_APROVACAO) {
+            throw new ConflictException(
+                "O projeto não pode ser devolvido no estado atual: " + projeto.getEstado().name());
+        }
+
+        LocalDateTime agora = LocalDateTime.now();
+        projeto.setEstado(ProjetoEstado.ALTERACOES_SOLICITADAS);
+        projeto.setMotivoDevolucao(motivo.trim());
+        projeto.setDevolvidoEm(agora);
+        projeto.setDevolvidoPorId(professorId);
+        projeto.setAtualizadoEm(agora);
+
+        Projeto salvo = projetoRepository.save(projeto);
+        log.info("Projeto {} devolvido pelo professor {} para ALTERACOES_SOLICITADAS", projetoId, professorId);
+
+        ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
+        preencherNomeProfessor(resp);
         return resp;
     }
 
@@ -235,9 +279,12 @@ public class ProjetoService {
         // O vínculo continua como organização da fila no front (aviso "revise a
         // instituição"), não como autorização — o vínculo é auto-declarado e a
         // identidade já é garantida pelo MSAL. Filtro ativo mantido (inativa some da fila).
+        // Fila = AGUARDANDO_APROVACAO + REENVIADO (SPEC-exclusao-projetos §4.2):
+        // projeto devolvido e reenviado volta para o professor responsável.
         List<Projeto> candidatos = projetoRepository
-            .findByEstadoAndEmailProfessorResponsavelIgnoreCaseOrderByCriadoEmDesc(
-                ProjetoEstado.AGUARDANDO_APROVACAO, professor.getEmail());
+            .findByEstadoInAndEmailProfessorResponsavelIgnoreCaseOrderByCriadoEmDesc(
+                List.of(ProjetoEstado.AGUARDANDO_APROVACAO, ProjetoEstado.REENVIADO),
+                professor.getEmail());
         return candidatos.stream()
             .filter(p -> p.getInstituicao() != null && p.getInstituicao().isAtivo())
             .map(p -> {
@@ -253,7 +300,7 @@ public class ProjetoService {
         Projeto projeto = buscarProjeto(projetoId);
         User professor = buscarProfessor(professorId);
         verificarPermissaoAvaliacao(projeto, professor);
-        if (projeto.getEstado() != ProjetoEstado.AGUARDANDO_APROVACAO) {
+        if (!estadoAvaliavel(projeto)) {
             throw new ConflictException("Projeto já avaliado (estado atual: " + projeto.getEstado().name() + ")");
         }
         projeto.setEstado(ProjetoEstado.APROVADO);
@@ -274,7 +321,7 @@ public class ProjetoService {
         Projeto projeto = buscarProjeto(projetoId);
         User professor = buscarProfessor(professorId);
         verificarPermissaoAvaliacao(projeto, professor);
-        if (projeto.getEstado() != ProjetoEstado.AGUARDANDO_APROVACAO) {
+        if (!estadoAvaliavel(projeto)) {
             throw new ConflictException("Projeto já avaliado (estado atual: " + projeto.getEstado().name() + ")");
         }
         projeto.setEstado(ProjetoEstado.REJEITADO);
@@ -335,6 +382,99 @@ public class ProjetoService {
                 throw new AccessDeniedException("Somente o professor responsável indicado na submissão pode avaliar este projeto");
             }
         }
+
+    /** Fila e avaliação: AGUARDANDO_APROVACAO ou REENVIADO (§4.2). */
+    private boolean estadoAvaliavel(Projeto projeto) {
+        return projeto.getEstado() == ProjetoEstado.AGUARDANDO_APROVACAO
+            || projeto.getEstado() == ProjetoEstado.REENVIADO;
+    }
+
+    // ------------------------------------------------------------------
+    // Validações compartilhadas entre criação e edição (§4.3)
+    // ------------------------------------------------------------------
+
+    private record CatalogoValidado(Instituicao instituicao, Curso curso) {}
+
+    private CatalogoValidado validarCatalogo(ProjetoCreateRequest request) {
+        Instituicao instituicao = instituicaoRepository.findById(request.getInstituicaoId())
+            .orElseThrow(() -> new ResourceNotFoundException("Instituição informada não encontrada"));
+
+        if (!instituicao.isAtivo()) {
+            throw new BadRequestException("A instituição selecionada está inativa no catálogo");
+        }
+
+        if (request.getCursoId() == null) {
+            throw new BadRequestException("O curso do projeto é obrigatório");
+        }
+
+        Curso curso = cursoRepository.findById(request.getCursoId())
+            .orElseThrow(() -> new ResourceNotFoundException("Curso informado não encontrado"));
+
+        if (!curso.isAtivo()) {
+            throw new BadRequestException("O curso selecionado está inativo no catálogo");
+        }
+
+        if (!instituicaoCursoRepository.existsByInstituicaoIdAndCursoId(instituicao.getId(), curso.getId())) {
+            throw new BadRequestException("O curso selecionado não é oferecido pela instituição informada");
+        }
+
+        return new CatalogoValidado(instituicao, curso);
+    }
+
+    private void validarIntegrantes(List<IntegranteRequest> integrantes) {
+        if (integrantes == null || integrantes.isEmpty()) {
+            throw new BadRequestException("O projeto deve conter pelo menos 1 integrante");
+        }
+    }
+
+    /**
+     * Story 3.2 + MSAL CPS-only: o responsável precisa ser alcançável pelo login
+     * Microsoft (só @cps.sp.gov.br vira PROFESSOR; @aluno.* e externo caem em ALUNO
+     * e nunca conseguiriam aprovar — seria órfão permanente). Falha rápido aqui.
+     *
+     * @return e-mail normalizado (minúsculas) para gravar no projeto
+     */
+    private String validarEmailResponsavel(String emailBruto) {
+        String email = emailBruto.trim().toLowerCase();
+        if (email.endsWith("@aluno.cps.sp.gov.br") || !email.endsWith("@cps.sp.gov.br")) {
+            throw new BadRequestException("O e-mail do professor responsável deve ser institucional (@cps.sp.gov.br)");
+        }
+        userRepository.findByEmail(email).ifPresent(u -> {
+            if (u.getRole() != UserRole.PROFESSOR) {
+                throw new BadRequestException("O e-mail informado pertence a um usuário que não é professor");
+            }
+        });
+        return email;
+    }
+
+    private Integrante novoIntegrante(IntegranteRequest iReq) {
+        Integrante integrante = new Integrante();
+        integrante.setNome(iReq.getNome().trim());
+        integrante.setLinkLinkedin(iReq.getLinkLinkedin() != null ? iReq.getLinkLinkedin().trim() : null);
+        integrante.setCriadoEm(LocalDateTime.now());
+        return integrante;
+    }
+
+    /**
+     * Substitui os integrantes na edição. Sem bulk delete: manter a entidade
+     * gerenciada durante toda a transação é o que permite ao orphanRemoval
+     * apagar os antigos no flush — desanexar no meio (clearAutomatically) faz o
+     * merge tentar cascatear integrantes já deletados (ObjectNotFoundException).
+     */
+    private void substituirIntegrantes(Projeto projeto, List<IntegranteRequest> requisicoes) {
+        projeto.getIntegrantes().clear();
+        for (IntegranteRequest iReq : requisicoes) {
+            projeto.adicionarIntegrante(novoIntegrante(iReq));
+        }
+    }
+
+    private Projeto buscarProjetoDoAutor(UUID projetoId, UUID autorId) {
+        Projeto projeto = buscarProjeto(projetoId);
+        if (projeto.getAutor() == null || !projeto.getAutor().getId().equals(autorId)) {
+            throw new AccessDeniedException("Somente o autor do projeto pode realizar esta operação");
+        }
+        return projeto;
+    }
 
         /**
          * Agenda a notificação de submissão para depois do commit.

@@ -222,6 +222,7 @@
 .badge-aprovado { background-color: #e6f7ea; color: #006217; border-color: #8adc9d; }
 .badge-aguardando { background-color: var(--branco-300); color: var(--cinza-400); }
 .badge-rejeitado { background-color: #fffbeb; color: #92400e; border-color: #fde68a; }
+.badge-devolvido { background-color: #fffbeb; color: #92400e; border-color: #fde68a; }
 
 .titulo { font-size: 1.5rem; font-weight: 800; line-height: 1.25; color: var(--cinza-600); margin: 0; }
 
@@ -458,7 +459,8 @@
 }
 
 .btn-aprovar,
-.btn-rejeitar {
+.btn-rejeitar,
+.btn-devolver {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -481,8 +483,16 @@
 }
 .btn-rejeitar:hover { background-color: var(--branco-600); }
 
+.btn-devolver {
+    background-color: transparent;
+    color: var(--cinza-500);
+    border-color: var(--cinza-300);
+}
+.btn-devolver:hover { background-color: var(--branco-600); }
+
 .btn-aprovar:disabled,
-.btn-rejeitar:disabled {
+.btn-rejeitar:disabled,
+.btn-devolver:disabled {
     opacity: 0.55;
     cursor: not-allowed;
 }

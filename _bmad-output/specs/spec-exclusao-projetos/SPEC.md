@@ -227,9 +227,8 @@ o autor) nem em `/meus`; só em `/removidos`. Os perfis públicos (`InstituicaoS
 - [x] `DELETE /projetos/{id}` implementado com as duas semânticas por estado.
       O motivo **é** obrigatório no body (`motivoRemocao`, única chave aceita), como
       especificado no contrato acima; quem omite recebe 400.
-- [ ] Aba "Removidos" do autor com **Reverter** (a fase 1 já expõe `GET /projetos/removidos`
-      e `POST /projetos/{id}/reverter`, mas a UI ainda não as consome — só o DELETE existe
-      na tela). Ver §4.5.
+- [x] Aba "Removidos" do autor com **Reverter** (entregue na fase 2 — §4.5; a fase 1
+      já expunha `GET /projetos/removidos` e `POST /projetos/{id}/reverter`).
 - [x] Sessão carrega o `id` da conta (`AuthResponse.id`) e `UsuarioLogado.id` é preenchido;
       sem ele o `podeExcluir()` é falso e a ação fica oculta.
 - [x] `GET /projetos/removidos` tem teste de segurança próprio (401 sem token).
@@ -363,10 +362,15 @@ própria conta.
 
 ### 4.9 DoD (fase 2)
 
-- [ ] Devolução, edição e reenvio; `REENVIADO` na fila e na aprovação.
-- [ ] Aba "Removidos" com reversão.
-- [ ] Exclusão de conta anonimizando/excluindo conforme §4.6.
-- [ ] Testes da §4.8 verdes.
+- [x] Devolução, edição e reenvio; `REENVIADO` na fila e na aprovação.
+- [x] Aba "Removidos" com reversão.
+- [x] Exclusão de conta anonimizando/excluindo conforme §4.6.
+- [x] Testes da §4.8 verdes (`Fase2DevolucaoE2ETest`, `ExclusaoContaE2ETest`; suíte
+      completa: 304 testes, 0 falhas).
+
+Observação: a exclusão de conta foi implementada no back-end (`DELETE /usuarios/me`).
+A §4.5 não define UI para ela, então nenhum botão novo foi adicionado ao `/perfil`;
+o front consome devolução/edição/reversão normalmente.
 
 ## 5. Non-goals
 
@@ -410,6 +414,10 @@ Recomendação: **Fase 1 primeiro** (fecha a LGPD do projeto, sozinha já entreg
 - Incluir CAP-E1..E4 e CAP-D1..D3 no inventário de capabilities.
 - Ajustar a documentação que ainda fala em Editor.js/`conteudoEditorJs` quando o épico 7 landing
   (a deleção de arquivo já nasce preparada para `conteudoHtml`).
+- **Schema:** `usuarios.email` passa de `NOT NULL` para nullable (exclusão de conta anonimiza
+  com `email = null`). O schema é gerenciado pelo Hibernate (`ddl-auto: update`), que altera a
+  coluna; em ambiente com migração versionada, acrescentar `ALTER TABLE usuarios ALTER COLUMN
+  email DROP NOT NULL`.
 
 ## 9. Open questions
 

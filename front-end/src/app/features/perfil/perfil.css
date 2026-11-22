@@ -369,6 +369,9 @@
   color: var(--cinza-200);
 }
 
+.card-selo{font-weight:600;color:#92400e}
+.pendente-grupo{grid-column:1/-1}
+
 .card-local {
   display: flex;
   align-items: center;

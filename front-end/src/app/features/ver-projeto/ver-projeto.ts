@@ -50,6 +50,10 @@ export class VerProjeto implements OnInit {
   rejeicaoAberta = signal(false);
   motivoRejeicaoCampo = signal('');
 
+  // --- Devolução para alteração (fase 2a, §4.3 / CAP-D1) ---
+  devolucaoAberta = signal(false);
+  motivoDevolucaoCampo = signal('');
+
   capaUrl = computed(() => {
     const raw = this.projeto()?.imagemCapaUrl ?? '';
     if (!raw || this.capaComErro()) return '';
@@ -71,6 +75,11 @@ export class VerProjeto implements OnInit {
       this.motivoRejeicao().length > 0,
   );
 
+  /** Justificativa da devolução: visível ao autor (e ao professor na revisão). */
+  motivoDevolucao = computed(() => this.projeto()?.motivoDevolucao?.trim() ?? '');
+
+  mostraMotivoDevolucao = computed(() => this.motivoDevolucao().length > 0);
+
   /**
    * O card de pendente do /perfil abre esta tela com `?avaliar=1`. Só nesse modo,
    * para um professor logado e com o projeto ainda pendente, o painel de decisão
@@ -81,7 +90,8 @@ export class VerProjeto implements OnInit {
     () =>
       this.modoAvaliacao() &&
       this.usuario()?.role === 'PROFESSOR' &&
-      this.projeto()?.estado === 'AGUARDANDO_APROVACAO',
+      (this.projeto()?.estado === 'AGUARDANDO_APROVACAO' ||
+        this.projeto()?.estado === 'REENVIADO'),
   );
 
   /**
@@ -182,6 +192,7 @@ export class VerProjeto implements OnInit {
         this.projeto.set(aprovado);
         this.processandoAcao.set(false);
         this.rejeicaoAberta.set(false);
+        this.devolucaoAberta.set(false);
         this.sucessoAvaliacao.set(
           `Projeto "${aprovado.titulo}" aprovado e publicado na vitrine.`,
         );
@@ -228,6 +239,7 @@ export class VerProjeto implements OnInit {
         this.projeto.set(rejeitado);
         this.processandoAcao.set(false);
         this.rejeicaoAberta.set(false);
+        this.devolucaoAberta.set(false);
         this.motivoRejeicaoCampo.set('');
         this.sucessoAvaliacao.set(
           `Projeto "${rejeitado.titulo}" rejeitado com retorno ao aluno.`,
@@ -240,6 +252,54 @@ export class VerProjeto implements OnInit {
           mensagemErroAmigavel(
             err,
             'Não foi possível rejeitar o projeto agora. Tente novamente.',
+          ),
+        );
+      },
+    });
+  }
+
+  abrirDevolucao(): void {
+    this.devolucaoAberta.set(true);
+    this.erroAvaliacao.set(null);
+    this.sucessoAvaliacao.set(null);
+  }
+
+  fecharDevolucao(): void {
+    this.devolucaoAberta.set(false);
+    this.motivoDevolucaoCampo.set('');
+  }
+
+  /** Devolve com justificativa para ALTERACOES_SOLICITADAS (o autor edita e reenvia). */
+  confirmarDevolucao(): void {
+    const id = this.projeto()?.id;
+    const motivo = this.motivoDevolucaoCampo().trim();
+    if (!id || this.processandoAcao()) {
+      return;
+    }
+    if (!motivo) {
+      this.erroAvaliacao.set('Informe o motivo da devolução para o aluno.');
+      return;
+    }
+    this.processandoAcao.set(true);
+    this.erroAvaliacao.set(null);
+    this.sucessoAvaliacao.set(null);
+    this.projetoService.devolverProjeto(id, { motivo }).subscribe({
+      next: (devolvido) => {
+        this.projeto.set(devolvido);
+        this.processandoAcao.set(false);
+        this.devolucaoAberta.set(false);
+        this.motivoDevolucaoCampo.set('');
+        this.sucessoAvaliacao.set(
+          `Projeto "${devolvido.titulo}" devolvido para alteração pelo autor.`,
+        );
+      },
+      error: (err) => {
+        console.error('Erro ao devolver projeto:', err);
+        this.processandoAcao.set(false);
+        this.erroAvaliacao.set(
+          mensagemErroAmigavel(
+            err,
+            'Não foi possível devolver o projeto agora. Tente novamente.',
           ),
         );
       },

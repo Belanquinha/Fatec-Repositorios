@@ -29,6 +29,7 @@ import {
   CursoOption,
   InstituicaoOption,
   ProjetoCreatePayload,
+  ProjetoResponseModel,
 } from '../../core/models/projeto.model';
 import { environment } from '../../../environments/environment';
 
@@ -139,6 +140,13 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   enviadoComSucesso = signal(false);
   erroMensagem = signal<string | null>(null);
 
+  /**
+   * Modo edição (SPEC-exclusao-projetos §4.5): aberto por `/projeto-forms?id=...`,
+   * carrega o devolvido e salva via PUT (ALTERACOES_SOLICITADAS -> REENVIADO).
+   */
+  readonly modoEdicao = signal(false);
+  editandoId: string | null = null;
+
   ngOnInit() {
     this.carregarInstituicoes();
 
@@ -152,7 +160,82 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
           this.instituicaoId = params['instituicaoId'];
           this.sincronizarInstituicaoSelecionada();
         }
+        if (params['id']) {
+          this.carregarParaEdicao(params['id']);
+        }
       });
+  }
+
+  /**
+   * Carrega o projeto devolvido para o formulário. Erro de permissão/inexistente
+   * desiste do modo edição: o formulário volta a ser cadastro, em vez de travar
+   * o aluno numa tela que nunca salvaria.
+   */
+  private carregarParaEdicao(id: string) {
+    this.modoEdicao.set(true);
+    this.erroMensagem.set(null);
+    this.projetoService.obterProjetoPorId(id).subscribe({
+      next: (projeto) => {
+        this.preencherFormulario(projeto);
+      },
+      error: (err) => {
+        console.error('Erro ao carregar projeto para edição:', err);
+        this.modoEdicao.set(false);
+        this.editandoId = null;
+        this.erroMensagem.set(
+          err?.status === 404
+            ? 'Este projeto não está mais disponível para edição.'
+            : 'Não foi possível carregar o projeto para edição. Tente novamente.',
+        );
+      },
+    });
+  }
+
+  private preencherFormulario(p: ProjetoResponseModel) {
+    this.editandoId = p.id;
+    this.titulo = p.titulo ?? '';
+    this.descricaoCurta = p.descricaoCurta ?? '';
+    this.linkRepositorio = p.linkRepositorio ?? '';
+    this.palavrasChave = (p.palavrasChave ?? []).join(', ');
+    this.professorEmail = p.emailProfessorResponsavel ?? '';
+
+    if (p.imagemCapaUrl) {
+      this.imagemCapaUrl = p.imagemCapaUrl;
+      this.capaPreview.set(this.urlImagemAbsoluta(p.imagemCapaUrl));
+    }
+
+    this.instituicaoId = p.instituicaoId ?? '';
+    this.cursoId = p.cursoId ?? '';
+    if (this.instituicoes().length > 0) {
+      this.sincronizarInstituicaoSelecionada();
+    }
+
+    const integrantes = (p.integrantes ?? []).filter(
+      (i) => i.nome && i.nome.trim().length > 0,
+    );
+    this.integrantes =
+      integrantes.length > 0
+        ? integrantes.map((i, idx) => ({
+            id: idx + 1,
+            nome: i.nome,
+            linkedin: i.linkLinkedin ?? '',
+          }))
+        : [{ id: 1, nome: '', linkedin: '' }];
+
+    if (p.conteudoEditorJs?.trim()) {
+      try {
+        this.editorData = JSON.parse(p.conteudoEditorJs);
+      } catch {
+        this.editorData = null;
+      }
+    }
+  }
+
+  /** Capa já salva: "/uploads/x" precisa do host da API no <img>. */
+  private urlImagemAbsoluta(url: string): string {
+    if (/^(https?:\/\/|data:|blob:)/i.test(url)) return url;
+    if (url.startsWith('/uploads/')) return `${environment.apiUrl}${url}`;
+    return url;
   }
 
   ngAfterViewInit() {
@@ -769,11 +852,20 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
 
-      // 7. Chamada de criação do projeto
-      const projetoCriado = await firstValueFrom(
-        this.projetoService.criarProjeto(payload),
+      // 7. Chamada de criação/edição do projeto (PUT só existe em modo edição)
+      const projetoSalvo = this.editandoId
+        ? await firstValueFrom(
+            this.projetoService.atualizarProjeto(this.editandoId, payload),
+          )
+        : await firstValueFrom(
+            this.projetoService.criarProjeto(payload),
+          );
+      console.log(
+        this.editandoId
+          ? 'Projeto reenviado com sucesso:'
+          : 'Projeto submetido com sucesso:',
+        projetoSalvo,
       );
-      console.log('Projeto submetido com sucesso:', projetoCriado);
 
       this.enviando.set(false);
       this.enviadoComSucesso.set(true);
@@ -811,6 +903,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.enviadoComSucesso.set(false);
     this.enviando.set(false);
     this.erroMensagem.set(null);
+    // Volta ao modo cadastro: o próximo envio usa POST /projetos.
+    this.modoEdicao.set(false);
+    this.editandoId = null;
     this.secaoAtual = 1;
     this.titulo = '';
     this.descricaoCurta = '';

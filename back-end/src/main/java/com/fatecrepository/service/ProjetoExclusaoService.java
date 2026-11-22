@@ -90,6 +90,48 @@ public class ProjetoExclusaoService {
         return new ExclusaoProjetoResponse(salvo.getId(), salvo.getTitulo(), salvo.getEstado().name(), salvo.getRemovidoEm());
     }
 
+    /**
+     * Hard delete definitivo para a exclusão de conta (§4.6): apaga linha e arquivos
+     * de <em>qualquer</em> estado do autor — inclusive {@code REMOVIDO}, cujos nomes de
+     * arquivo estão apenas no snapshot de reversão. Não valida motivo nem estado:
+     * quem chama é a conta sendo encerrada, não o fluxo de exclusão comum.
+     */
+    @Transactional
+    public void excluirDefinitivamente(Projeto projeto) {
+        List<String> arquivos = new ArrayList<>(fileStorageService.nomesArquivosDeProjeto(projeto));
+        arquivos.addAll(arquivosDoSnapshot(projeto));
+
+        UUID id = projeto.getId();
+        // Bulk delete por pai: não depende da coleção lazy estar inicializada
+        // (na exclusão de conta o lote vem de entidades potencialmente detachadas).
+        projetoRepository.excluirIntegrantesPorProjeto(id);
+        projetoRepository.excluirPorId(id);
+
+        fileStorageService.excluirArquivos(arquivos.stream().distinct().toList());
+        log.info("Projeto {} removido definitivamente (exclusão de conta)", id);
+    }
+
+    /** Nomes guardados em {@code dadosOriginais.arquivos} (pós-anonimização do soft delete). */
+    private List<String> arquivosDoSnapshot(Projeto projeto) {
+        if (projeto.getDadosOriginais() == null || projeto.getDadosOriginais().isBlank()) {
+            return List.of();
+        }
+        try {
+            Map<?, ?> dados = JSON.readValue(projeto.getDadosOriginais(), Map.class);
+            Object arquivos = dados.get("arquivos");
+            if (arquivos instanceof List<?> lista) {
+                return lista.stream()
+                    .filter(java.util.Objects::nonNull)
+                    .map(Object::toString)
+                    .filter(nome -> !nome.isBlank())
+                    .toList();
+            }
+        } catch (Exception e) {
+            log.warn("[exclusao-conta] snapshot de arquivos ilegível no projeto {}", projeto.getId(), e);
+        }
+        return List.of();
+    }
+
     private ExclusaoProjetoResponse hardDelete(Projeto projeto, String motivo) {
         UUID id = projeto.getId();
         String titulo = projeto.getTitulo();

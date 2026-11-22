@@ -36,4 +36,9 @@ public class ProjetoResponse {
     private List<IntegranteResponse> integrantes;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
+    // --- Fase 2: devolução/edição ---
+    /** Justificativa do professor; visível ao autor em ALTERACOES_SOLICITADAS. */
+    private String motivoDevolucao;
+    private LocalDateTime devolvidoEm;
+    private LocalDateTime reenviadoEm;
 }

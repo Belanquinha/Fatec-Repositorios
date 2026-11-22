@@ -6,9 +6,15 @@
     <div class="mb-8">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-cinza-900 tracking-tight dark:text-branco-50">Cadastro de Projeto</h1>
+          <h1 class="text-3xl font-bold text-cinza-900 tracking-tight dark:text-branco-50">
+            {{ modoEdicao() ? 'Editar Projeto' : 'Cadastro de Projeto' }}
+          </h1>
           <p class="text-sm text-cinza-400 mt-1 dark:text-branco-700">
-            Preencha as seções abaixo com atenção para submeter seu trabalho para a validação acadêmica.
+            @if (modoEdicao()) {
+              Ajuste as seções apontadas pelo professor e reenvie para a validação acadêmica.
+            } @else {
+              Preencha as seções abaixo com atenção para submeter seu trabalho para a validação acadêmica.
+            }
           </p>
         </div>
         
@@ -26,20 +32,28 @@
         <div class="w-16 h-16 bg-verde-50 text-verde-500 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-verde-900 dark:text-verde-300">
           <span class="material-symbols-outlined text-4xl">mark_email_read</span>
         </div>
-        <h2 class="text-2xl font-bold text-cinza-900 dark:text-branco-50">Projeto Enviado para Avaliação!</h2>
+        <h2 class="text-2xl font-bold text-cinza-900 dark:text-branco-50">
+          {{ modoEdicao() ? 'Projeto Reenviado para Avaliação!' : 'Projeto Enviado para Avaliação!' }}
+        </h2>
         <p class="text-cinza-400 mt-2 leading-relaxed dark:text-branco-700">
-          Seu trabalho foi encaminhado com sucesso para a caixa de análise do <strong class="text-cinza-800 dark:text-branco-50">Professor Responsável</strong>.
-          Assim que a validação for concluída, o projeto ficará visível no repositório.
+          @if (modoEdicao()) {
+            Seu trabalho ajustado foi encaminhado novamente ao <strong class="text-cinza-800 dark:text-branco-50">Professor Responsável</strong>.
+          } @else {
+            Seu trabalho foi encaminhado com sucesso para a caixa de análise do <strong class="text-cinza-800 dark:text-branco-50">Professor Responsável</strong>.
+            Assim que a validação for concluída, o projeto ficará visível no repositório.
+          }
         </p>
         <div class="mt-6 flex flex-col sm:flex-row justify-center gap-3">
           <button type="button" (click)="irParaMeusProjetos()" 
                   class="bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold px-6 py-2.5 rounded-lg shadow transition-colors flex items-center justify-center gap-2">
             <span class="material-symbols-outlined text-base">folder_open</span> Ver meus projetos
           </button>
-          <button type="button" (click)="resetarFormulario()" 
-                  class="border border-solid border-cinza-300 text-cinza-700 hover:bg-cinza-50 font-semibold px-6 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 dark:border-cinza-400 dark:text-branco-500 dark:hover:bg-cinza-500">
-            <span class="material-symbols-outlined text-base">add</span> Cadastrar Outro Projeto
-          </button>
+          @if (!modoEdicao()) {
+            <button type="button" (click)="resetarFormulario()" 
+                    class="border border-solid border-cinza-300 text-cinza-700 hover:bg-cinza-50 font-semibold px-6 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 dark:border-cinza-400 dark:text-branco-500 dark:hover:bg-cinza-500">
+              <span class="material-symbols-outlined text-base">add</span> Cadastrar Outro Projeto
+            </button>
+          }
         </div>
       </div>
     } @else {
@@ -524,9 +538,9 @@
                           class="w-full sm:w-auto bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-sm px-7 py-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
                     @if (enviando()) {
                       <span class="inline-block w-4 h-4 border-2 border-cinza-900 border-t-transparent rounded-full animate-spin"></span>
-                      <span>Submetendo projeto...</span>
+                      <span>{{ modoEdicao() ? 'Reenviando projeto...' : 'Submetendo projeto...' }}</span>
                     } @else {
-                      <span>Enviar para Avaliação Acadêmica</span>
+                      <span>{{ modoEdicao() ? 'Reenviar para Avaliação' : 'Enviar para Avaliação Acadêmica' }}</span>
                       <span class="material-symbols-outlined text-base">send</span>
                     }
                   </button>

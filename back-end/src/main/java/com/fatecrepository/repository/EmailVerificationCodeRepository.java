@@ -17,4 +17,7 @@ public interface EmailVerificationCodeRepository extends JpaRepository<EmailVeri
     );
 
     void deleteByEmailAndFinalidade(String email, VerificationPurpose finalidade);
+
+    /** Exclusão de conta: apaga todos os códigos do e-mail, sem distinção de finalidade. */
+    void deleteByEmail(String email);
 }

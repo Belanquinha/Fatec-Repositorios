@@ -1,5 +1,6 @@
 package com.fatecrepository.controller;
 
+import com.fatecrepository.dto.request.DevolverProjetoRequest;
 import com.fatecrepository.dto.request.ExcluirProjetoRequest;
 import com.fatecrepository.dto.request.ProjetoCreateRequest;
 import com.fatecrepository.dto.request.RejeitarProjetoRequest;
@@ -191,6 +192,59 @@ public class ProjetoController {
         }
         log.info("PATCH /projetos/{}/rejeitar pelo professor: {}", id, userDetails.getId());
         return ResponseEntity.ok(projetoService.rejeitar(id, userDetails.getId(), request.getMotivo()));
+    }
+
+    @PatchMapping("/{id}/devolver")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    @Operation(summary = "Devolver projeto para alteração pelo autor",
+        description = "Devolve um projeto em AGUARDANDO_APROVACAO para ALTERACOES_SOLICITADAS com justificativa obrigatória. "
+            + "Somente o professor responsável indicado na submissão pode devolver.")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Projeto devolvido com motivo registrado"),
+        @ApiResponse(responseCode = "400", description = "Motivo ausente"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado"),
+        @ApiResponse(responseCode = "403", description = "Professor não é o responsável indicado"),
+        @ApiResponse(responseCode = "404", description = "Projeto não encontrado"),
+        @ApiResponse(responseCode = "409", description = "Estado que não permite devolução")
+    })
+    public ResponseEntity<ProjetoResponse> devolver(
+        @Parameter(description = "ID do projeto") @PathVariable UUID id,
+        @Valid @RequestBody DevolverProjetoRequest request,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+        if (request == null || request.getMotivo() == null || request.getMotivo().isBlank()) {
+            throw new BadRequestException("O motivo da devolução é obrigatório");
+        }
+        log.info("PATCH /projetos/{}/devolver pelo professor: {}", id, userDetails.getId());
+        return ResponseEntity.ok(projetoService.devolver(id, userDetails.getId(), request.getMotivo()));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Editar e reenviar projeto devolvido",
+        description = "Aplica os campos enviados a um projeto em ALTERACOES_SOLICITADAS e o reenvia como REENVIADO. Só o autor.")
+    @SecurityRequirement(name = "Bearer JWT")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Projeto reenviado"),
+        @ApiResponse(responseCode = "400", description = "Dados da requisição inválidos"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado"),
+        @ApiResponse(responseCode = "403", description = "Usuário autenticado não é o autor"),
+        @ApiResponse(responseCode = "404", description = "Projeto não encontrado"),
+        @ApiResponse(responseCode = "409", description = "Projeto não está em ALTERACOES_SOLICITADAS")
+    })
+    public ResponseEntity<ProjetoResponse> editar(
+        @Parameter(description = "ID do projeto") @PathVariable UUID id,
+        @Valid @RequestBody ProjetoCreateRequest request,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new UnauthorizedException("Usuário não autenticado");
+        }
+        log.info("PUT /projetos/{} pelo autor: {}", id, userDetails.getId());
+        return ResponseEntity.ok(projetoService.editar(id, userDetails.getId(), request));
     }
 
     @DeleteMapping("/{id}")

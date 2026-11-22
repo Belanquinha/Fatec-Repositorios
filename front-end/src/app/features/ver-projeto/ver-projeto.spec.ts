@@ -272,6 +272,114 @@ describe('VerProjeto (avaliação do professor responsável)', () => {
     await fixture.whenStable();
 
     expect(rejeitarProjeto).toHaveBeenCalledWith('p1', 'Falta referencial teórico');
-    expect(component.sucessoAvaliacao()).toContain('rejeitado');
-  });
-});
+        expect(component.sucessoAvaliacao()).toContain('rejeitado');
+      });
+    });
+
+    /**
+     * Fase 2 do SPEC-exclusao-projetos: devolução para ALTERACOES_SOLICITADAS.
+     */
+    describe('VerProjeto (devolução para alteração)', () => {
+      const pendente: ProjetoResponseModel = {
+        id: 'p1',
+        titulo: 'Projeto Pendente',
+        descricaoCurta: 'Aguardando decisão.',
+        conteudoEditorJs: '',
+        linkRepositorio: '',
+        imagemCapaUrl: '',
+        palavrasChave: [],
+        anoPublicado: 2026,
+        estado: 'AGUARDANDO_APROVACAO',
+        emailProfessorResponsavel: 'professor@cps.sp.gov.br',
+        nomeProfessorResponsavel: 'Prof. Helena',
+        instituicaoId: 'inst-1',
+        instituicaoNome: 'Fatec Americana',
+        autorId: 'u1',
+        autorNome: 'Ana',
+        integrantes: [],
+        criadoEm: '2026-01-01T00:00:00Z',
+        atualizadoEm: '2026-01-01T00:00:00Z',
+      };
+
+      const professor = {
+        nome: 'Professor Teste',
+        email: 'professor.teste@cps.sp.gov.br',
+        role: 'PROFESSOR',
+      };
+
+      let fixture: ComponentFixture<VerProjeto>;
+      let component: VerProjeto;
+      let devolverProjeto: ReturnType<typeof vi.fn>;
+
+      async function configurar(estado: ProjetoResponseModel['estado']) {
+        devolverProjeto = vi.fn().mockReturnValue(
+          of({
+            ...pendente,
+            estado: 'ALTERACOES_SOLICITADAS',
+            motivoDevolucao: 'Ajuste o escopo no item 2',
+          }),
+        );
+
+        await TestBed.configureTestingModule({
+          imports: [VerProjeto],
+          providers: [
+            {
+              provide: ProjetoService,
+              useValue: {
+                obterProjetoPorId: vi
+                  .fn()
+                  .mockReturnValue(of({ ...pendente, estado })),
+                devolverProjeto,
+              },
+            },
+            {
+              provide: AuthService,
+              useValue: { obterUsuarioLogado: vi.fn().mockResolvedValue(professor) },
+            },
+            {
+              provide: ActivatedRoute,
+              useValue: {
+                snapshot: {
+                  paramMap: { get: () => 'p1' },
+                  queryParamMap: { get: () => '1' },
+                },
+              },
+            },
+          ],
+        }).compileComponents();
+
+        fixture = TestBed.createComponent(VerProjeto);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+      }
+
+      it('painel de decisão aceita AGUARDANDO_APROVACAO e REENVIADO', async () => {
+        await configurar('REENVIADO');
+        expect(component.podeAvaliar()).toBe(true);
+      });
+
+      it('devolução sem motivo é barrada antes do serviço', async () => {
+        await configurar('AGUARDANDO_APROVACAO');
+        component.abrirDevolucao();
+        component.confirmarDevolucao();
+
+        expect(component.erroAvaliacao()).toContain('motivo');
+        expect(devolverProjeto).not.toHaveBeenCalled();
+      });
+
+      it('devolução com motivo chama o serviço e registra o sucesso', async () => {
+        await configurar('AGUARDANDO_APROVACAO');
+        component.abrirDevolucao();
+        component.motivoDevolucaoCampo.set('Ajuste o escopo no item 2');
+        component.confirmarDevolucao();
+        await fixture.whenStable();
+
+        expect(devolverProjeto).toHaveBeenCalledWith('p1', {
+          motivo: 'Ajuste o escopo no item 2',
+        });
+        expect(component.sucessoAvaliacao()).toContain('devolvido');
+        expect(component.motivoDevolucao()).toBe('Ajuste o escopo no item 2');
+      });
+    });

@@ -757,3 +757,133 @@ describe('Perfil — exclusão de projeto (SPEC-exclusao-projetos fase 1)', () =
     expect(comp.exclusao()).not.toBeNull();
   });
 });
+
+/**
+ * Fase 2 do SPEC-exclusao-projetos: devolução/edição no /perfil e aba "Removidos".
+ */
+describe('Perfil — fase 2 (devolvidos, reenvio e removidos)', () => {
+  const aluno = {
+    id: 'u-aluno',
+    nome: 'Aluno Teste',
+    email: 'aluno.teste@aluno.cps.sp.gov.br',
+    role: 'ALUNO',
+  };
+
+  function projeto(
+    estado: ProjetoResponseModel['estado'],
+    id: string,
+    titulo: string,
+  ): ProjetoResponseModel {
+    return {
+      id,
+      titulo,
+      descricaoCurta: `Descrição de ${titulo}`,
+      instituicaoNome: 'Fatec Ipiranga',
+      estado,
+      autorId: 'u-aluno',
+      criadoEm: '2026-09-11T00:00:00Z',
+    } as ProjetoResponseModel;
+  }
+
+  async function configurar(projetosMock: unknown) {
+    await TestBed.configureTestingModule({
+      imports: [Perfil],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { obterUsuarioLogado: vi.fn().mockResolvedValue(aluno) } },
+        { provide: ProjetoService, useValue: projetosMock },
+      ],
+    }).compileComponents();
+
+    const fx = TestBed.createComponent(Perfil);
+    const comp = fx.componentInstance;
+    await fx.whenStable();
+    fx.detectChanges();
+    return { fx, comp };
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('separa "em análise" de "devolvidos" e oferece "Editar e reenviar"', async () => {
+    const mock = {
+      obterMeusProjetos: vi.fn().mockReturnValue(
+        of([
+          projeto('AGUARDANDO_APROVACAO', 'p1', 'Em Analise'),
+          {
+            ...projeto('ALTERACOES_SOLICITADAS', 'p2', 'Devolvido'),
+            motivoDevolucao: 'Ajuste o escopo e traga referências',
+          },
+        ]),
+      ),
+    };
+    const { fx, comp } = await configurar(mock);
+
+    comp.selecionarAba('pendentes');
+    fx.detectChanges();
+
+    expect(comp.pendentesAluno().emAnalise.map((p) => p.id)).toEqual(['p1']);
+    expect(comp.pendentesAluno().devolvidos.map((p) => p.id)).toEqual(['p2']);
+
+    const texto = fx.nativeElement.textContent as string;
+    expect(texto).toContain('Em análise (1)');
+    expect(texto).toContain('Devolvidos (1)');
+    expect(texto).toContain('Ajuste o escopo');
+    const link = fx.nativeElement.querySelector(
+      'a[href="/projeto-forms?id=p2"]',
+    ) as HTMLAnchorElement | null;
+    expect(link).toBeTruthy();
+    expect(link?.textContent).toContain('Editar e reenviar');
+  });
+
+  it('aba "Removidos" só aparece com REMOVIDO e reverte pelo botão', async () => {
+    const mock = {
+      obterMeusProjetos: vi.fn().mockReturnValue(of([])),
+      listarProjetosRemovidos: vi.fn().mockReturnValue(
+        of([
+          {
+            id: 'r1',
+            titulo: 'Projeto Removido',
+            removidoEm: '2026-11-20T00:00:00',
+            motivoRemocaoGenerico: 'PEDIDO_AUTOR',
+            diasParaExpirar: 10,
+          },
+        ]),
+      ),
+      reverterProjetoRemovido: vi.fn().mockReturnValue(
+        of({ id: 'r1', titulo: 'Projeto Removido', estado: 'APROVADO' }),
+      ),
+    };
+    const { fx, comp } = await configurar(mock);
+
+    expect(comp.mostrarAbaRemovidos()).toBe(true);
+    comp.selecionarAba('removidos');
+    fx.detectChanges();
+
+    const texto = fx.nativeElement.textContent as string;
+    expect(texto).toContain('Projeto Removido');
+    expect(texto).toContain('Restam 10 dias');
+
+    const botao = [...fx.nativeElement.querySelectorAll('button')].find((b) =>
+      b.textContent?.includes('Reverter'),
+    ) as HTMLButtonElement | undefined;
+    expect(botao).toBeTruthy();
+    botao!.click();
+    await fx.whenStable();
+
+    expect(mock.reverterProjetoRemovido).toHaveBeenCalledWith('r1');
+    expect(comp.removidos()).toHaveLength(0);
+  });
+
+  it('sem REMOVIDO a aba "Removidos" não existe', async () => {
+    const mock = {
+      obterMeusProjetos: vi.fn().mockReturnValue(of([])),
+      listarProjetosRemovidos: vi.fn().mockReturnValue(of([])),
+    };
+    const { fx, comp } = await configurar(mock);
+
+    expect(comp.mostrarAbaRemovidos()).toBe(false);
+    expect(fx.nativeElement.textContent).not.toContain('Removidos');
+  });
+});

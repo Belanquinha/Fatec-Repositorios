@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Configurações — Fatec Repositório (Preview)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts: Material Symbols (igual ao projeto) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,1,0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CDN (para preview) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            /* Paleta do projeto (paleta.css) */
+            vermelho: { 50:'#F7E6E6',100:'#E7B0B0',200:'#DC8A8A',300:'#CB5454',400:'#C13333',500:'#B20000',600:'#A20000',700:'#7E0000' },
+            amarelo:  { 50:'#FCF6E6',100:'#F4E4B1',200:'#EFD78B',300:'#E8C456',400:'#E3B935',500:'#DCA703',600:'#C89803',700:'#9C7702',800:'#795C02' },
+            verde:    { 500:'#00B32A',600:'#00A326' },
+            branco:   { 50:'#FEFEFE',100:'#FCFCFD',200:'#FAFBFC',300:'#F8F9FB',400:'#F6F8FA',500:'#F4F6F9',600:'#DEE0E3',700:'#ADAFB1',800:'#868789',900:'#666769' },
+            cinza:    { 50:'#E9E9E9',100:'#BABABB',200:'#98999A',300:'#6A6A6C',400:'#4D4D50',500:'#202124',600:'#1D1E21',700:'#17171A',800:'#121214',900:'#0D0E0F' },
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* ── Paleta base (modo claro) ── */
+    :root {
+      --vermelho-500: #B20000;
+      --vermelho-600: #A20000;
+      --amarelo-500:  #DCA703;
+      --amarelo-600:  #C89803;
+      --verde-500:    #00B32A;
+      --branco-50:    #FEFEFE;
+      --branco-300:   #F8F9FB;
+      --branco-400:   #F6F8FA;
+      --branco-500:   #F4F6F9;
+      --branco-600:   #DEE0E3;
+      --cinza-100:    #BABABB;
+      --cinza-200:    #98999A;
+      --cinza-300:    #6A6A6C;
+      --cinza-400:    #4D4D50;
+      --cinza-500:    #202124;
+      --cinza-900:    #0D0E0F;
+    }
+
+    /* ── Paleta modo escuro ── */
+    .dark {
+      --branco-50:    #1D1E21;
+      --branco-300:   #2A2B2F;
+      --branco-400:   #34363B;
+      --branco-500:   #121214;
+      --branco-600:   #3A3B40;
+      --branco-700:   #868789;
+      --cinza-100:    #3A3B40;
+      --cinza-200:    #868789;
+      --cinza-300:    #ADAFB1;
+      --cinza-400:    #DEE0E3;
+      --cinza-500:    #F4F6F9;
+      color-scheme: dark;
+    }
+
+    /* ── Reset / base ── */
+    *, *::before, *::after { box-sizing: border-box; border-radius: 0 !important; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      background-color: var(--branco-500);
+      color: var(--cinza-500);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header (espelho exato do projeto) ── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      height: 64px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--branco-600);
+      background-color: rgba(244,246,249,.9);
+      padding: 0 24px;
+      backdrop-filter: blur(12px);
+    }
+    .dark .site-header {
+      background-color: rgba(29,30,33,.9);
+      border-bottom-color: var(--cinza-100);
+    }
+    .header-logo-area { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .header-logo-box {
+      width: 32px; height: 32px;
+      background: var(--vermelho-500);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px; font-weight: 700; flex-shrink: 0;
+    }
+    .header-logo-name { font-size: 15px; font-weight: 700; color: var(--cinza-400); }
+    .dark .header-logo-name { color: var(--cinza-400); }
+
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .btn-icon-header {
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--branco-600);
+      background: var(--branco-50);
+      color: var(--cinza-500);
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .dark .btn-icon-header { border-color: var(--cinza-100); background: var(--branco-300); color: var(--cinza-500); }
+    .btn-icon-header:hover { background: var(--branco-400); }
+
+    /* ── Layout de página ── */
+    .page-wrapper {
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* ── Cabeçalho da página ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--branco-600);
+    }
+    .page-header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .page-title-icon {
+      width: 44px; height: 44px;
+      background: var(--branco-300);
+      border: 1px solid var(--branco-600);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--cinza-300);
+    }
+    .dark .page-title-icon { background: var(--branco-300); border-color: var(--branco-600); }
+    .page-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--cinza-500); }
+    .page-subtitle { margin: 0.125rem 0 0; font-size: 0.875rem; color: var(--cinza-300); }
+
+    /* ── Seção de configurações ── */
+    .config-section {
+      display: flex;
+      flex-direction: column;
+      background: var(--branco-50);
+      border: 1px solid var(--branco-600);
+    }
+    .dark .config-section { border-color: var(--branco-600); }
+
+    .config-section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid var(--branco-600);
+    }
+    .config-section-title {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cinza-300);
+    }
+
+    /* ── Linha de item ── */
+    .config-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--branco-600);
+    }
+    .config-row:last-child { border-bottom: none; }
+
+    .config-row-info { display: flex; align-items: flex-start; gap: 0.75rem; min-width: 0; flex: 1; }
+    .config-row-icon {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--cinza-300);
+      background: var(--branco-300);
+      border: 1px solid var(--branco-600);
+    }
+    .dark .config-row-icon { background: var(--branco-300); }
+
+    .config-row-text { min-width: 0; }
+    .config-row-label {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--cinza-500);
+      margin: 0;
+      display: block;
+    }
+    .config-row-desc {
+      font-size: 0.8125rem;
+      color: var(--cinza-300);
+      margin: 0.125rem 0 0;
+      display: block;
+    }
+
+    .config-row-control { flex-shrink: 0; }
+
+    /* ── Interruptor (toggle) — igual ao drawer do header ── */
+    .interruptor {
+      display: inline-flex;
+      align-items: center;
+      width: 40px; height: 22px;
+      flex-shrink: 0;
+      padding: 2px;
+      background-color: var(--cinza-200);
+      cursor: pointer;
+      transition: background-color .2s ease;
+    }
+    .interruptor .pino {
+      display: block;
+      width: 18px; height: 18px;
+      background-color: var(--branco-50);
+      transition: transform .2s ease;
+    }
+    .interruptor.ligado { background-color: var(--amarelo-500); justify-content: flex-end; }
+    .interruptor.ligado .pino { background-color: var(--cinza-900); }
+
+    /* ── Seletor de tema (chips horizontais) ── */
+    .tema-grupo {
+      display: inline-flex;
+      border: 1px solid var(--branco-600);
+      overflow: hidden;
+    }
+    .tema-opcao {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 0.875rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--cinza-300);
+      background: var(--branco-50);
+      border: none;
+      cursor: pointer;
+      border-right: 1px solid var(--branco-600);
+      transition: background .15s, color .15s;
+    }
+    .dark .tema-opcao { background: var(--branco-50); }
+    .tema-opcao:last-child { border-right: none; }
+    .tema-opcao:hover { background: var(--branco-400); color: var(--cinza-500); }
+    .tema-opcao.ativo {
+      background: var(--cinza-500);
+      color: var(--branco-50);
+    }
+    .dark .tema-opcao.ativo { background: var(--cinza-500); color: var(--cinza-900); }
+
+    /* ── Seletor de tamanho de fonte ── */
+    .fonte-grupo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid var(--branco-600);
+    }
+    .fonte-btn {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--branco-50);
+      color: var(--cinza-300);
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background .15s, color .15s;
+      border-right: 1px solid var(--branco-600);
+    }
+    .fonte-btn:last-child { border-right: none; }
+    .fonte-btn:hover { background: var(--branco-400); color: var(--cinza-500); }
+    .fonte-btn.ativo { background: var(--cinza-500); color: var(--branco-50); }
+
+    .fonte-valor {
+      padding: 0 0.75rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--cinza-500);
+      background: var(--branco-300);
+      height: 36px;
+      display: flex; align-items: center;
+      border-right: 1px solid var(--branco-600);
+      min-width: 48px;
+      justify-content: center;
+      user-select: none;
+    }
+
+    /* ── Botões ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      height: fit-content;
+      transition: background .15s, color .15s;
+    }
+    .btn-outline {
+      background: var(--branco-50);
+      color: var(--cinza-500);
+      border-color: var(--cinza-500);
+    }
+    .btn-outline:hover { background: var(--branco-400); }
+    .btn-perigo {
+      background: transparent;
+      color: var(--vermelho-500);
+      border-color: var(--vermelho-500);
+    }
+    .btn-perigo:hover { background: var(--vermelho-500); color: #fff; }
+    .btn-compacto { padding: 0.45rem 0.875rem; }
+
+    /* ── Linha destrutiva ── */
+    .config-row-danger .config-row-label { color: var(--vermelho-500); }
+    .config-row-danger .config-row-icon { color: var(--vermelho-500); border-color: var(--vermelho-500); background: #F7E6E6; }
+    .dark .config-row-danger .config-row-icon { background: #2a0a0a; border-color: var(--vermelho-600); }
+
+    /* ── Material Symbols ── */
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      user-select: none;
+    }
+
+    /* ── Badge "preview" ── */
+    .badge-preview {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: var(--amarelo-50);
+      color: var(--amarelo-800);
+      border: 1px solid var(--amarelo-200);
+      vertical-align: middle;
+    }
+
+    /* ── Alerta de pré-visualização ── */
+    .aviso-preview {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--amarelo-500);
+      background: var(--branco-50);
+      color: #795C02;
+      font-size: 0.8125rem;
+    }
+    .dark .aviso-preview { background: #241D02; border-color: #9C7702; color: #EFD78B; }
+
+    /* ── Separador entre grupos ── */
+    .grupo-gap { margin-top: 0.25rem; }
+
+    /* ── Fonte preview (linha de demo) ── */
+    .fonte-demo {
+      font-size: 0.8125rem;
+      color: var(--cinza-300);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .fonte-demo-text {
+      display: inline-block;
+      transition: font-size .2s ease;
+    }
+    #preview-tamanho-sm  { font-size: 13px; }
+    #preview-tamanho-md  { font-size: 15px; }
+    #preview-tamanho-lg  { font-size: 17px; }
+    #preview-tamanho-xl  { font-size: 19px; }
+
+    /* ── Rodapé ── */
+    .rodape-cfg {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--cinza-200);
+      padding-top: 1rem;
+    }
+
+    /* ── Responsividade ── */
+    @media (max-width: 600px) {
+      .config-row { flex-direction: column; align-items: flex-start; }
+      .config-row-control { align-self: flex-end; }
+      .tema-opcao span:not(.material-symbols-outlined) { display: none; }
+    }
+
+    /* ── Transição tema ── */
+    @media (prefers-reduced-motion: no-preference) {
+      body { transition: background-color .2s ease, color .2s ease; }
+      .config-section,
+      .config-row,
+      .config-row-icon,
+      .btn { transition: background .15s ease, color .15s ease, border-color .15s ease; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     CONTEÚDO PRINCIPAL
+════════════════════════════════════════════════ -->
+<main>
+  <div class="page-wrapper">
+
+    <!-- Aviso de preview -->
+    <div class="aviso-preview" role="note">
+      <span class="material-symbols-outlined" style="font-size:18px;flex-shrink:0;">info</span>
+      <span>Esta é uma <strong>pré-visualização estática</strong> do layout — os controles não persistem dados.</span>
+    </div>
+
+    <!-- ── Cabeçalho da página ── -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-title-icon">
+          <span class="material-symbols-outlined" style="font-size:22px;">settings</span>
+        </div>
+        <div>
+          <h1 class="page-title">Configurações</h1>
+          <p class="page-subtitle">Personalize sua experiência e gerencie sua conta</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO 1 — ACESSIBILIDADE / APARÊNCIA
+    ═════════════════════════════════════════ -->
+    <section class="config-section" aria-labelledby="secao-acessibilidade">
+      <div class="config-section-header">
+        <span class="material-symbols-outlined" style="font-size:16px;color:var(--cinza-300);">accessibility</span>
+        <span class="config-section-title" id="secao-acessibilidade">Acessibilidade e aparência</span>
+      </div>
+
+      <!-- Tema -->
+      <div class="config-row">
+        <div class="config-row-info">
+          <div class="config-row-icon">
+            <span class="material-symbols-outlined">contrast</span>
+          </div>
+          <div class="config-row-text">
+            <span class="config-row-label">Tema da interface</span>
+            <span class="config-row-desc">Escolha entre o modo claro, escuro ou o padrão do seu sistema</span>
+          </div>
+        </div>
+        <div class="config-row-control">
+          <div class="tema-grupo" role="group" aria-label="Tema da interface">
+            <button type="button" class="tema-opcao" aria-pressed="false" title="Modo claro">
+              <span class="material-symbols-outlined" style="font-size:16px;">light_mode</span>
+              <span>Claro</span>
+            </button>
+            <button type="button" class="tema-opcao ativo" aria-pressed="true" title="Modo escuro">
+              <span class="material-symbols-outlined" style="font-size:16px;">dark_mode</span>
+              <span>Escuro</span>
+            </button>
+            <button type="button" class="tema-opcao" aria-pressed="false" title="Seguir sistema">
+              <span class="material-symbols-outlined" style="font-size:16px;">brightness_auto</span>
+              <span>Sistema</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tamanho de fonte -->
+      <div class="config-row">
+        <div class="config-row-info">
+          <div class="config-row-icon">
+            <span class="material-symbols-outlined">format_size</span>
+          </div>
+          <div class="config-row-text">
+            <span class="config-row-label">Tamanho do texto</span>
+            <span class="config-row-desc">
+              Ajuste o tamanho base da fonte —&nbsp;
+              <span class="fonte-demo">
+                <span class="fonte-demo-text" id="demo-fonte" style="font-size:15px;">Exemplo de texto na plataforma</span>
+              </span>
+            </span>
+          </div>
+        </div>
+        <div class="config-row-control">
+          <div class="fonte-grupo" role="group" aria-label="Tamanho do texto">
+            <button type="button" class="fonte-btn" aria-pressed="false" title="Pequeno" onclick="setFonte(this,'13px','P')">
+              <span style="font-size:11px;font-weight:700;">A</span>
+            </button>
+            <button type="button" class="fonte-btn ativo" aria-pressed="true" title="Médio" onclick="setFonte(this,'15px','M')">
+              <span style="font-size:14px;font-weight:700;">A</span>
+            </button>
+            <button type="button" class="fonte-btn" aria-pressed="false" title="Grande" onclick="setFonte(this,'17px','G')">
+              <span style="font-size:17px;font-weight:700;">A</span>
+            </button>
+            <button type="button" class="fonte-btn" aria-pressed="false" title="Extra grande" onclick="setFonte(this,'19px','XG')">
+              <span style="font-size:20px;font-weight:700;">A</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO 2 — NOTIFICAÇÕES E COMUNICAÇÕES
+    ═════════════════════════════════════════ -->
+    <section class="config-section grupo-gap" aria-labelledby="secao-notificacoes">
+      <div class="config-section-header">
+        <span class="material-symbols-outlined" style="font-size:16px;color:var(--cinza-300);">notifications</span>
+        <span class="config-section-title" id="secao-notificacoes">Notificações e e-mails</span>
+      </div>
+
+      <!-- E-mails atividade da conta -->
+      <div class="config-row">
+        <div class="config-row-info">
+          <div class="config-row-icon">
+            <span class="material-symbols-outlined">mail</span>
+          </div>
+          <div class="config-row-text">
+            <span class="config-row-label">E-mails de atividade da conta</span>
+            <span class="config-row-desc">Receba notificações sobre atualizações nos seus projetos (aprovações, devoluções)</span>
+          </div>
+        </div>
+        <div class="config-row-control">
+          <button
+            type="button"
+            role="switch"
+            aria-checked="true"
+            aria-label="E-mails de atividade da conta"
+            class="interruptor ligado"
+            onclick="toggleSwitch(this)">
+            <span class="pino"></span>
+          </button>
+        </div>
+      </div>
+
+
+      <!-- E-mails de verificação / segurança -->
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO 3 — CONTA E SESSÃO
+    ═════════════════════════════════════════ -->
+    <section class="config-section grupo-gap" aria-labelledby="secao-conta">
+      <div class="config-section-header">
+        <span class="material-symbols-outlined" style="font-size:16px;color:var(--cinza-300);">manage_accounts</span>
+        <span class="config-section-title" id="secao-conta">Conta e sessão</span>
+      </div>
+
+      <!-- Sair da conta -->
+      <div class="config-row">
+        <div class="config-row-info">
+          <div class="config-row-icon">
+            <span class="material-symbols-outlined">logout</span>
+          </div>
+          <div class="config-row-text">
+            <span class="config-row-label">Sair da conta</span>
+            <span class="config-row-desc">Encerra a sessão atual neste dispositivo</span>
+          </div>
+        </div>
+        <div class="config-row-control">
+          <button type="button" class="btn btn-outline btn-compacto">
+            <span class="material-symbols-outlined" style="font-size:16px;">logout</span>
+            <span>Sair</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO 4 — ZONA DE PERIGO
+    ═════════════════════════════════════════ -->
+    <section class="config-section grupo-gap" aria-labelledby="secao-perigo">
+      <div class="config-section-header" style="border-bottom-color: #E7B0B0;">
+        <span class="material-symbols-outlined" style="font-size:16px;color:var(--vermelho-500);">warning</span>
+        <span class="config-section-title" id="secao-perigo" style="color:var(--vermelho-500);">Zona de risco</span>
+      </div>
+
+      <!-- Excluir conta -->
+      <div class="config-row config-row-danger">
+        <div class="config-row-info">
+          <div class="config-row-icon">
+            <span class="material-symbols-outlined">person_remove</span>
+          </div>
+          <div class="config-row-text">
+            <span class="config-row-label">Solicitar exclusão de conta</span>
+            <span class="config-row-desc" style="color:var(--cinza-300);">
+              Remove permanentemente seus dados, projetos e histórico. Esta ação não pode ser desfeita.
+            </span>
+          </div>
+        </div>
+        <div class="config-row-control">
+          <button type="button" class="btn btn-perigo btn-compacto">
+            <span class="material-symbols-outlined" style="font-size:16px;">delete_forever</span>
+            <span>Solicitar exclusão</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rodapé da página -->
+    <p class="rodape-cfg">
+      Fatec Repositório &nbsp;·&nbsp; Versão 1.0 &nbsp;·&nbsp;
+      <a href="#" style="color:var(--cinza-200);text-decoration:none;border-bottom:1px solid var(--branco-600);">Política de privacidade</a>
+    </p>
+
+  </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL — Confirmação de exclusão de conta
+     (oculto por padrão; seria aberto ao clicar em "Solicitar exclusão")
+════════════════════════════════════════════════ -->
+<div id="modal-exclusao-conta" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-excl-titulo">
+  <div class="modal-overlay" style="
+    position:fixed;inset:0;z-index:50;
+    background:rgba(13,14,15,.4);
+    backdrop-filter:blur(2px);
+    display:flex;align-items:center;justify-content:center;padding:1rem;">
+    <div style="
+      background:var(--branco-50);
+      border:1px solid var(--branco-600);
+      max-width:480px;width:100%;
+      display:flex;flex-direction:column;">
+
+      <!-- Cabeçalho do modal -->
+      <div style="
+        display:flex;align-items:flex-start;justify-content:space-between;
+        padding:1.25rem 1.25rem 1rem;
+        border-bottom:1px solid var(--branco-600);">
+        <div>
+          <h2 id="modal-excl-titulo" style="margin:0;font-size:1.125rem;font-weight:700;color:var(--vermelho-500);">Solicitar exclusão de conta</h2>
+          <p style="margin:.25rem 0 0;font-size:.875rem;color:var(--cinza-300);">Esta ação é irreversível. Leia antes de continuar.</p>
+        </div>
+        <button type="button"
+          onclick="document.getElementById('modal-exclusao-conta').style.display='none'"
+          aria-label="Fechar"
+          style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--cinza-300);">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Corpo do modal -->
+      <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;">
+        <div style="
+          display:flex;gap:.5rem;align-items:flex-start;
+          padding:.75rem 1rem;
+          border:1px solid #E7B0B0;
+          background:#F7E6E6;
+          font-size:.875rem;color:#620000;">
+          <span class="material-symbols-outlined" style="font-size:18px;flex-shrink:0;margin-top:1px;">warning</span>
+          <span>Ao confirmar, <strong>todos os seus projetos, dados e histórico</strong> serão marcados para remoção. A exclusão efetiva ocorre em até 30 dias.</span>
+        </div>
+        <label style="font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cinza-500);display:block;">
+          Confirme digitando: <strong>excluir minha conta</strong>
+        </label>
+        <input
+          type="text"
+          placeholder="excluir minha conta"
+          style="
+            width:100%;
+            border:1px solid var(--cinza-300);
+            padding:.6rem .75rem;
+            font-size:.9375rem;
+            font-family:inherit;
+            color:var(--cinza-500);
+            background:var(--branco-50);
+            outline:none;" />
+      </div>
+
+      <!-- Rodapé do modal -->
+      <div style="
+        display:flex;justify-content:flex-end;gap:.5rem;
+        padding:.875rem 1.25rem;
+        border-top:1px solid var(--branco-600);">
+        <button type="button"
+          onclick="document.getElementById('modal-exclusao-conta').style.display='none'"
+          class="btn btn-outline btn-compacto">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-perigo btn-compacto">
+          <span class="material-symbols-outlined" style="font-size:16px;">delete_forever</span>
+          <span>Confirmar exclusão</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     JS — Interações de demo (sem lógica real)
+════════════════════════════════════════════════ -->
+<script>
+  /* Toggle do interruptor */
+  function toggleSwitch(btn) {
+    const ligado = btn.classList.toggle('ligado');
+    btn.setAttribute('aria-checked', ligado ? 'true' : 'false');
+  }
+
+  /* Tamanho de fonte */
+  function setFonte(btn, tamanho, label) {
+    document.querySelectorAll('.fonte-btn').forEach(b => {
+      b.classList.remove('ativo');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    btn.classList.add('ativo');
+    btn.setAttribute('aria-pressed', 'true');
+    const demo = document.getElementById('demo-fonte');
+    if (demo) demo.style.fontSize = tamanho;
+  }
+
+  /* Seletor de tema (chips) */
+  document.querySelectorAll('.tema-opcao').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tema-opcao').forEach(b => {
+        b.classList.remove('ativo');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('ativo');
+      btn.setAttribute('aria-pressed', 'true');
+
+      // Aplica o tema no preview
+      const label = btn.title;
+      if (label === 'Modo escuro') {
+        document.documentElement.classList.add('dark');
+        document.getElementById('icone-tema-header').textContent = 'light_mode';
+      } else if (label === 'Modo claro') {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('icone-tema-header').textContent = 'dark_mode';
+      } else {
+        // Sistema
+        const prefereDark = matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', prefereDark);
+        document.getElementById('icone-tema-header').textContent = prefereDark ? 'light_mode' : 'dark_mode';
+      }
+    });
+  });
+
+  /* Toggle do botão de tema no header */
+  document.getElementById('btn-tema-header').addEventListener('click', () => {
+    const escuro = document.documentElement.classList.toggle('dark');
+    document.getElementById('icone-tema-header').textContent = escuro ? 'light_mode' : 'dark_mode';
+    // Sincroniza o chip de tema
+    document.querySelectorAll('.tema-opcao').forEach(b => {
+      b.classList.remove('ativo');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    const alvo = escuro ? 1 : 0;
+    const chips = document.querySelectorAll('.tema-opcao');
+    chips[alvo].classList.add('ativo');
+    chips[alvo].setAttribute('aria-pressed', 'true');
+  });
+
+  /* Botão "Solicitar exclusão" abre o modal */
+  document.querySelectorAll('.btn-perigo').forEach(btn => {
+    if (btn.textContent.includes('Solicitar exclusão')) {
+      btn.addEventListener('click', () => {
+        document.getElementById('modal-exclusao-conta').style.display = 'flex';
+      });
+    }
+  });
+
+  /* Inicializa o tema com o modo escuro (que é o default ativo no chip) */
+  document.documentElement.classList.add('dark');
+</script>
+</body>
+</html>

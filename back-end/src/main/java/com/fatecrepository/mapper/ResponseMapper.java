@@ -110,7 +110,10 @@ public class ResponseMapper {
             projeto.getAutor() != null ? projeto.getAutor().getNome() : null,
             integrantes,
             projeto.getCriadoEm(),
-            projeto.getAtualizadoEm()
+            projeto.getAtualizadoEm(),
+            projeto.getMotivoDevolucao(),
+            projeto.getDevolvidoEm(),
+            projeto.getReenviadoEm()
         );
     }
 }

@@ -77,8 +77,9 @@
         <span
           class="badge-estado"
           [class.badge-aprovado]="p.estado === 'APROVADO'"
-          [class.badge-aguardando]="p.estado === 'AGUARDANDO_APROVACAO'"
+          [class.badge-aguardando]="p.estado === 'AGUARDANDO_APROVACAO' || p.estado === 'REENVIADO'"
           [class.badge-rejeitado]="p.estado === 'REJEITADO'"
+          [class.badge-devolvido]="p.estado === 'ALTERACOES_SOLICITADAS'"
         >
           @if (p.estado === 'APROVADO') {
           <span class="material-symbols-outlined badge-icone">verified</span>
@@ -86,6 +87,12 @@
           } @else if (p.estado === 'REJEITADO') {
           <span class="material-symbols-outlined badge-icone">cancel</span>
           <span>Rejeitado</span>
+          } @else if (p.estado === 'ALTERACOES_SOLICITADAS') {
+          <span class="material-symbols-outlined badge-icone">undo</span>
+          <span>Devolvido para alteração</span>
+          } @else if (p.estado === 'REENVIADO') {
+          <span class="material-symbols-outlined badge-icone">forward</span>
+          <span>Reenviado para análise</span>
           } @else {
           <span class="material-symbols-outlined badge-icone"
             >hourglass_top</span
@@ -138,6 +145,16 @@
         <div>
           <strong>Motivo da rejeição</strong>
           <p>{{ motivoRejeicao() }}</p>
+        </div>
+      </div>
+      }
+
+      @if (mostraMotivoDevolucao()) {
+      <div class="painel-rejeicao" role="note">
+        <span class="material-symbols-outlined icon-rejeicao">undo</span>
+        <div>
+          <strong>Motivo da devolução</strong>
+          <p>{{ motivoDevolucao() }}</p>
         </div>
       </div>
       }
@@ -339,30 +356,69 @@
       <span class="material-symbols-outlined" aria-hidden="true">error</span>
       <span>{{ erroAvaliacao() }}</span>
     </div>
-    } @if (!rejeicaoAberta()) {
-    <div class="avaliacao-acoes">
-      <button
-        type="button"
-        class="btn-aprovar"
-        [disabled]="processandoAcao()"
-        (click)="aprovar()"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true"
-          >check_circle</span
-        >
-        <span>{{ processandoAcao() ? 'Aprovando…' : 'Aprovar projeto' }}</span>
-      </button>
-      <button
-        type="button"
-        class="btn-rejeitar"
-        [disabled]="processandoAcao()"
-        (click)="abrirRejeicao()"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
-        <span>Rejeitar</span>
-      </button>
-    </div>
-    } @else {
+    }
+    @if (!rejeicaoAberta() && !devolucaoAberta()) {
+        <div class="avaliacao-acoes">
+          <button
+            type="button"
+            class="btn-aprovar"
+            [disabled]="processandoAcao()"
+            (click)="aprovar()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true"
+              >check_circle</span
+            >
+            <span>{{ processandoAcao() ? 'Aprovando…' : 'Aprovar projeto' }}</span>
+          </button>
+          <button
+            type="button"
+            class="btn-rejeitar"
+            [disabled]="processandoAcao()"
+            (click)="abrirRejeicao()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
+            <span>Rejeitar</span>
+          </button>
+          <button
+            type="button"
+            class="btn-devolver"
+            [disabled]="processandoAcao()"
+            (click)="abrirDevolucao()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">undo</span>
+            <span>Devolver para alteração</span>
+          </button>
+        </div>
+        } @else if (devolucaoAberta()) {
+        <div class="avaliacao-rejeicao">
+          <label class="avaliacao-rotulo" for="motivo-devolucao"
+            >Motivo da devolução</label
+          >
+          <textarea
+            id="motivo-devolucao"
+            class="avaliacao-campo"
+            rows="3"
+            placeholder="Explique ao aluno o que ajustar antes de reenviar"
+            [value]="motivoDevolucaoCampo()"
+            (input)="motivoDevolucaoCampo.set($any($event.target).value)"
+          ></textarea>
+          <span class="avaliacao-acoes">
+            <button type="button" class="btn-rejeitar" (click)="fecharDevolucao()">
+              <span>Cancelar</span>
+            </button>
+            <button
+              type="button"
+              class="btn-aprovar"
+              [disabled]="processandoAcao()"
+              (click)="confirmarDevolucao()"
+            >
+              <span
+                >{{ processandoAcao() ? 'Devolvendo…' : 'Confirmar devolução' }}</span
+              >
+            </button>
+          </span>
+        </div>
+        } @else {
     <div class="avaliacao-rejeicao">
       <label class="avaliacao-rotulo" for="motivo-rejeicao"
         >Motivo da rejeição</label

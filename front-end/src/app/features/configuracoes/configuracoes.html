@@ -1,0 +1,360 @@
+<main class="config-tela">
+  <!-- ── Cabeçalho da página ── -->
+  <header class="config-topo">
+    <div class="config-topo-info">
+      <div class="config-icone-principal" aria-hidden="true">
+        <span class="material-symbols-outlined text-[24px]">settings</span>
+      </div>
+      <div>
+        <h1 class="config-titulo">Configurações</h1>
+        <p class="config-subtitulo">Personalize sua experiência e gerencie sua conta</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Feedback temporário de alterações ── -->
+  @if (sucessoMensagem(); as msg) {
+    <div class="alerta-feedback alerta-sucesso" role="status">
+      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">check_circle</span>
+      <span>{{ msg }}</span>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════
+       1. ACESSIBILIDADE E APARÊNCIA
+       ════════════════════════════════════════════════ -->
+  <section class="config-secao" aria-labelledby="secao-acessibilidade-titulo">
+    <div class="config-secao-cabecalho">
+      <span class="material-symbols-outlined text-[18px] text-cinza-300 dark:text-branco-700" aria-hidden="true">contrast</span>
+      <h2 class="config-secao-titulo" id="secao-acessibilidade-titulo">Acessibilidade e aparência</h2>
+    </div>
+
+    <!-- 1.1 Tema da interface -->
+    <div class="config-linha">
+      <div class="config-linha-conteudo">
+        <div class="config-linha-icone" aria-hidden="true">
+          <span class="material-symbols-outlined text-[22px]">palette</span>
+        </div>
+        <div class="config-linha-texto">
+          <span class="config-rotulo">Tema da interface</span>
+          <p class="config-descricao">Escolha entre o modo claro, escuro ou acompanhe a preferência do seu sistema</p>
+        </div>
+      </div>
+      <div class="config-linha-controle">
+        <div class="tema-grupo" role="group" aria-label="Tema da interface">
+          <button
+            type="button"
+            class="tema-opcao"
+            [class.ativo]="modoTema() === 'claro'"
+            [attr.aria-pressed]="modoTema() === 'claro'"
+            (click)="definirTema('claro')"
+            title="Modo claro"
+            data-tema-claro>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">light_mode</span>
+            <span>Claro</span>
+          </button>
+          <button
+            type="button"
+            class="tema-opcao"
+            [class.ativo]="modoTema() === 'escuro'"
+            [attr.aria-pressed]="modoTema() === 'escuro'"
+            (click)="definirTema('escuro')"
+            title="Modo escuro"
+            data-tema-escuro>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">dark_mode</span>
+            <span>Escuro</span>
+          </button>
+          <button
+            type="button"
+            class="tema-opcao"
+            [class.ativo]="modoTema() === 'sistema'"
+            [attr.aria-pressed]="modoTema() === 'sistema'"
+            (click)="definirTema('sistema')"
+            title="Seguir sistema"
+            data-tema-sistema>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">brightness_auto</span>
+            <span>Sistema</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1.2 Tamanho do texto -->
+    <div class="config-linha">
+      <div class="config-linha-conteudo">
+        <div class="config-linha-icone" aria-hidden="true">
+          <span class="material-symbols-outlined text-[22px]">format_size</span>
+        </div>
+        <div class="config-linha-texto">
+          <span class="config-rotulo">Tamanho do texto</span>
+          <p class="config-descricao">
+            Ajuste a proporção das fontes do acervo para facilitar a leitura.
+          </p>
+          <div class="fonte-amostra" [style.fontSize]="obterEstiloAmostraFonte()">
+            Prévia: Visualizando fontes e projetos da Fatec
+          </div>
+        </div>
+      </div>
+      <div class="config-linha-controle">
+        <div class="fonte-grupo" role="group" aria-label="Tamanho da fonte">
+          <button
+            type="button"
+            class="fonte-btn"
+            [class.ativo]="tamanhoFonte() === 'sm'"
+            [attr.aria-pressed]="tamanhoFonte() === 'sm'"
+            (click)="definirTamanhoFonte('sm')"
+            title="Tamanho pequeno (14px)"
+            data-fonte-sm>
+            <span class="text-[12px]">P</span>
+          </button>
+          <button
+            type="button"
+            class="fonte-btn"
+            [class.ativo]="tamanhoFonte() === 'md'"
+            [attr.aria-pressed]="tamanhoFonte() === 'md'"
+            (click)="definirTamanhoFonte('md')"
+            title="Tamanho médio / padrão (16px)"
+            data-fonte-md>
+            <span class="text-[14px]">M</span>
+          </button>
+          <button
+            type="button"
+            class="fonte-btn"
+            [class.ativo]="tamanhoFonte() === 'lg'"
+            [attr.aria-pressed]="tamanhoFonte() === 'lg'"
+            (click)="definirTamanhoFonte('lg')"
+            title="Tamanho grande (18px)"
+            data-fonte-lg>
+            <span class="text-[16px]">G</span>
+          </button>
+          <button
+            type="button"
+            class="fonte-btn"
+            [class.ativo]="tamanhoFonte() === 'xl'"
+            [attr.aria-pressed]="tamanhoFonte() === 'xl'"
+            (click)="definirTamanhoFonte('xl')"
+            title="Tamanho extra grande (20px)"
+            data-fonte-xl>
+            <span class="text-[18px]">XG</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       2. NOTIFICAÇÕES E E-MAILS
+       ════════════════════════════════════════════════ -->
+  <section class="config-secao" aria-labelledby="secao-notificacoes-titulo">
+    <div class="config-secao-cabecalho">
+      <span class="material-symbols-outlined text-[18px] text-cinza-300 dark:text-branco-700" aria-hidden="true">mail</span>
+      <h2 class="config-secao-titulo" id="secao-notificacoes-titulo">Notificações e e-mails</h2>
+    </div>
+
+    <!-- 2.1 E-mails de atividade da conta -->
+    <div class="config-linha">
+      <div class="config-linha-conteudo">
+        <div class="config-linha-icone" aria-hidden="true">
+          <span class="material-symbols-outlined text-[22px]">notifications</span>
+        </div>
+        <div class="config-linha-texto">
+          <span class="config-rotulo">E-mails de atividade da conta</span>
+          <p class="config-descricao">
+            Receba notificações sobre o andamento dos seus projetos (aprovações, avaliações acadêmicas e solicitações de ajuste)
+          </p>
+        </div>
+      </div>
+      <div class="config-linha-controle">
+        <button
+          type="button"
+          role="switch"
+          [attr.aria-checked]="notificacoesEmail()"
+          [class.ligado]="notificacoesEmail()"
+          (click)="alternarNotificacoesEmail()"
+          class="interruptor"
+          aria-label="Ativar ou desativar e-mails de atividade da conta"
+          data-toggle-email>
+          <span class="pino"></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       3. CONTA E SESSÃO
+       ════════════════════════════════════════════════ -->
+  <section class="config-secao" aria-labelledby="secao-conta-titulo">
+    <div class="config-secao-cabecalho">
+      <span class="material-symbols-outlined text-[18px] text-cinza-300 dark:text-branco-700" aria-hidden="true">manage_accounts</span>
+      <h2 class="config-secao-titulo" id="secao-conta-titulo">Conta e sessão</h2>
+    </div>
+
+    <!-- 3.1 Sair da conta -->
+    <div class="config-linha">
+      <div class="config-linha-conteudo">
+        <div class="config-linha-icone" aria-hidden="true">
+          <span class="material-symbols-outlined text-[22px]">logout</span>
+        </div>
+        <div class="config-linha-texto">
+          <span class="config-rotulo">Sair da conta</span>
+          @if (usuario(); as u) {
+            <p class="config-descricao">
+              Conectado como <strong>{{ u.nome }}</strong> ({{ u.email }}). Encerra sua sessão neste dispositivo.
+            </p>
+          } @else {
+            <p class="config-descricao">Você não possui uma sessão ativa no momento.</p>
+          }
+        </div>
+      </div>
+      <div class="config-linha-controle">
+        @if (logado()) {
+          <button
+            type="button"
+            class="btn btn-outline btn-compacto"
+            (click)="sair()"
+            data-btn-sair>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>
+            <span>Sair</span>
+          </button>
+        } @else {
+          <a
+            routerLink="/entrar"
+            class="btn btn-outline btn-compacto"
+            data-btn-entrar>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">login</span>
+            <span>Entrar</span>
+          </a>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       4. ZONA DE RISCO
+       ════════════════════════════════════════════════ -->
+  <section class="config-secao secao-perigo" aria-labelledby="secao-perigo-titulo">
+    <div class="config-secao-cabecalho">
+      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">warning</span>
+      <h2 class="config-secao-titulo" id="secao-perigo-titulo">Zona de risco</h2>
+    </div>
+
+    <!-- 4.1 Solicitar exclusão de conta -->
+    <div class="config-linha config-linha-perigo">
+      <div class="config-linha-conteudo">
+        <div class="config-linha-icone" aria-hidden="true">
+          <span class="material-symbols-outlined text-[22px]">person_remove</span>
+        </div>
+        <div class="config-linha-texto">
+          <span class="config-rotulo">Solicitar exclusão de conta</span>
+          <p class="config-descricao">
+            Anonimiza seus dados pessoais. Seus projetos aprovados continuam disponíveis no acervo institucional sem vínculo com seu nome.
+          </p>
+        </div>
+      </div>
+      <div class="config-linha-controle">
+        <button
+          type="button"
+          class="btn btn-perigo btn-compacto"
+          (click)="abrirModalExclusao()"
+          data-btn-abrir-exclusao>
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">delete_forever</span>
+          <span>Solicitar exclusão</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rodapé discreto -->
+  <footer class="config-rodape">
+    <p>Fatec Repositório &nbsp;·&nbsp; Plataforma Institucional de Tecnologia &nbsp;·&nbsp; CPS</p>
+  </footer>
+</main>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE CONTA
+     ════════════════════════════════════════════════ -->
+@if (modalExclusaoAberto()) {
+  <div
+    class="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-exclusao-titulo"
+    aria-describedby="modal-exclusao-desc"
+    (click)="fecharModalExclusao()">
+    <div class="modal-caixa" (click)="$event.stopPropagation()">
+      <!-- Cabeçalho do modal -->
+      <div class="modal-cabecalho">
+        <div>
+          <h3 id="modal-exclusao-titulo" class="modal-titulo">Solicitar exclusão de conta</h3>
+          <p id="modal-exclusao-desc" class="modal-subtitulo">Esta ação não pode ser revertida.</p>
+        </div>
+        <button
+          type="button"
+          class="modal-fechar"
+          aria-label="Fechar modal de exclusão"
+          [disabled]="excluindoConta()"
+          (click)="fecharModalExclusao()">
+          <span class="material-symbols-outlined text-[22px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+
+      <!-- Corpo do modal -->
+      <div class="modal-corpo">
+        <div class="modal-alerta-destrutivo" role="alert">
+          <span class="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">warning</span>
+          <div>
+            <strong>Atenção:</strong> Ao confirmar, seu e-mail e dados de acesso serão apagados definitivamente.
+            Projetos aprovados continuarão no acervo institucional sob autoria de conta removida (LGPD).
+          </div>
+        </div>
+
+        @if (erroExclusao(); as erro) {
+          <div class="alerta-feedback alerta-aviso" role="alert">
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">error</span>
+            <span>{{ erro }}</span>
+          </div>
+        }
+
+        <div class="modal-campo">
+          <label class="modal-rotulo" for="input-confirmar-exclusao">
+            Digite <strong class="text-cinza-500 underline">excluir minha conta</strong> para confirmar:
+          </label>
+          <input
+            id="input-confirmar-exclusao"
+            type="text"
+            class="modal-input"
+            placeholder="excluir minha conta"
+            [ngModel]="textoConfirmacao()"
+            (ngModelChange)="textoConfirmacao.set($event)"
+            autocomplete="off"
+            [disabled]="excluindoConta()"
+            data-input-confirmar-exclusao />
+        </div>
+      </div>
+
+      <!-- Rodapé com ações -->
+      <div class="modal-rodape">
+        <button
+          type="button"
+          class="btn btn-outline btn-compacto"
+          [disabled]="excluindoConta()"
+          (click)="fecharModalExclusao()">
+          <span>Cancelar</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-perigo-solido btn-compacto"
+          [disabled]="!podeConfirmarExclusao() || excluindoConta()"
+          (click)="confirmarExclusao()"
+          data-btn-confirmar-exclusao>
+          @if (excluindoConta()) {
+            <span>Excluindo conta…</span>
+          } @else {
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">delete_forever</span>
+            <span>Confirmar exclusão</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

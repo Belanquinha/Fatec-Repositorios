@@ -36,6 +36,16 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
     @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
     List<Projeto> findByEstadoAndEmailProfessorResponsavelIgnoreCaseOrderByCriadoEmDesc(ProjetoEstado estado, String emailProfessorResponsavel);
 
+    /** Fila do professor: AGUARDANDO_APROVACAO + REENVIADO (SPEC-exclusao-projetos §4.2). */
+    @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
+    List<Projeto> findByEstadoInAndEmailProfessorResponsavelIgnoreCaseOrderByCriadoEmDesc(
+        List<ProjetoEstado> estados, String emailProfessorResponsavel);
+
+    /** Pendentes em que o e-mail é o responsável — usado pela exclusão de conta. */
+    @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
+    List<Projeto> findByEmailProfessorResponsavelIgnoreCaseAndEstadoIn(
+        String emailProfessorResponsavel, List<ProjetoEstado> estados);
+
     @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
     List<Projeto> findByAutorIdAndEstadoOrderByRemovidoEmDesc(UUID autorId, ProjetoEstado estado);
 
@@ -49,6 +59,15 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM Integrante i WHERE i.id = :id")
     int excluirIntegrantePorId(@Param("id") UUID id);
+
+    /**
+     * Filhos por pai: usada pela exclusão de conta, onde o lote vem de uma lista
+     * já carregada e acessar a coleção lazy de cada linha detonaria
+     * LazyInitializationException depois do primeiro clearAutomatically.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM Integrante i WHERE i.projeto.id = :projetoId")
+    int excluirIntegrantesPorProjeto(@Param("projetoId") UUID projetoId);
 
     @EntityGraph(attributePaths = {"instituicao", "curso", "autor"})
     @org.springframework.data.jpa.repository.Query(

@@ -80,9 +80,13 @@ export interface ProjetoResponseModel {
   autorId: string;
   autorNome: string;
   integrantes: IntegranteModel[];
-  criadoEm: string;
-  atualizadoEm: string;
-}
+    criadoEm: string;
+    atualizadoEm: string;
+    /** Fase 2 (SPEC-exclusao-projetos): justificativa do professor na devolução. */
+    motivoDevolucao?: string | null;
+    devolvidoEm?: string | null;
+    reenviadoEm?: string | null;
+  }
 
 export interface UploadResponseModel {
   url: string;
@@ -104,7 +108,17 @@ export interface ExclusaoProjetoModel {
   removidoEm?: string;
 }
 
-/** Item de GET /projetos/removidos — sem PII, com a contagem regressiva. */
+/** Corpo do PATCH /projetos/{id}/devolver: texto livre obrigatório. */
+export interface DevolverProjetoPayload {
+  motivo: string;
+}
+
+/** Resposta do DELETE /usuarios/me. */
+export interface ExclusaoContaModel {
+  mensagem: string;
+}
+
+/** Removidos do usuário logado — sem PII, com a contagem regressiva. */
 export interface ProjetoRemovidoModel {
   id: string;
   titulo: string;

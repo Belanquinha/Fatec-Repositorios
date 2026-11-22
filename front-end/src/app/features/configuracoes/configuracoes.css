@@ -1,0 +1,552 @@
+/* ==========================================================================
+   Tela de Configurações — Estilos (Design System Fatec Repositório)
+   Geometria reta (sem border-radius), suporte a tema claro e escuro.
+   ========================================================================== */
+
+:host {
+  display: block;
+}
+
+.config-tela {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Cabeçalho da página ── */
+.config-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--branco-600);
+}
+
+.config-topo-info {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.config-icone-principal {
+  width: 44px;
+  height: 44px;
+  background: var(--branco-50);
+  border: 1px solid var(--branco-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--cinza-400);
+}
+
+.config-titulo {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cinza-500);
+  line-height: 1.25;
+}
+
+.config-subtitulo {
+  margin: 0.125rem 0 0;
+  font-size: 0.875rem;
+  color: var(--cinza-300);
+}
+
+/* ── Alertas contextuais ── */
+.alerta-feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  border: 1px solid transparent;
+}
+
+.alerta-sucesso {
+  background: var(--branco-50);
+  border-color: var(--verde-500);
+  color: var(--cinza-500);
+}
+
+.alerta-sucesso .material-symbols-outlined {
+  color: var(--verde-500);
+}
+
+.alerta-aviso {
+  background: var(--branco-50);
+  border-color: var(--amarelo-500);
+  color: var(--cinza-500);
+}
+
+.alerta-aviso .material-symbols-outlined {
+  color: var(--amarelo-600);
+}
+
+/* ── Seção (Card de grupo de opções) ── */
+.config-secao {
+  display: flex;
+  flex-direction: column;
+  background: var(--branco-50);
+  border: 1px solid var(--branco-600);
+}
+
+.config-secao-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--branco-600);
+  background: var(--branco-300);
+}
+
+.config-secao-titulo {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-300);
+}
+
+/* ── Linha de configuração ── */
+.config-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.125rem 1.25rem;
+  border-bottom: 1px solid var(--branco-600);
+}
+
+.config-linha:last-child {
+  border-bottom: none;
+}
+
+.config-linha-conteudo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.config-linha-icone {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--cinza-300);
+  background: var(--branco-300);
+  border: 1px solid var(--branco-600);
+}
+
+.config-linha-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.config-rotulo {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cinza-500);
+  margin: 0;
+}
+
+.config-descricao {
+  font-size: 0.8125rem;
+  color: var(--cinza-300);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.config-linha-controle {
+  flex-shrink: 0;
+}
+
+/* ── Interruptor (Toggle Switch) ── */
+.interruptor {
+  display: inline-flex;
+  align-items: center;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 2px;
+  background-color: var(--cinza-200);
+  cursor: pointer;
+  border: 1px solid var(--branco-600);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.interruptor:focus-visible {
+  outline: 2px solid var(--amarelo-500);
+  outline-offset: 2px;
+}
+
+.interruptor .pino {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background-color: var(--branco-50);
+  transition: transform 0.2s ease;
+}
+
+.interruptor.ligado {
+  background-color: var(--amarelo-500);
+  border-color: var(--amarelo-600);
+  justify-content: flex-end;
+}
+
+.interruptor.ligado .pino {
+  background-color: var(--cinza-900);
+}
+
+/* ── Seletor de Tema (Chips Horizontais) ── */
+.tema-grupo {
+  display: inline-flex;
+  border: 1px solid var(--branco-600);
+  overflow: hidden;
+}
+
+.tema-opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cinza-300);
+  background: var(--branco-50);
+  border: none;
+  cursor: pointer;
+  border-right: 1px solid var(--branco-600);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tema-opcao:last-child {
+  border-right: none;
+}
+
+.tema-opcao:hover:not(.ativo) {
+  background: var(--branco-400);
+  color: var(--cinza-500);
+}
+
+.tema-opcao.ativo {
+  background: var(--cinza-500);
+  color: var(--branco-50);
+}
+
+:host-context(.dark) .tema-opcao.ativo {
+  background: var(--cinza-500);
+  color: var(--cinza-900);
+}
+
+.tema-opcao:focus-visible {
+  outline: 2px solid var(--amarelo-500);
+  outline-offset: -2px;
+}
+
+/* ── Seletor de Tamanho de Fonte ── */
+.fonte-grupo {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--branco-600);
+  overflow: hidden;
+}
+
+.fonte-btn {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--branco-50);
+  color: var(--cinza-300);
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  border-right: 1px solid var(--branco-600);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.fonte-btn:last-child {
+  border-right: none;
+}
+
+.fonte-btn:hover:not(.ativo) {
+  background: var(--branco-400);
+  color: var(--cinza-500);
+}
+
+.fonte-btn.ativo {
+  background: var(--cinza-500);
+  color: var(--branco-50);
+}
+
+:host-context(.dark) .fonte-btn.ativo {
+  background: var(--cinza-500);
+  color: var(--cinza-900);
+}
+
+.fonte-btn:focus-visible {
+  outline: 2px solid var(--amarelo-500);
+  outline-offset: -2px;
+}
+
+.fonte-amostra {
+  margin-top: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--branco-300);
+  border-left: 3px solid var(--cinza-300);
+  display: inline-block;
+  font-weight: 500;
+  color: var(--cinza-400);
+}
+
+/* ── Botões Globais ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  height: fit-content;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-compacto {
+  padding: 0.45rem 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.btn-outline {
+  background: var(--branco-50);
+  color: var(--cinza-500);
+  border-color: var(--cinza-500);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--branco-400);
+}
+
+.btn-perigo {
+  background: transparent;
+  color: var(--vermelho-500);
+  border-color: var(--vermelho-500);
+}
+
+.btn-perigo:hover:not(:disabled) {
+  background: var(--vermelho-500);
+  color: #ffffff;
+}
+
+.btn-perigo-solido {
+  background: var(--vermelho-500);
+  color: #ffffff;
+  border-color: var(--vermelho-500);
+}
+
+.btn-perigo-solido:hover:not(:disabled) {
+  background: var(--vermelho-600);
+  border-color: var(--vermelho-600);
+}
+
+/* ── Seção Perigo (Exclusão) ── */
+.secao-perigo .config-secao-cabecalho {
+  background: #F7E6E6;
+  border-bottom-color: #E7B0B0;
+}
+
+:host-context(.dark) .secao-perigo .config-secao-cabecalho {
+  background: #2a1010;
+  border-bottom-color: #5c1818;
+}
+
+.secao-perigo .config-secao-titulo {
+  color: var(--vermelho-500);
+}
+
+.config-linha-perigo .config-rotulo {
+  color: var(--vermelho-500);
+}
+
+.config-linha-perigo .config-linha-icone {
+  color: var(--vermelho-500);
+  border-color: var(--vermelho-200);
+  background: var(--vermelho-50);
+}
+
+:host-context(.dark) .config-linha-perigo .config-linha-icone {
+  background: #2a1010;
+  border-color: #7E0000;
+}
+
+/* ── Modal de Confirmação Destrutiva ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background-color: rgba(13, 14, 15, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-caixa {
+  background: var(--branco-50);
+  border: 1px solid var(--branco-600);
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--branco-600);
+}
+
+.modal-titulo {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--vermelho-500);
+}
+
+.modal-subtitulo {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--cinza-300);
+}
+
+.modal-fechar {
+  background: transparent;
+  border: none;
+  color: var(--cinza-300);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.modal-fechar:hover {
+  color: var(--cinza-500);
+}
+
+.modal-corpo {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-alerta-destrutivo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #E7B0B0;
+  background: #F7E6E6;
+  color: #620000;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+:host-context(.dark) .modal-alerta-destrutivo {
+  background: #2a1010;
+  border-color: #7E0000;
+  color: #F7E6E6;
+}
+
+.modal-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.modal-rotulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-500);
+}
+
+.modal-input {
+  width: 100%;
+  border: 1px solid var(--cinza-300);
+  background: var(--branco-50);
+  color: var(--cinza-500);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.modal-input:focus {
+  border-color: var(--vermelho-500);
+  box-shadow: 0 0 0 2px rgba(178, 0, 0, 0.2);
+}
+
+.modal-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--branco-600);
+  background: var(--branco-300);
+}
+
+/* ── Rodapé institucional ── */
+.config-rodape {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--cinza-200);
+}
+
+/* ── Responsividade ── */
+@media (max-width: 640px) {
+  .config-linha {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .config-linha-controle {
+    align-self: flex-end;
+  }
+
+  .tema-opcao span:not(.material-symbols-outlined) {
+    display: none;
+  }
+}

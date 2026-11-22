@@ -53,6 +53,21 @@ public class Projeto {
     @Column(nullable = true, length = 2000, columnDefinition = "TEXT")
     private String motivoRejeicao;
 
+    // --- Fase 2: devolução/edição (SPEC-exclusao-projetos §4.4) ---
+    /** Justificativa do professor ao devolver para ALTERACOES_SOLICITADAS. */
+    @Column(nullable = true, columnDefinition = "TEXT")
+    private String motivoDevolucao;
+
+    @Column(nullable = true)
+    private LocalDateTime devolvidoEm;
+
+    @Column(nullable = true)
+    private UUID devolvidoPorId;
+
+    /** Preenchido quando o autor reenvia (ALTERACOES_SOLICITADAS -> REENVIADO). */
+    @Column(nullable = true)
+    private LocalDateTime reenviadoEm;
+
     @Column(nullable = true)
     private LocalDateTime removidoEm;
 
