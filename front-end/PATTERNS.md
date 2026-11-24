@@ -62,8 +62,8 @@ cores chapadas, links azuis). **Nunca** usar cores hardcoded em componentes.
 
 ## Testes
 
-- **Vitest** para unitários (`*.spec.ts`), **Puppeteer** para E2E.
-- Rodar `npm run test` (unitários) ou `npm run e2e` (E2E) antes de commitar.
+- **Vitest** para unitários (`*.spec.ts`), **Playwright** para E2E (`e2e/*.spec.ts`).
+- Rodar `npm run test` (unitários) ou `npm run test:e2e` (E2E) antes de commitar.
 
 ## Regras para agentes
 

@@ -480,7 +480,7 @@
                           <label class="block text-xs font-semibold text-cinza-600 dark:text-branco-600">Nome Completo</label>
                           <input type="text" 
                                  [(ngModel)]="member.nome" 
-                                 [name]="'nome_' + idx"
+                                 [attr.name]="'nome_' + idx"
                                  placeholder="Nome do integrante"
                                  class="w-full px-3 py-2 text-sm rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 outline-none text-cinza-900 shadow-sm dark:border-cinza-400 dark:bg-cinza-600 dark:text-branco-50 dark:placeholder:text-branco-800">
                         </div>
@@ -490,7 +490,7 @@
                           <label class="block text-xs font-semibold text-cinza-600 dark:text-branco-600">Perfil do LinkedIn</label>
                           <input type="url" 
                                  [(ngModel)]="member.linkedin" 
-                                 [name]="'linkedin_' + idx"
+                                 [attr.name]="'linkedin_' + idx"
                                  placeholder="https://linkedin.com/in/usuario"
                                  class="w-full px-3 py-2 text-sm rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 outline-none text-cinza-900 shadow-sm dark:border-cinza-400 dark:bg-cinza-600 dark:text-branco-50 dark:placeholder:text-branco-800">
                         </div>

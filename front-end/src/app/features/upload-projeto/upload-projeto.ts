@@ -553,6 +553,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       });
 
       this.editor = editor;
+      (window as any).__editorjs = editor;
       await editor.isReady;
     } catch (err) {
       this.destruirEditor();
@@ -589,6 +590,7 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         // Ignora se o DOM já foi removido
       }
     }
+    delete (window as any).__editorjs;
     this.editor = null;
   }
 

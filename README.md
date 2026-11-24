@@ -10,8 +10,9 @@ preencha a senha para 123456 e uma chave JWT
 
 docker compose up -d --build     # 1º build baixa dependências (precisa internet) <br>
 
-  Você pode usar o comando abaixo para descer o docker
-docker compose down              # para descer o container
+## Você pode usar o comando abaixo para descer o docker
+
+docker compose down             
 
 
 

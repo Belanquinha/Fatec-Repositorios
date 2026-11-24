@@ -33,6 +33,8 @@ dist/
 target/
 .angular/
 coverage/
+playwright-report/
+test-results/
 
 # pasta de uploads criada quando rodado localmente
 uploads
