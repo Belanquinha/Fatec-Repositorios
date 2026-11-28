@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { CatalogoPublico } from './features/catalogo-publico/catalogo-publico';
 import { UploadProjeto } from './features/upload-projeto/upload-projeto';
+import { SelecionarModelo } from './features/selecionar-modelo/selecionar-modelo';
 import { VerProjeto } from './features/ver-projeto/ver-projeto';
 import { Perfil } from './features/perfil/perfil';
 import { Autenticacao } from './features/autenticacao/autenticacao';
@@ -27,6 +28,7 @@ export const routes: Routes = [
     // não pode ver).
     { path: 'ver-projeto/:id', component: VerProjeto },
     { path: 'ver-projeto', redirectTo: 'catalogo-publico', pathMatch: 'full' },
+    { path: 'selecionar-modelo', component: SelecionarModelo, canActivate: [authGuard, submissaoGuard] },
     { path: 'projeto-forms', component: UploadProjeto, canActivate: [authGuard, submissaoGuard] },
     { path: 'perfil', component: Perfil, canActivate: [authGuard] },
     // Preview estático do layout de Configurações (mock autônomo em iframe).

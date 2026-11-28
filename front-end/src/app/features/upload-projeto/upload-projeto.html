@@ -398,13 +398,82 @@
 
                 <!-- Link do Repositório -->
                 <div class="space-y-2">
-                  <label class="block text-sm font-semibold text-cinza-700 dark:text-branco-500">Link do Repositório (GitHub / GitLab)</label>
+                  <label class="block text-sm font-semibold text-cinza-700 dark:text-branco-500">
+                    Link do Repositório (GitHub / GitLab)
+                    @if (modeloProjeto() === 'JOGO') {
+                      <span class="text-xs font-normal text-cinza-400 dark:text-branco-700">(Opcional)</span>
+                    }
+                  </label>
                   <input type="url" 
                          [(ngModel)]="linkRepositorio" 
                          name="linkRepositorio"
                          placeholder="Ex: https://github.com/usuario/projeto-fatec"
                          class="w-full px-4 py-3 rounded-lg border border-solid border-cinza-300 bg-white focus:border-amarelo-500 focus:ring-2 focus:ring-amarelo-200 outline-none text-cinza-900 shadow-sm dark:border-cinza-400 dark:bg-cinza-700 dark:text-branco-50 dark:placeholder:text-branco-800">
                 </div>
+
+                @if (modeloProjeto() === 'JOGO') {
+                  <!-- Upload do Pacote .zip do Jogo -->
+                  <div class="space-y-3 p-4 rounded-xl border border-solid border-amarelo-300 bg-amarelo-50/40 dark:bg-cinza-800 dark:border-amarelo-700">
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="block text-sm font-semibold text-cinza-700 dark:text-branco-500">
+                        Pacote do Jogo (.zip até 500 MB) <span class="text-amarelo-600 dark:text-amarelo-400">*</span>
+                      </label>
+                      @if (!modoEdicao()) {
+                        <button type="button" (click)="alterarModelo()" class="text-xs font-semibold text-azul-600 hover:underline dark:text-azul-300 cursor-pointer">
+                          Alterar modelo
+                        </button>
+                      }
+                    </div>
+
+                    @if (!jogoArquivo && !jogoArquivoId) {
+                      <label for="jogoZipInput" class="border-2 border-dashed border-cinza-300 hover:border-amarelo-500 rounded-xl p-6 text-center transition-all bg-white cursor-pointer flex flex-col items-center justify-center dark:border-cinza-400 dark:bg-cinza-700">
+                        <input type="file"
+                               accept=".zip,application/zip,application/x-zip-compressed"
+                               (change)="onJogoSelecionado($event)"
+                               class="hidden"
+                               id="jogoZipInput">
+                        <span class="material-symbols-outlined text-3xl text-amarelo-600 mb-2 dark:text-amarelo-400">sports_esports</span>
+                        <p class="text-sm font-semibold text-cinza-700 dark:text-branco-500">
+                          <span class="text-amarelo-600 underline dark:text-amarelo-400">Clique para selecionar</span> o arquivo <code>.zip</code> do jogo
+                        </p>
+                        <p class="text-xs text-cinza-400 mt-1 dark:text-branco-700">
+                          {{ inspecionandoZip() ? 'Lendo executáveis do pacote...' : 'Máximo 500 MB • Deve conter ao menos um .exe para Windows' }}
+                        </p>
+                      </label>
+                    } @else {
+                      <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-white border border-solid border-cinza-200 dark:bg-cinza-700 dark:border-cinza-400">
+                        <div class="min-w-0">
+                          <p class="text-sm font-semibold text-cinza-800 truncate dark:text-branco-50">
+                            {{ jogoArquivoNomeOriginal || 'Pacote do jogo selecionado' }}
+                          </p>
+                          <p class="text-xs text-cinza-400 dark:text-branco-700">
+                            {{ formatarTamanhoMB(jogoArquivoTamanhoBytes) }}
+                          </p>
+                        </div>
+                        <button type="button" (click)="removerJogoSelecionado()" class="text-xs font-semibold text-vermelho-600 hover:underline cursor-pointer dark:text-vermelho-300">
+                          Trocar arquivo
+                        </button>
+                      </div>
+                    }
+
+                    @if (executaveisDisponiveis().length > 0) {
+                      <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-cinza-700 dark:text-branco-500">
+                          Executável Principal (.exe) <span class="text-amarelo-600 dark:text-amarelo-400">*</span>
+                        </label>
+                        <select [(ngModel)]="executavelPrincipal"
+                                name="executavelPrincipal"
+                                class="w-full px-3 py-2.5 rounded-lg border border-solid border-cinza-300 bg-white text-sm text-cinza-900 dark:border-cinza-400 dark:bg-cinza-700 dark:text-branco-50">
+                          @for (exe of executaveisDisponiveis(); track exe.caminho) {
+                            <option [value]="exe.caminho">
+                              {{ exe.caminho }}{{ exe.auxiliar ? ' (auxiliar)' : '' }}
+                            </option>
+                          }
+                        </select>
+                      </div>
+                    }
+                  </div>
+                }
 
                 <!-- Palavras-chave / Tags -->
                 <div class="space-y-2">
@@ -538,7 +607,11 @@
                           class="w-full sm:w-auto bg-amarelo-500 hover:bg-amarelo-600 text-cinza-900 font-bold text-sm px-7 py-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed">
                     @if (enviando()) {
                       <span class="inline-block w-4 h-4 border-2 border-cinza-900 border-t-transparent rounded-full animate-spin"></span>
-                      <span>{{ modoEdicao() ? 'Reenviando projeto...' : 'Submetendo projeto...' }}</span>
+                      @if (progressoUploadJogo() !== null) {
+                        <span>Enviando jogo ({{ progressoUploadJogo() }}%)...</span>
+                      } @else {
+                        <span>{{ modoEdicao() ? 'Reenviando projeto...' : 'Submetendo projeto...' }}</span>
+                      }
                     } @else {
                       <span>{{ modoEdicao() ? 'Reenviar para Avaliação' : 'Enviar para Avaliação Acadêmica' }}</span>
                       <span class="material-symbols-outlined text-base">send</span>

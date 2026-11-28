@@ -384,13 +384,13 @@ describe('Perfil', () => {
 
     const texto = fixture.nativeElement.textContent as string;
     expect(texto).not.toContain('Submeter Projeto');
-    expect(fixture.nativeElement.querySelector('a[href="/projeto-forms"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/selecionar-modelo"]')).toBeNull();
   });
 
   it('aluno e professor veem o botão "Submeter Projeto"', async () => {
     const mock = projetosProfessor([], [fatecA, fatecB]);
     await configurar({ obterUsuarioLogado: vi.fn().mockResolvedValue(professor) }, mock);
-    expect(fixture.nativeElement.querySelector('a[href="/projeto-forms"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('a[href="/selecionar-modelo"]')).toBeTruthy();
   });
 
   it('rejeitar exige motivo e remove da lista', async () => {

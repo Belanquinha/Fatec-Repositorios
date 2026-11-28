@@ -35,6 +35,25 @@ public class Projeto {
     @Column(nullable = true, length = 500)
     private String linkRepositorio;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'GITHUB'")
+    private TipoProjeto tipoProjeto = TipoProjeto.GITHUB;
+
+    @Column(nullable = true, length = 120)
+    private String arquivoJogoId;
+
+    @Column(nullable = true, length = 255)
+    private String arquivoJogoNomeOriginal;
+
+    @Column(nullable = true)
+    private Long arquivoJogoTamanhoBytes;
+
+    @Column(nullable = true, length = 64)
+    private String arquivoJogoSha256;
+
+    @Column(nullable = true, length = 500)
+    private String executavelPrincipal;
+
     @Column(nullable = true, length = 500)
     private String imagemCapaUrl;
 

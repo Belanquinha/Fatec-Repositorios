@@ -35,11 +35,29 @@ export interface ProfessorDetalhe {
   email: string;
 }
 
+export type TipoProjeto = 'GITHUB' | 'JOGO';
+
+export interface JogoUploadResponseModel {
+  arquivoJogoId: string;
+  nomeOriginal: string;
+  tamanhoBytes: number;
+  sha256: string;
+  executaveis: string[];
+}
+
+export interface SessaoJogoResponseModel {
+  ticket: string;
+  expiraEmSegundos: number;
+}
+
 export interface ProjetoCreatePayload {
   titulo: string;
   descricaoCurta: string;
   conteudoEditorJs?: string;
   linkRepositorio?: string;
+  tipoProjeto?: TipoProjeto;
+  arquivoJogoId?: string;
+  executavelPrincipal?: string;
   imagemCapaUrl?: string;
   palavrasChave?: string[];
   anoPublicado?: number;
@@ -58,6 +76,12 @@ export interface ProjetoResponseModel {
   descricaoCurta: string;
   conteudoEditorJs: string;
   linkRepositorio: string;
+  tipoProjeto?: TipoProjeto;
+  temJogoExecutavel?: boolean;
+  arquivoJogoId?: string | null;
+  arquivoJogoNomeOriginal?: string | null;
+  arquivoJogoTamanhoBytes?: number | null;
+  executavelPrincipal?: string | null;
   imagemCapaUrl: string;
   palavrasChave: string[];
   anoPublicado: number;

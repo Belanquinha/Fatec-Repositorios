@@ -61,6 +61,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/instituicoes/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/uploads").authenticated()
+                .requestMatchers(HttpMethod.POST, "/jogos/upload").hasAnyRole("ALUNO", "PROFESSOR")
+                .requestMatchers(HttpMethod.GET, "/jogos/sessoes/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/projetos/*/sessao-jogo").permitAll()
                 .requestMatchers(HttpMethod.GET, "/professores/me/instituicoes").hasRole("PROFESSOR")
                 .requestMatchers(HttpMethod.PUT, "/professores/me/instituicoes").hasRole("PROFESSOR")
                 // LGPD: autocomplete de professor exige sessão (lista só id+nome via ?q,

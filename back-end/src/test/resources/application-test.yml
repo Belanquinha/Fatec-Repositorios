@@ -34,6 +34,9 @@ springdoc:
 app:
   upload:
     dir: ${java.io.tmpdir}/fatecrepository-e2e-uploads
+  jogos:
+    dir: ${java.io.tmpdir}/fatecrepository-e2e-jogos
+    ticket-ttl-segundos: 300
   projeto:
     purgacao:
       # O purge é exercitado pelos testes via ProjetoPurgeService, não pelo cron.

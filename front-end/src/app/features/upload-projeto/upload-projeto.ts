@@ -25,12 +25,15 @@ import Quote from '@editorjs/quote';
 import ImageTool from '@editorjs/image';
 
 import { ProjetoService } from '../../core/services/projeto.service';
+import { HttpEventType } from '@angular/common/http';
 import {
   CursoOption,
   InstituicaoOption,
   ProjetoCreatePayload,
   ProjetoResponseModel,
+  TipoProjeto,
 } from '../../core/models/projeto.model';
+import { ExecutavelZipInfo, listarExecutaveisNoZip } from '../../core/utils/zip-inspector';
 import { environment } from '../../../environments/environment';
 
 interface IntegranteLocal {
@@ -46,6 +49,7 @@ interface IntegranteLocal {
  * 413 do nginx / 400 genérico depois do upload.
  */
 const MAX_IMAGEM_BYTES = 10 * 1024 * 1024;
+const MAX_JOGO_ZIP_BYTES = 500 * 1024 * 1024;
 const TIPOS_IMAGEM_PERMITIDOS = [
   'image/png',
   'image/jpeg',
@@ -121,6 +125,17 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
   linkRepositorio = '';
   palavrasChave = '';
 
+  // Modelo do Projeto (GITHUB | JOGO)
+  modeloProjeto = signal<TipoProjeto>('GITHUB');
+  jogoArquivo: File | null = null;
+  jogoArquivoId: string | null = null;
+  jogoArquivoNomeOriginal: string | null = null;
+  jogoArquivoTamanhoBytes: number | null = null;
+  executaveisDisponiveis = signal<ExecutavelZipInfo[]>([]);
+  executavelPrincipal = '';
+  inspecionandoZip = signal(false);
+  progressoUploadJogo = signal<number | null>(null);
+
   // Seção 3: Editor.js
   @ViewChild('editorjsContainer')
   private editorjsContainer?: ElementRef<HTMLDivElement>;
@@ -162,6 +177,16 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         }
         if (params['id']) {
           this.carregarParaEdicao(params['id']);
+          return;
+        }
+        const modeloParam = (params['modelo'] || '').toUpperCase();
+        if (modeloParam === 'GITHUB' || modeloParam === 'JOGO') {
+          this.modeloProjeto.set(modeloParam as TipoProjeto);
+        } else {
+          this.router.navigate(['/selecionar-modelo'], {
+            queryParams: params['instituicaoId'] ? { instituicaoId: params['instituicaoId'] } : {},
+            replaceUrl: true,
+          });
         }
       });
   }
@@ -193,6 +218,14 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
 
   private preencherFormulario(p: ProjetoResponseModel) {
     this.editandoId = p.id;
+    this.modeloProjeto.set(p.tipoProjeto === 'JOGO' ? 'JOGO' : 'GITHUB');
+    this.jogoArquivoId = p.arquivoJogoId ?? null;
+    this.jogoArquivoNomeOriginal = p.arquivoJogoNomeOriginal ?? null;
+    this.jogoArquivoTamanhoBytes = p.arquivoJogoTamanhoBytes ?? null;
+    this.executavelPrincipal = p.executavelPrincipal ?? '';
+    if (this.executavelPrincipal) {
+      this.executaveisDisponiveis.set([{ caminho: this.executavelPrincipal, auxiliar: false }]);
+    }
     this.titulo = p.titulo ?? '';
     this.descricaoCurta = p.descricaoCurta ?? '';
     this.linkRepositorio = p.linkRepositorio ?? '';
@@ -626,6 +659,73 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
     this.imagemCapaUrl = null;
   }
 
+  async onJogoSelecionado(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || !input.files[0]) return;
+    const arquivo = input.files[0];
+    this.erroMensagem.set(null);
+
+    if (!arquivo.name.toLowerCase().endsWith('.zip')) {
+      this.erroMensagem.set('Envie um pacote compactado no formato .zip.');
+      input.value = '';
+      return;
+    }
+    if (arquivo.size > MAX_JOGO_ZIP_BYTES) {
+      this.erroMensagem.set(
+        `O arquivo de ${(arquivo.size / 1024 / 1024).toFixed(1)}MB excede o limite de 500MB.`,
+      );
+      input.value = '';
+      return;
+    }
+
+    this.inspecionandoZip.set(true);
+    try {
+      const exes = await listarExecutaveisNoZip(arquivo);
+      if (exes.length === 0) {
+        this.erroMensagem.set('Nenhum arquivo executável (.exe) foi encontrado dentro deste .zip.');
+        this.jogoArquivo = null;
+        this.executaveisDisponiveis.set([]);
+        this.executavelPrincipal = '';
+        input.value = '';
+        return;
+      }
+      this.jogoArquivo = arquivo;
+      this.jogoArquivoId = null;
+      this.jogoArquivoNomeOriginal = arquivo.name;
+      this.jogoArquivoTamanhoBytes = arquivo.size;
+      this.executaveisDisponiveis.set(exes);
+      this.executavelPrincipal = exes[0].caminho;
+    } catch (err: any) {
+      this.erroMensagem.set(err?.message || 'Não foi possível ler o pacote .zip.');
+      this.jogoArquivo = null;
+      this.executaveisDisponiveis.set([]);
+      this.executavelPrincipal = '';
+      input.value = '';
+    } finally {
+      this.inspecionandoZip.set(false);
+    }
+  }
+
+  removerJogoSelecionado() {
+    this.jogoArquivo = null;
+    this.jogoArquivoId = null;
+    this.jogoArquivoNomeOriginal = null;
+    this.jogoArquivoTamanhoBytes = null;
+    this.executaveisDisponiveis.set([]);
+    this.executavelPrincipal = '';
+  }
+
+  alterarModelo() {
+    this.router.navigate(['/selecionar-modelo'], {
+      queryParams: this.instituicaoId ? { instituicaoId: this.instituicaoId } : {},
+    });
+  }
+
+  formatarTamanhoMB(bytes?: number | null): string {
+    if (!bytes) return '0 MB';
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
   // --- Integrantes Dinâmicos ---
   adicionarIntegrante() {
     const novoId = this.integrantes.length + 1;
@@ -755,6 +855,19 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (this.modeloProjeto() === 'JOGO') {
+      if (!this.jogoArquivo && !this.jogoArquivoId) {
+        this.erroMensagem.set('Selecione o arquivo compactado (.zip) do jogo na Seção 2.');
+        this.irParaSecao(2);
+        return;
+      }
+      if (!this.executavelPrincipal.trim()) {
+        this.erroMensagem.set('Selecione qual é o arquivo executável principal (.exe) do jogo.');
+        this.irParaSecao(2);
+        return;
+      }
+    }
+
     const integrantesValidos = this.integrantes.filter(
       (i) => i.nome.trim().length > 0,
     );
@@ -807,6 +920,39 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
         }
       }
 
+      // 3.5 Upload do pacote .zip do jogo (se modelo JOGO e novo arquivo selecionado)
+      let arquivoJogoFinalId = this.jogoArquivoId;
+      if (this.modeloProjeto() === 'JOGO' && this.jogoArquivo) {
+        this.progressoUploadJogo.set(0);
+        try {
+          arquivoJogoFinalId = await new Promise<string>((resolve, reject) => {
+            this.projetoService.uploadPacoteJogo(this.jogoArquivo!).subscribe({
+              next: (event) => {
+                if (event.type === HttpEventType.UploadProgress && event.total) {
+                  this.progressoUploadJogo.set(Math.round((100 * event.loaded) / event.total));
+                } else if (event.type === HttpEventType.Response && event.body) {
+                  resolve(event.body.arquivoJogoId);
+                }
+              },
+              error: (err) => reject(err),
+            });
+          });
+          this.jogoArquivoId = arquivoJogoFinalId;
+        } catch (jogoErr: any) {
+          this.progressoUploadJogo.set(null);
+          this.enviando.set(false);
+          const msgJogo =
+            jogoErr?.error?.mensagem ||
+            jogoErr?.error?.message ||
+            'Falha ao enviar o arquivo .zip do jogo. Verifique o tamanho (máx. 500MB) e tente novamente.';
+          this.erroMensagem.set(msgJogo);
+          this.irParaSecao(2);
+          return;
+        } finally {
+          this.progressoUploadJogo.set(null);
+        }
+      }
+
       // 4. Tratamento das palavras-chave
       const tags = this.palavrasChave
         ? this.palavrasChave
@@ -823,6 +969,9 @@ export class UploadProjeto implements OnInit, AfterViewInit, OnDestroy {
           ? JSON.stringify(this.editorData)
           : '',
         linkRepositorio: this.linkRepositorio.trim() || undefined,
+        tipoProjeto: this.modeloProjeto(),
+        arquivoJogoId: this.modeloProjeto() === 'JOGO' ? (arquivoJogoFinalId ?? undefined) : undefined,
+        executavelPrincipal: this.modeloProjeto() === 'JOGO' ? this.executavelPrincipal.trim() : undefined,
         imagemCapaUrl: capaFinalUrl || undefined,
         palavrasChave: tags,
         anoPublicado: new Date().getFullYear(),

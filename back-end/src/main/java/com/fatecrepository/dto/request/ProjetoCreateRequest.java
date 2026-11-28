@@ -29,6 +29,12 @@ public class ProjetoCreateRequest {
 
     private String linkRepositorio;
 
+    private String tipoProjeto;
+
+    private String arquivoJogoId;
+
+    private String executavelPrincipal;
+
     private String imagemCapaUrl;
 
     private List<String> palavrasChave;

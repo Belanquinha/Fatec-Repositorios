@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/target
+**/.angular
+.git
+.idea
+.vscode
+uploads
+uploads-jogos
+test-results
+playwright-report
+_bmad-output
+*.log

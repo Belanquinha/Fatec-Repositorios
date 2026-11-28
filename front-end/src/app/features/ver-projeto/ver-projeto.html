@@ -290,6 +290,33 @@
           </div>
           }
         </dl>
+        @if (ehJogo()) {
+          @if (isWindowsDesktop()) {
+            <button
+              type="button"
+              class="btn-jogar"
+              [disabled]="gerandoSessaoJogo()"
+              (click)="abrirAvisoSegurancaJogo()"
+              data-testid="btn-jogar"
+            >
+              <span class="material-symbols-outlined">play_arrow</span>
+              <span>
+                {{ gerandoSessaoJogo() ? 'Preparando...' : 'Jogar' }}
+                @if (tamanhoJogoFormatado() && !gerandoSessaoJogo()) {
+                  ({{ tamanhoJogoFormatado() }})
+                }
+              </span>
+            </button>
+          } @else {
+            <div class="aviso-plataforma" role="note" data-testid="aviso-plataforma">
+              <span class="material-symbols-outlined">desktop_windows</span>
+              <span>Disponível para Windows Desktop</span>
+            </div>
+          }
+          @if (erroSessaoJogo()) {
+            <p class="erro-sessao-jogo" role="alert">{{ erroSessaoJogo() }}</p>
+          }
+        }
         @if (temRepositorio()) {
         <a
           [href]="p.linkRepositorio"
@@ -463,3 +490,56 @@
   </section>
   } }
 </div>
+
+<!-- Modal 1: Aviso de Segurança antes de executar o jogo -->
+@if (modalSegurancaAberto()) {
+  <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-seg-titulo">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="material-symbols-outlined modal-icone-alerta">warning</span>
+        <h3 id="modal-seg-titulo">Aviso de Segurança</h3>
+      </div>
+      <p class="modal-texto">
+        Você está prestes a executar um jogo enviado por terceiros. Embora o projeto passe pela revisão de um professor orientador, execute apenas arquivos em que você confia.
+      </p>
+      <div class="modal-acoes">
+        <button type="button" class="btn-modal-secundario" (click)="fecharAvisoSegurancaJogo()">
+          Cancelar
+        </button>
+        <button type="button" class="btn-modal-primario" (click)="confirmarJogar()" data-testid="btn-confirmar-jogar">
+          Entendi, continuar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal 2: Inicialização estilo Roblox -->
+@if (modalLauncherAberto()) {
+  <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-launcher-titulo">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="material-symbols-outlined modal-icone-jogo">sports_esports</span>
+        <h3 id="modal-launcher-titulo">Abrindo o Fatec Launcher...</h3>
+      </div>
+      <p class="modal-texto">
+        Se o aplicativo não abrir em alguns segundos, baixe e execute o <strong>FatecLauncher.exe</strong> uma vez para instalá-lo no seu Windows.
+      </p>
+      <p class="modal-dica">
+        <strong>Dica (Windows SmartScreen):</strong> na primeira abertura, caso apareça <em>"O Windows protegeu o seu computador"</em>, clique em <strong>Mais informações → Executar assim mesmo</strong>.
+      </p>
+      <div class="modal-acoes-coluna">
+        <a href="/downloads/FatecLauncher.exe" download="FatecLauncher.exe" class="btn-modal-primario">
+          <span class="material-symbols-outlined">download</span>
+          <span>Baixar FatecLauncher.exe</span>
+        </a>
+        <button type="button" class="btn-modal-secundario" (click)="tentarAbrirLauncherNovamente()">
+          Já instalei — tentar abrir novamente
+        </button>
+        <button type="button" class="btn-modal-link" (click)="fecharModalLauncher()">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+}

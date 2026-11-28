@@ -46,6 +46,7 @@ public class ProjetoExclusaoService {
 
     private final ProjetoRepository projetoRepository;
     private final FileStorageService fileStorageService;
+    private final JogoStorageService jogoStorageService;
     private final ResponseMapper responseMapper;
 
     private static final com.fasterxml.jackson.databind.ObjectMapper JSON =
@@ -100,6 +101,14 @@ public class ProjetoExclusaoService {
     public void excluirDefinitivamente(Projeto projeto) {
         List<String> arquivos = new ArrayList<>(fileStorageService.nomesArquivosDeProjeto(projeto));
         arquivos.addAll(arquivosDoSnapshot(projeto));
+        List<String> pacotesJogo = new ArrayList<>();
+        if (projeto.getArquivoJogoId() != null && !projeto.getArquivoJogoId().isBlank()) {
+            pacotesJogo.add(projeto.getArquivoJogoId());
+        }
+        String pacoteSnapshot = pacoteJogoDoSnapshot(projeto);
+        if (pacoteSnapshot != null && !pacoteSnapshot.isBlank()) {
+            pacotesJogo.add(pacoteSnapshot);
+        }
 
         UUID id = projeto.getId();
         // Bulk delete por pai: não depende da coleção lazy estar inicializada
@@ -108,6 +117,7 @@ public class ProjetoExclusaoService {
         projetoRepository.excluirPorId(id);
 
         fileStorageService.excluirArquivos(arquivos.stream().distinct().toList());
+        jogoStorageService.excluirPacotes(pacotesJogo.stream().distinct().toList());
         log.info("Projeto {} removido definitivamente (exclusão de conta)", id);
     }
 
@@ -138,6 +148,7 @@ public class ProjetoExclusaoService {
 
         // Snapshot antes de apagar: o purge/deleção precisa dos nomes de arquivo.
         List<String> arquivos = fileStorageService.nomesArquivosDeProjeto(projeto);
+        String pacoteJogo = projeto.getArquivoJogoId();
         List<UUID> integrantesIds = projeto.getIntegrantes().stream()
             .map(com.fatecrepository.model.Integrante::getId)
             .filter(java.util.Objects::nonNull)
@@ -151,6 +162,9 @@ public class ProjetoExclusaoService {
         // Fora da transação de banco, mas ainda dentro do request: falha de arquivo
         // é logada e não desfaz o hard delete (o faxineiro de órfãos é rede de segurança).
         fileStorageService.excluirArquivos(new ArrayList<>(arquivos));
+        if (pacoteJogo != null && !pacoteJogo.isBlank()) {
+            jogoStorageService.excluirPacotes(List.of(pacoteJogo));
+        }
 
         log.info("Projeto {} hard delete pelo autor (motivo {})", id, motivo);
         return new ExclusaoProjetoResponse(id, titulo, "EXCLUIDO", null);
@@ -168,6 +182,11 @@ public class ProjetoExclusaoService {
         projeto.setConteudoEditorJs(null);
         projeto.setDescricaoCurta(null);
         projeto.setLinkRepositorio(null);
+        projeto.setArquivoJogoId(null);
+        projeto.setArquivoJogoNomeOriginal(null);
+        projeto.setArquivoJogoTamanhoBytes(null);
+        projeto.setArquivoJogoSha256(null);
+        projeto.setExecutavelPrincipal(null);
         projeto.setPalavrasChave(new ArrayList<>());
     }
 
@@ -189,6 +208,12 @@ public class ProjetoExclusaoService {
         dados.put("arquivos", fileStorageService.nomesArquivosDeProjeto(projeto));
         dados.put("descricaoCurta", projeto.getDescricaoCurta());
         dados.put("linkRepositorio", projeto.getLinkRepositorio());
+        dados.put("tipoProjeto", projeto.getTipoProjeto() != null ? projeto.getTipoProjeto().name() : "GITHUB");
+        dados.put("arquivoJogoId", projeto.getArquivoJogoId());
+        dados.put("arquivoJogoNomeOriginal", projeto.getArquivoJogoNomeOriginal());
+        dados.put("arquivoJogoTamanhoBytes", projeto.getArquivoJogoTamanhoBytes());
+        dados.put("arquivoJogoSha256", projeto.getArquivoJogoSha256());
+        dados.put("executavelPrincipal", projeto.getExecutavelPrincipal());
         dados.put("palavrasChave", projeto.getPalavrasChave());
         dados.put("estadoAnterior", projeto.getEstado().name());
         try {
@@ -274,6 +299,20 @@ public class ProjetoExclusaoService {
             projeto.setConteudoEditorJs(texto(dados.get("conteudoEditorJs")));
             projeto.setDescricaoCurta(texto(dados.get("descricaoCurta")));
             projeto.setLinkRepositorio(texto(dados.get("linkRepositorio")));
+            String tipoRaw = texto(dados.get("tipoProjeto"));
+            if (tipoRaw != null && !tipoRaw.isBlank()) {
+                try {
+                    projeto.setTipoProjeto(com.fatecrepository.model.TipoProjeto.valueOf(tipoRaw));
+                } catch (IllegalArgumentException ignored) {}
+            }
+            projeto.setArquivoJogoId(texto(dados.get("arquivoJogoId")));
+            projeto.setArquivoJogoNomeOriginal(texto(dados.get("arquivoJogoNomeOriginal")));
+            Object tamObj = dados.get("arquivoJogoTamanhoBytes");
+            if (tamObj instanceof Number num) {
+                projeto.setArquivoJogoTamanhoBytes(num.longValue());
+            }
+            projeto.setArquivoJogoSha256(texto(dados.get("arquivoJogoSha256")));
+            projeto.setExecutavelPrincipal(texto(dados.get("executavelPrincipal")));
             projeto.setPalavrasChave(extrairPalavrasChave(dados.get("palavrasChave")));
 
             List<Integrante> atuais = projeto.getIntegrantes();
@@ -343,6 +382,18 @@ public class ProjetoExclusaoService {
             }
         }
         return palavras;
+    }
+
+    private String pacoteJogoDoSnapshot(Projeto projeto) {
+        if (projeto.getDadosOriginais() == null || projeto.getDadosOriginais().isBlank()) {
+            return null;
+        }
+        try {
+            Map<?, ?> dados = JSON.readValue(projeto.getDadosOriginais(), Map.class);
+            return texto(dados.get("arquivoJogoId"));
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String texto(Object valor) {

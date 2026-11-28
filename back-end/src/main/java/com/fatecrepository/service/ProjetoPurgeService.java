@@ -27,14 +27,17 @@ public class ProjetoPurgeService {
 
     private final ProjetoRepository projetoRepository;
     private final FileStorageService fileStorageService;
+    private final JogoStorageService jogoStorageService;
     /** Self-reference via proxy: garante @Transactional nas chamadas do scheduler. */
     private final ProjetoPurgeService self;
 
     public ProjetoPurgeService(ProjetoRepository projetoRepository,
                                FileStorageService fileStorageService,
+                               JogoStorageService jogoStorageService,
                                @Lazy ProjetoPurgeService self) {
         this.projetoRepository = projetoRepository;
         this.fileStorageService = fileStorageService;
+        this.jogoStorageService = jogoStorageService;
         this.self = self;
     }
 
@@ -77,6 +80,7 @@ public class ProjetoPurgeService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void purgarUm(Projeto projeto) {
         List<String> arquivos = nomesArquivosDoProjeto(projeto);
+        List<String> pacotesJogo = pacotesJogoDoProjeto(projeto);
         List<UUID> integrantesIds = projeto.getIntegrantes().stream()
             .map(com.fatecrepository.model.Integrante::getId)
             .filter(java.util.Objects::nonNull)
@@ -88,6 +92,27 @@ public class ProjetoPurgeService {
         // Mesma transação da deleção: se a limpeza de arquivo falhar, a linha não
         // some sem dono e o próximo purge tenta de novo.
         self.removerArquivos(projeto.getId(), arquivos);
+        if (!pacotesJogo.isEmpty()) {
+            jogoStorageService.excluirPacotes(pacotesJogo);
+        }
+    }
+
+    private List<String> pacotesJogoDoProjeto(Projeto projeto) {
+        List<String> pacotes = new ArrayList<>();
+        if (projeto.getArquivoJogoId() != null && !projeto.getArquivoJogoId().isBlank()) {
+            pacotes.add(projeto.getArquivoJogoId());
+        }
+        if (projeto.getDadosOriginais() != null && !projeto.getDadosOriginais().isBlank()) {
+            try {
+                Map<?, ?> dados = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readValue(projeto.getDadosOriginais(), Map.class);
+                Object id = dados.get("arquivoJogoId");
+                if (id != null && !id.toString().isBlank()) {
+                    pacotes.add(id.toString());
+                }
+            } catch (Exception ignored) {}
+        }
+        return pacotes.stream().distinct().toList();
     }
 
     /**

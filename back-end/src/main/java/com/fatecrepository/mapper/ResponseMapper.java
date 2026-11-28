@@ -88,12 +88,25 @@ public class ResponseMapper {
             ? new java.util.ArrayList<>(projeto.getPalavrasChave())
             : java.util.Collections.emptyList();
 
+        String tipoProjeto = projeto.getTipoProjeto() != null
+            ? projeto.getTipoProjeto().name()
+            : com.fatecrepository.model.TipoProjeto.GITHUB.name();
+        boolean temJogoExecutavel = com.fatecrepository.model.TipoProjeto.JOGO.name().equals(tipoProjeto)
+            && projeto.getArquivoJogoId() != null
+            && !projeto.getArquivoJogoId().isBlank();
+
         return new com.fatecrepository.dto.response.ProjetoResponse(
             projeto.getId(),
             projeto.getTitulo(),
             projeto.getDescricaoCurta(),
             projeto.getConteudoEditorJs(),
             projeto.getLinkRepositorio(),
+            tipoProjeto,
+            temJogoExecutavel,
+            projeto.getArquivoJogoId(),
+            projeto.getArquivoJogoNomeOriginal(),
+            projeto.getArquivoJogoTamanhoBytes(),
+            projeto.getExecutavelPrincipal(),
             projeto.getImagemCapaUrl(),
             palavrasChave,
             projeto.getAnoPublicado(),

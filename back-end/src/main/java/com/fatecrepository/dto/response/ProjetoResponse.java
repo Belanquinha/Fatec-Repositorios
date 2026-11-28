@@ -17,6 +17,12 @@ public class ProjetoResponse {
     private String descricaoCurta;
     private String conteudoEditorJs;
     private String linkRepositorio;
+    private String tipoProjeto;
+    private boolean temJogoExecutavel;
+    private String arquivoJogoId;
+    private String arquivoJogoNomeOriginal;
+    private Long arquivoJogoTamanhoBytes;
+    private String executavelPrincipal;
     private String imagemCapaUrl;
     private List<String> palavrasChave;
     private Integer anoPublicado;

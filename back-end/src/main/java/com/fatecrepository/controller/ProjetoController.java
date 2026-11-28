@@ -7,9 +7,11 @@ import com.fatecrepository.dto.request.RejeitarProjetoRequest;
 import com.fatecrepository.dto.response.ExclusaoProjetoResponse;
 import com.fatecrepository.dto.response.ProjetoRemovidoResponse;
 import com.fatecrepository.dto.response.ProjetoResponse;
+import com.fatecrepository.dto.response.SessaoJogoResponse;
 import com.fatecrepository.exception.BadRequestException;
 import com.fatecrepository.exception.UnauthorizedException;
 import com.fatecrepository.security.CustomUserDetails;
+import com.fatecrepository.service.JogoSessaoService;
 import com.fatecrepository.service.ProjetoExclusaoService;
 import com.fatecrepository.service.ProjetoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +41,7 @@ public class ProjetoController {
 
     private final ProjetoService projetoService;
     private final ProjetoExclusaoService projetoExclusaoService;
+    private final JogoSessaoService jogoSessaoService;
 
     @PostMapping
     @Operation(summary = "Criar e submeter projeto para avaliação acadêmica", description = "Submete um novo projeto acadêmico que nasce no estado AGUARDANDO_APROVACAO")
@@ -294,5 +297,14 @@ public class ProjetoController {
         }
         log.info("POST /projetos/{}/reverter pelo autor: {}", id, userDetails.getId());
         return ResponseEntity.ok(projetoExclusaoService.reverter(id, userDetails.getId()));
+    }
+
+    @PostMapping("/{id}/sessao-jogo")
+    @Operation(summary = "Gerar ticket temporário para executar o jogo no Fatec Launcher")
+    public ResponseEntity<SessaoJogoResponse> criarSessaoJogo(
+        @Parameter(description = "ID do projeto") @PathVariable UUID id,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(jogoSessaoService.criarSessao(id, userDetails));
     }
 }

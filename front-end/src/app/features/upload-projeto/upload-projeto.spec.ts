@@ -23,7 +23,7 @@ describe('UploadProjeto', () => {
       imports: [UploadProjeto],
       providers: [
         provideHttpClient(withXhr()),
-        provideRouter([]),
+        provideRouter([{ path: 'selecionar-modelo', children: [] }]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
     }).compileComponents();
@@ -59,7 +59,7 @@ describe('UploadProjeto (Enter não navega nem envia, item 1)', () => {
       imports: [UploadProjeto],
       providers: [
         provideHttpClient(withXhr()),
-        provideRouter([]),
+        provideRouter([{ path: 'selecionar-modelo', children: [] }]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
     }).compileComponents();
@@ -145,7 +145,7 @@ describe('UploadProjeto (campo do professor só e-mail, itens 3 e 4)', () => {
       imports: [UploadProjeto],
       providers: [
         provideHttpClient(withXhr()),
-        provideRouter([]),
+        provideRouter([{ path: 'selecionar-modelo', children: [] }]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
     }).compileComponents();
@@ -230,7 +230,7 @@ describe('UploadProjeto (tela de sucesso, item 5)', () => {
       imports: [UploadProjeto],
       providers: [
         provideHttpClient(withXhr()),
-        provideRouter([]),
+        provideRouter([{ path: 'selecionar-modelo', children: [] }]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
     }).compileComponents();
@@ -298,7 +298,7 @@ describe('UploadProjeto (limites de imagem)', () => {
       imports: [UploadProjeto],
       providers: [
         provideHttpClient(withXhr()),
-        provideRouter([]),
+        provideRouter([{ path: 'selecionar-modelo', children: [] }]),
         { provide: ProjetoService, useValue: mockProjetoService },
       ],
     }).compileComponents();

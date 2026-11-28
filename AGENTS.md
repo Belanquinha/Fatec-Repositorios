@@ -13,7 +13,8 @@ composto por:
 - **Backend** (`back-end/`): API Spring Boot 4.1 (Java 21), JPA + PostgreSQL 17,
   Spring Security com JWT (autenticação local por e-mail/senha + código de verificação via Resend e SSO Microsoft/MSAL do tenant CPS), Lombok, Swagger/OpenAPI (Springdoc).
 - **Frontend** (`front-end/`): aplicação Angular 22 + TypeScript 6 + Tailwind CSS,
-  Editor.js (rich text), tela unificada `/entrar` (login, cadastro com código de 6 dígitos, recuperação de senha e Azure MSAL CPS). Servida pelo Nginx em Docker.
+  Editor.js (rich text), tela unificada `/entrar` (login, cadastro com código de 6 dígitos, recuperação de senha e Azure MSAL CPS) e suporte a modelos de projeto (`GITHUB` e `JOGO` via `/selecionar-modelo`). Servida pelo Nginx em Docker.
+- **Launcher Windows** (`launcher/`): aplicativo desktop nativo (.NET 8 / WinForms) compilado em `FatecLauncher.exe` durante o build Docker (`front-end/Dockerfile`) e servido em `/downloads/FatecLauncher.exe`. Registra o protocolo `fatecrepo://`, baixa o `.zip` via ticket temporário, extrai na `%TEMP%`, executa o `.exe` principal e limpa ao fechar.
 - **Docker** (`docker-compose.yml`): `postgres:17`, `backend:4040`, `frontend:4200`.
 
 ## Stack resumida

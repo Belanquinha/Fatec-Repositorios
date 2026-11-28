@@ -48,6 +48,7 @@ services:
       # Diretório físico das capas (FileStorageService + seed). Precisa apontar
       # para dentro do volume uploads_data montado abaixo.
       APP_UPLOAD_DIR: /app/uploads
+      APP_JOGOS_DIR: /app/jogos
       # Profile da aplicação. Sem isto o backend roda sem perfil ativo e a trava do
       # override de destinatário (ResendEmailConfig) é fail-closed: para usar o
       # override em desenvolvimento mantenha `dev`; para subir em produção defina
@@ -64,6 +65,7 @@ services:
       - "4040:4040"
     volumes:
       - uploads_data:/app/uploads
+      - jogos_data:/app/jogos
     networks:
       - fatec
 
@@ -71,7 +73,8 @@ services:
     # Sem `build.args`: o front-end não recebe configuração por build.
     # A API é a constante relativa `/api` e o nginx abaixo decide o destino.
     build:
-      context: ./front-end
+      context: .
+      dockerfile: ./front-end/Dockerfile
     container_name: fatec-frontend
     restart: unless-stopped
     depends_on:
@@ -84,6 +87,7 @@ services:
 volumes:
   postgres_data:
   uploads_data:
+  jogos_data:
 
 networks:
   fatec:

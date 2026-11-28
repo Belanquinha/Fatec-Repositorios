@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEvent } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
@@ -9,6 +9,7 @@ import {
   ExclusaoContaModel,
   ExclusaoProjetoModel,
   InstituicaoOption,
+  JogoUploadResponseModel,
   PerfilInstituicaoModel,
   PerfilPublicoUsuarioModel,
   ProfessorDetalhe,
@@ -16,6 +17,7 @@ import {
   ProjetoCreatePayload,
   ProjetoRemovidoModel,
   ProjetoResponseModel,
+  SessaoJogoResponseModel,
   UploadResponseModel,
 } from '../models/projeto.model';
 
@@ -82,6 +84,22 @@ export class ProjetoService {
     const formData = new FormData();
     formData.append('file', arquivo);
     return this.http.post<UploadResponseModel>(`${this.apiUrl}/uploads`, formData);
+  }
+
+  uploadPacoteJogo(arquivo: File): Observable<HttpEvent<JogoUploadResponseModel>> {
+    const formData = new FormData();
+    formData.append('file', arquivo);
+    return this.http.post<JogoUploadResponseModel>(`${this.apiUrl}/jogos/upload`, formData, {
+      reportProgress: true,
+      observe: 'events',
+    });
+  }
+
+  criarSessaoJogo(projetoId: string): Observable<SessaoJogoResponseModel> {
+    return this.http.post<SessaoJogoResponseModel>(
+      `${this.apiUrl}/projetos/${encodeURIComponent(projetoId)}/sessao-jogo`,
+      {}
+    );
   }
 
   criarProjeto(payload: ProjetoCreatePayload): Observable<ProjetoResponseModel> {

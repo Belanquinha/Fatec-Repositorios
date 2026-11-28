@@ -65,6 +65,84 @@ export class VerProjeto implements OnInit {
   tags = computed(() => this.projeto()?.palavrasChave ?? []);
 
   temRepositorio = computed(() => !!this.projeto()?.linkRepositorio?.trim());
+  ehJogo = computed(() => this.projeto()?.tipoProjeto === 'JOGO' && !!this.projeto()?.temJogoExecutavel);
+  tamanhoJogoFormatado = computed(() => {
+    const bytes = this.projeto()?.arquivoJogoTamanhoBytes;
+    if (!bytes) return '';
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  });
+
+  // --- Execução de Jogo via Fatec Launcher ---
+  modalSegurancaAberto = signal(false);
+  modalLauncherAberto = signal(false);
+  gerandoSessaoJogo = signal(false);
+  erroSessaoJogo = signal<string | null>(null);
+  ultimoUriLauncher = signal<string | null>(null);
+
+  isWindowsDesktop(): boolean {
+    if (typeof navigator === 'undefined') return true;
+    const ua = navigator.userAgent || '';
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    const isWindows = /Windows/i.test(ua);
+    return isWindows && !isMobile;
+  }
+
+  abrirAvisoSegurancaJogo(): void {
+    this.erroSessaoJogo.set(null);
+    this.modalSegurancaAberto.set(true);
+  }
+
+  fecharAvisoSegurancaJogo(): void {
+    this.modalSegurancaAberto.set(false);
+  }
+
+  confirmarJogar(): void {
+    const id = this.projeto()?.id;
+    if (!id) return;
+    this.modalSegurancaAberto.set(false);
+    this.gerandoSessaoJogo.set(true);
+    this.erroSessaoJogo.set(null);
+
+    this.projetoService.criarSessaoJogo(id).subscribe({
+      next: (sessao) => {
+        this.gerandoSessaoJogo.set(false);
+        const apiBase = this.resolverApiAbsoluta();
+        const uri = `fatecrepo://play?api=${encodeURIComponent(apiBase)}&ticket=${encodeURIComponent(sessao.ticket)}`;
+        this.ultimoUriLauncher.set(uri);
+        this.modalLauncherAberto.set(true);
+        this.dispararProtocolo(uri);
+      },
+      error: (err) => {
+        this.gerandoSessaoJogo.set(false);
+        this.erroSessaoJogo.set(mensagemErroAmigavel(err, 'Não foi possível iniciar a sessão do jogo.'));
+      },
+    });
+  }
+
+  tentarAbrirLauncherNovamente(): void {
+    const uri = this.ultimoUriLauncher();
+    if (uri) {
+      this.dispararProtocolo(uri);
+    }
+  }
+
+  fecharModalLauncher(): void {
+    this.modalLauncherAberto.set(false);
+  }
+
+  private resolverApiAbsoluta(): string {
+    if (/^https?:\/\//i.test(environment.apiUrl)) {
+      return environment.apiUrl;
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200';
+    return `${origin}${environment.apiUrl.startsWith('/') ? '' : '/'}${environment.apiUrl}`;
+  }
+
+  private dispararProtocolo(uri: string): void {
+    if (typeof window !== 'undefined') {
+      window.location.href = uri;
+    }
+  }
 
   motivoRejeicao = computed(() => this.projeto()?.motivoRejeicao?.trim() ?? '');
 

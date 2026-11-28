@@ -42,6 +42,7 @@ public class ProjetoService {
     private final ProfessorInstituicaoRepository vinculoRepository;
     private final ResponseMapper responseMapper;
     private final NotificacaoProjetoService notificacaoProjetoService;
+    private final JogoStorageService jogoStorageService;
 
     @Transactional
     public ProjetoResponse criar(ProjetoCreateRequest request, UUID autorId) {
@@ -59,6 +60,7 @@ public class ProjetoService {
         projeto.setDescricaoCurta(request.getDescricaoCurta().trim());
         projeto.setConteudoEditorJs(request.getConteudoEditorJs());
         projeto.setLinkRepositorio(request.getLinkRepositorio() != null ? request.getLinkRepositorio().trim() : null);
+        aplicarModeloProjeto(projeto, request, null);
         projeto.setImagemCapaUrl(request.getImagemCapaUrl());
         projeto.setPalavrasChave(request.getPalavrasChave() != null ? request.getPalavrasChave() : new ArrayList<>());
         projeto.setAnoPublicado(request.getAnoPublicado() != null ? request.getAnoPublicado() : LocalDate.now().getYear());
@@ -106,12 +108,14 @@ public class ProjetoService {
         CatalogoValidado catalogo = validarCatalogo(request);
         validarIntegrantes(request.getIntegrantes());
         String emailResponsavel = validarEmailResponsavel(request.getEmailProfessorResponsavel());
+        String pacoteAnterior = projeto.getArquivoJogoId();
 
         LocalDateTime agora = LocalDateTime.now();
         projeto.setTitulo(request.getTitulo().trim());
         projeto.setDescricaoCurta(request.getDescricaoCurta().trim());
         projeto.setConteudoEditorJs(request.getConteudoEditorJs());
         projeto.setLinkRepositorio(request.getLinkRepositorio() != null ? request.getLinkRepositorio().trim() : null);
+        aplicarModeloProjeto(projeto, request, pacoteAnterior);
         projeto.setImagemCapaUrl(request.getImagemCapaUrl());
         projeto.setPalavrasChave(request.getPalavrasChave() != null
             ? new ArrayList<>(request.getPalavrasChave()) : new ArrayList<>());
@@ -128,6 +132,9 @@ public class ProjetoService {
         substituirIntegrantes(projeto, request.getIntegrantes());
 
         Projeto salvo = projetoRepository.saveAndFlush(projeto);
+        if (pacoteAnterior != null && !pacoteAnterior.equals(salvo.getArquivoJogoId())) {
+            jogoStorageService.excluirPacotes(List.of(pacoteAnterior));
+        }
         log.info("Projeto {} reenviado pelo autor {}", projetoId, autorId);
 
         ProjetoResponse resp = responseMapper.toProjetoResponse(salvo);
@@ -394,6 +401,40 @@ public class ProjetoService {
     // ------------------------------------------------------------------
 
     private record CatalogoValidado(Instituicao instituicao, Curso curso) {}
+
+    private void aplicarModeloProjeto(Projeto projeto, ProjetoCreateRequest request, String pacoteAnterior) {
+        TipoProjeto tipo = TipoProjeto.GITHUB;
+        if (request.getTipoProjeto() != null && !request.getTipoProjeto().isBlank()) {
+            try {
+                tipo = TipoProjeto.valueOf(request.getTipoProjeto().trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Modelo de projeto inválido. Use GITHUB ou JOGO.");
+            }
+        }
+        projeto.setTipoProjeto(tipo);
+
+        if (tipo == TipoProjeto.JOGO) {
+            String arquivoId = request.getArquivoJogoId() != null ? request.getArquivoJogoId().trim() : null;
+            String executavel = request.getExecutavelPrincipal() != null
+                ? request.getExecutavelPrincipal().trim().replace('\\', '/') : null;
+
+            // Se está editando e manteve o mesmo arquivoJogoId, valida que ainda existe.
+            var pacote = jogoStorageService.validarPacoteEExecutavel(arquivoId, executavel);
+            projeto.setArquivoJogoId(pacote.arquivoJogoId());
+            if (projeto.getArquivoJogoNomeOriginal() == null || !pacote.arquivoJogoId().equals(pacoteAnterior)) {
+                projeto.setArquivoJogoNomeOriginal(pacote.nomeOriginal());
+            }
+            projeto.setArquivoJogoTamanhoBytes(pacote.tamanhoBytes());
+            projeto.setArquivoJogoSha256(pacote.sha256());
+            projeto.setExecutavelPrincipal(executavel);
+        } else {
+            projeto.setArquivoJogoId(null);
+            projeto.setArquivoJogoNomeOriginal(null);
+            projeto.setArquivoJogoTamanhoBytes(null);
+            projeto.setArquivoJogoSha256(null);
+            projeto.setExecutavelPrincipal(null);
+        }
+    }
 
     private CatalogoValidado validarCatalogo(ProjetoCreateRequest request) {
         Instituicao instituicao = instituicaoRepository.findById(request.getInstituicaoId())

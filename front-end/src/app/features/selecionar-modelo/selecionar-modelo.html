@@ -1,0 +1,68 @@
+<div class="selecionar-modelo-container">
+  <nav class="breadcrumb" aria-label="Navegação">
+    <a routerLink="/perfil" class="link-voltar">
+      <span class="material-symbols-outlined">arrow_back</span>
+      <span>Voltar ao perfil</span>
+    </a>
+  </nav>
+
+  <header class="cabecalho">
+    <span class="badge-etapa">Passo 1 de 2</span>
+    <h1 class="titulo">Escolha o modelo do seu projeto</h1>
+    <p class="subtitulo">
+      Selecione o formato que melhor representa a entrega acadêmica que você deseja publicar na vitrine da FATEC.
+    </p>
+  </header>
+
+  <div class="modelos-grid">
+    <!-- Modelo GitHub -->
+    <button type="button" class="modelo-card" (click)="selecionar('GITHUB')" data-testid="modelo-github">
+      <div class="modelo-icone-wrapper modelo-icone-azul">
+        <span class="material-symbols-outlined">code</span>
+      </div>
+      <div class="modelo-corpo">
+        <div class="modelo-topo">
+          <h2>Repositório de Código</h2>
+          <span class="modelo-tag">Padrão</span>
+        </div>
+        <p>
+          Ideal para sistemas web, APIs, aplicativos, pesquisas e projetos com código-fonte hospedado no GitHub ou GitLab.
+        </p>
+        <ul class="modelo-lista">
+          <li><span class="material-symbols-outlined">check</span> Link direto para o repositório</li>
+          <li><span class="material-symbols-outlined">check</span> Documentação rica com Editor.js</li>
+          <li><span class="material-symbols-outlined">check</span> Validação pelo professor orientador</li>
+        </ul>
+      </div>
+      <span class="modelo-cta">
+        <span>Continuar com Repositório</span>
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </span>
+    </button>
+
+    <!-- Modelo Jogo Executável -->
+    <button type="button" class="modelo-card modelo-card-jogo" (click)="selecionar('JOGO')" data-testid="modelo-jogo">
+      <div class="modelo-icone-wrapper modelo-icone-amarelo">
+        <span class="material-symbols-outlined">sports_esports</span>
+      </div>
+      <div class="modelo-corpo">
+        <div class="modelo-topo">
+          <h2>Jogo Executável</h2>
+          <span class="modelo-tag modelo-tag-novo">Novo</span>
+        </div>
+        <p>
+          Envie um pacote <code>.zip</code> (até 500 MB) com seu jogo para Windows. Visitantes e professores poderão jogar direto pelo Fatec Launcher.
+        </p>
+        <ul class="modelo-lista">
+          <li><span class="material-symbols-outlined">check</span> Upload do pacote <code>.zip</code> até 500 MB</li>
+          <li><span class="material-symbols-outlined">check</span> Seleção do executável principal (<code>.exe</code>)</li>
+          <li><span class="material-symbols-outlined">check</span> Link do GitHub opcional</li>
+        </ul>
+      </div>
+      <span class="modelo-cta modelo-cta-jogo">
+        <span>Continuar com Jogo</span>
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </span>
+    </button>
+  </div>
+</div>

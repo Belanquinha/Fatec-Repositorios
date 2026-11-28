@@ -42,8 +42,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 100MB
-      max-request-size: 100MB
+      max-file-size: 510MB
+      max-request-size: 515MB
 
 springdoc:
   api-docs:
@@ -73,6 +73,9 @@ app:
     # relativo resolve para ./uploads a partir do WORKDIR; no compose o
     # APP_UPLOAD_DIR aponta para o volume uploads_data (/app/uploads).
     dir: ${APP_UPLOAD_DIR:uploads}
+  jogos:
+    dir: ${APP_JOGOS_DIR:uploads-jogos}
+    ticket-ttl-segundos: ${APP_JOGOS_TICKET_TTL_SEGUNDOS:300}
   projeto:
     purgacao:
       # Purge diário de REMOVIDO com mais de 14 dias (linha + arquivos).

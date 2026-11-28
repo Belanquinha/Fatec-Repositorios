@@ -148,7 +148,7 @@ describe('Header', () => {
     await renderizar();
 
     const nav = fixture.nativeElement.querySelector('#menu-lateral') as HTMLElement;
-    expect(nav.querySelector('a[href="/projeto-forms"]')).toBeNull();
+    expect(nav.querySelector('a[href="/selecionar-modelo"]')).toBeNull();
   });
 
   it('aluno vê o link "Upload de projeto" no drawer', async () => {
@@ -162,7 +162,7 @@ describe('Header', () => {
     await renderizar();
 
     const nav = fixture.nativeElement.querySelector('#menu-lateral') as HTMLElement;
-    expect(nav.querySelector('a[href="/projeto-forms"]')).not.toBeNull();
+    expect(nav.querySelector('a[href="/selecionar-modelo"]')).not.toBeNull();
   });
 
   it('ADMIN não vê o link "Upload de projeto" no drawer', async () => {
@@ -176,7 +176,7 @@ describe('Header', () => {
     await renderizar();
 
     const nav = fixture.nativeElement.querySelector('#menu-lateral') as HTMLElement;
-    expect(nav.querySelector('a[href="/projeto-forms"]')).toBeNull();
+    expect(nav.querySelector('a[href="/selecionar-modelo"]')).toBeNull();
   });
 });
 
